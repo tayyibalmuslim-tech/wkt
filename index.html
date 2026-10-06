@@ -6,6 +6,7 @@
 <title>وقتي — يومك حول الصلاة</title>
 <meta name="theme-color" content="#f7f4ed" />
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="categories.css">
 </head>
 <body>
 <div class="app">
@@ -13,7 +14,7 @@
     <div class="brand"><div class="brand-mark">◷</div><div><h1>وقتي</h1><small>مساحة ليوم أكثر اتزانًا</small></div></div>
     <nav class="nav">
       <button data-tab="day" class="active">▦ يومي</button>
-      <button data-tab="actions">◈ قائمة الأفعال</button>
+      <button data-tab="actions">◈ الأقسام والأفعال</button>
       <button data-tab="recurring">↻ مهامي المتكررة</button>
       <button data-tab="settings">⚙ إعدادات</button>
     </nav>
@@ -45,7 +46,7 @@
 
   <main id="tab-actions" class="hidden">
     <section class="panel">
-      <div class="section-head"><div><h3>قائمة الأفعال</h3><div class="muted small">الألوان تظهر في الخانات سواء كفعل مطلوب أو كفعل تمّ فعليًا.</div></div><button class="btn primary" id="addAction">＋ فعل جديد</button></div>
+      <div class="section-head"><div><h3>الأقسام والأفعال</h3><div class="muted small">لون القسم يطبق على كل أفعاله في الخانات المطلوبة والفعلية.</div></div><button class="btn primary" id="addAction" hidden>＋ فعل جديد</button></div>
       <div id="actionsList" class="list"></div>
     </section>
   </main>
@@ -89,6 +90,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database-compat.js"></script>
+<script src="categories.js"></script>
 <script src="core.js"></script>
 <script src="ui.js"></script>
 <script src="cloud-init.js"></script>
