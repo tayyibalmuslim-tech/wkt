@@ -1,0 +1,27 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "waqti": {
+      "users": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && newData.exists()",
+          ".validate": "newData.hasChildren(['payload', 'revision', 'updatedAt'])",
+          "payload": {
+            ".validate": "newData.isString() && newData.val().length <= 4000000"
+          },
+          "revision": {
+            ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === 1) || (data.exists() && newData.val() === data.val() + 1))"
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber() && newData.val() === now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    }
+  }
+}
