@@ -12,3 +12,6 @@
 
 /* Keep category groups together while filling both columns. */
 .slot-action-groups{display:block;columns:2;column-gap:14px}.slot-action-group{break-inside:avoid;page-break-inside:avoid;display:inline-block;width:100%;margin:0 0 14px;vertical-align:top}.slot-action-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,72px),1fr))}.slot-action-group h3{line-height:1.5;overflow-wrap:anywhere}.slot-editor .slot-action-empty{column-span:all;display:block;width:fit-content;margin-bottom:14px}.slot-action-group h3 i{flex-shrink:0}@media(max-width:380px){.slot-action-groups{column-gap:10px}.slot-editor .slot-action-choice{font-size:11px;padding:7px 4px}.slot-action-group h3{font-size:12px}}
+
+/* Compact slot dialog heading and bottom empty-action control. */
+dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;margin:0 0 3px}.slot-editor .dialog-head h2{font-size:16px;line-height:1.4;margin:0}.slot-editor .dialog-head #close{width:32px;height:32px;padding:0;line-height:1;font-size:24px;display:grid;place-items:center}.slot-editor .slot-summary{margin:3px 0 8px;font-size:11px;line-height:1.5}.slot-editor .slot-action-groups{margin:8px 0 0}.slot-editor .slot-action-empty{margin:0 0 8px;min-height:32px;padding:6px 12px;font-size:11px}.slot-editor .range-fields{margin-top:6px}
