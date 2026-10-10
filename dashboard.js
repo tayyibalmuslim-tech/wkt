@@ -14,13 +14,24 @@ function taskCard(t){
  ${children.length?`<details class="task-children"><summary>${children.length} مهام فرعية · ${doneChildren} مكتملة</summary>${children.map(c=>`<p>${esc(c.name)} — ${c.date?c.date+' · '+names[c.prayer]:'تحتاج توزيعًا'} · ${c.date?completedSlots(c):0}/${c.expectedSlots||0} خانة</p>`).join('')}</details>`:''}
  <div class="task-controls">${t.date?`<button data-outcome="done" class="secondary ${status==='done'?'selected-outcome':''}" aria-pressed="${status==='done'}">✓ فعلتها</button><button data-outcome="failed" class="secondary ${status==='failed'?'selected-outcome':''}" aria-pressed="${status==='failed'}">✕ لم أفعلها</button>`:''}<button data-task-edit class="secondary">${t.date?'تعديل / توزيع':'توزيع المهمة'}</button><button data-task-child class="secondary">＋ فرعية</button><button data-task-delete class="danger">حذف</button></div></article>`;
 }
+function compactTaskCard(t){
+ const status=outcome(t),count=completedSlots(t),expected=t.expectedSlots||0;
+ const action=state.actions.find(a=>a.id===t.actionId),children=taskEntries().filter(x=>x.parentId===t.id&&(!x.parentDate||x.parentDate===t.date));
+ const info=[`<span class="priority ${esc(t.priority||'medium')}">${priorityNames[t.priority]||priorityNames.medium}</span>`,`<span title="الخانات المنجزة / المستهدفة · ${expected*15} دقيقة مخططة"><bdi>${count}/${expected}</bdi> خانة</span>`];
+ if(action)info.push(`<span>${esc(action.name)}</span>`);
+ if(t.recurrent)info.push('<span>↻ متكررة</span>');
+ if(t.parentId)info.push(`<span>↳ ${esc(parentName(t))}</span>`);
+ if(children.length)info.push(`<span>${children.filter(c=>c.date&&outcome(c)==='done').length}/${children.length} فرعية مكتملة</span>`);
+ if(t.startSlot!=null)info.push(`<span>◷ ${time(t.startSlot)}</span>`);
+ return `<article class="daily-task ${status}" data-task-id="${esc(t.id)}" data-task-date="${t.date}"><div class="daily-task-content"><strong class="daily-task-name">${esc(t.name)}</strong><div class="daily-task-info">${info.join('')}</div></div><div class="daily-task-controls"><button data-outcome="done" class="status-button ${status==='done'?'yes':''}" aria-label="فعلتها: ${esc(t.name)}" title="فعلتها" aria-pressed="${status==='done'}">✓</button><button data-outcome="failed" class="status-button ${status==='failed'?'no':''}" aria-label="لم أفعلها: ${esc(t.name)}" title="لم أفعلها" aria-pressed="${status==='failed'}">✕</button><button data-task-edit class="secondary" aria-label="تعديل: ${esc(t.name)}">تعديل</button></div></article>`;
+}
 function bindTaskCards(root=app){root.querySelectorAll('[data-task-id]').forEach(card=>{
  const get=()=>findTask(card.dataset.taskId,card.dataset.taskDate);
  card.querySelectorAll('[data-outcome]').forEach(b=>b.onclick=()=>{const t=get();if(!t)return;setTaskOutcome(taskDay(t.date),t.id,b.dataset.outcome);save();render()});
  const progress=card.querySelector('[data-progress]');if(progress)progress.onchange=()=>{const t=get(),n=+progress.value;if(!t)return;if(!Number.isInteger(n)||n<0||n>9999||progress.value===''){progress.value=completedSlots(t);toast('أدخل عددًا صحيحًا بين ٠ و٩٩٩٩');return}(taskDay(t.date).taskProgress??={})[t.id]=n;save();render()};
  card.querySelector('[data-task-edit]').onclick=()=>openPlannerEditor(get());
- card.querySelector('[data-task-child]').onclick=()=>openPlannerEditor(null,get());
- card.querySelector('[data-task-delete]').onclick=()=>{const t=get();if(t)deletePlannedTask(t)};
+ if(card.querySelector('[data-task-child]'))card.querySelector('[data-task-child]').onclick=()=>openPlannerEditor(null,get());
+ if(card.querySelector('[data-task-delete]'))card.querySelector('[data-task-delete]').onclick=()=>{const t=get();if(t)deletePlannedTask(t)};
  })}
 function sortedTasks(list){const order={high:0,medium:1,low:2};return [...list].sort((a,b)=>(order[a.priority||'medium']??1)-(order[b.priority||'medium']??1)||a.name.localeCompare(b.name,'ar'))}
 function filteredTasks(list){return sortedTasks(list.filter(t=>(!plannerQuery||t.name.toLocaleLowerCase().includes(plannerQuery.trim().toLocaleLowerCase()))&&(plannerPriority==='all'||(t.priority||'medium')===plannerPriority)&&(plannerStatus==='all'||(t.date?outcome(t):'pending')===plannerStatus)))}

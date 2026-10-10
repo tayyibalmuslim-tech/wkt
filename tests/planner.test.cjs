@@ -23,9 +23,9 @@ const snapshot=run('JSON.stringify(state)');assert.throws(()=>run("savePlannedTa
 // End of period must not spill into the next prayer.
 assert.throws(()=>run("savePlannedTask(null,{id:'overflow',name:'تجاوز',date,prayer:0,expectedSlots:96,actionId:state.actions[0].id,startSlot:periodSlots(date,0)[0]})"));assert.equal(run('JSON.stringify(state)'),snapshot);
 // Main view integrates cards, progress and capacity without altering slot controls.
-run("view='day';prayer=0;render()");assert.ok($('#dailyTaskCards [data-progress]'));assert.ok($('[data-slot]'));assert.match($('.capacity-note').textContent,/مشغولة/);
+run("view='day';prayer=0;render()");assert.equal($('#dailyTaskCards').querySelectorAll('input,select,textarea').length,0);assert.equal($('#dailyTaskCards .daily-task').querySelectorAll('button').length,3);click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.completedSlots.value,'1');$('#plannerForm').elements.completedSlots.value='2';submit('#plannerForm');assert.equal(run('completedSlots(allTasksOn(date)[0])'),2);assert.match($('#dailyTaskCards').textContent,/2\/2/);assert.ok($('[data-slot]'));assert.match($('.capacity-note').textContent,/مشغولة/);
 // Delete removes task-owned planned slots; preserves later manual changes.
-run("day().planned[periodSlots(date,0)[0]%96]='manual-edit'");click('[data-task-delete]');assert.equal(run('Object.keys(day().planned).length'),1);assert.equal(run('Object.values(day().planned)[0]'),'manual-edit');
+run("day().planned[periodSlots(date,0)[0]%96]='manual-edit'");click('#dailyTaskCards [data-task-edit]');click('#editorDeleteTask');assert.equal($('#plannerEditor').open,false);assert.equal(run('Object.keys(day().planned).length'),1);assert.equal(run('Object.values(day().planned)[0]'),'manual-edit');
 run('validate(state)');
 // Import/export preserves optional planning data and rejects malformed progress.
 const exported=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(exported)+');validate(state);render()');
