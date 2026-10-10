@@ -30,7 +30,7 @@ function setupCalendar(){state.location??={...cairoLocation};state.method??='Egy
   for(let [key,value] of Object.entries(d.slots||{})){let n=+key,civil=addDate(oldDate,Math.floor(n/96)),wall=((n%96)+96)%96,dest=wall*15>=minute(clockAt(solar(civil).maghrib))?addDate(civil,1):civil;target(dest).slots[wall]=value}
  }save();}
 }
-function goDay(d,live=false){date=d;followToday=live;if(live)prayer=currentPrayer();render()}
+function goDay(d,live=false){date=d;plannerMonth=d.slice(0,7);plannerWeek=addDate(d,-new Date(d+'T12:00:00').getDay());followToday=live;if(live)prayer=currentPrayer();render()}
 function tickCalendar(){let nowDay=activeDay(),civil=zonedDate();if(nowDay!==lastActiveDay){let wasLive=followToday;lastActiveDay=nowDay;if(wasLive){date=nowDay;prayer=3;$('#prayerDialog').close();$('#picker').close();render();toast('بدأ يوم هجري جديد مع المغرب')}}if(civil!==lastCivilDay){lastCivilDay=civil;let label=$('#civilToday');if(label)label.textContent=gregorianLabel()} }
 
 function displayTime(value){let [h,m]=value.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h<12?"ص":"م"}`}
