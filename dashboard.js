@@ -17,7 +17,8 @@ function taskCard(t){
 function compactTaskCard(t){
  const status=outcome(t),count=completedSlots(t),expected=t.expectedSlots||0;
  const action=state.actions.find(a=>a.id===t.actionId),children=taskEntries().filter(x=>x.parentId===t.id&&(!x.parentDate||x.parentDate===t.date));
- const info=[`<span class="priority ${esc(t.priority||'medium')}">${priorityNames[t.priority]||priorityNames.medium}</span>`,`<span title="الخانات المنجزة / المستهدفة · ${expected*15} دقيقة مخططة"><bdi>${count}/${expected}</bdi> خانة</span>`];
+ const info=[`<span class="priority ${esc(t.priority||'medium')}">${priorityNames[t.priority]||priorityNames.medium}</span>`];
+ if(expected>0)info.push(`<label class="daily-task-progress" title="الخانات المنجزة من ${expected} خانة مستهدفة · ${expected*15} دقيقة مخططة"><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span dir="ltr">/ ${expected}</span><span>خانة</span></label>`);
  if(action)info.push(`<span>${esc(action.name)}</span>`);
  if(t.recurrent)info.push('<span>↻ متكررة</span>');
  if(t.parentId)info.push(`<span>↳ ${esc(parentName(t))}</span>`);
@@ -28,7 +29,7 @@ function compactTaskCard(t){
 function bindTaskCards(root=app){root.querySelectorAll('[data-task-id]').forEach(card=>{
  const get=()=>findTask(card.dataset.taskId,card.dataset.taskDate);
  card.querySelectorAll('[data-outcome]').forEach(b=>b.onclick=()=>{const t=get();if(!t)return;setTaskOutcome(taskDay(t.date),t.id,b.dataset.outcome);save();render()});
- const progress=card.querySelector('[data-progress]');if(progress)progress.onchange=()=>{const t=get(),n=+progress.value;if(!t)return;if(!Number.isInteger(n)||n<0||n>9999||progress.value===''){progress.value=completedSlots(t);toast('أدخل عددًا صحيحًا بين ٠ و٩٩٩٩');return}(taskDay(t.date).taskProgress??={})[t.id]=n;save();render()};
+ const progress=card.querySelector('[data-progress]');if(progress){progress.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();progress.blur()}};progress.onchange=()=>{const t=get(),n=+progress.value;if(!t)return;if(!Number.isInteger(n)||n<0||n>9999||progress.value===''){progress.value=completedSlots(t);toast('أدخل عددًا صحيحًا بين ٠ و٩٩٩٩');return}(taskDay(t.date).taskProgress??={})[t.id]=n;save();render()};}
  card.querySelector('[data-task-edit]').onclick=()=>openPlannerEditor(get());
  if(card.querySelector('[data-task-child]'))card.querySelector('[data-task-child]').onclick=()=>openPlannerEditor(null,get());
  if(card.querySelector('[data-task-delete]'))card.querySelector('[data-task-delete]').onclick=()=>{const t=get();if(t)deletePlannedTask(t)};
