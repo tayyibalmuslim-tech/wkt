@@ -89,14 +89,44 @@ function deletePlannedTask(t){
 function taskFields(t={},includeDate=true){return `
  <label class="field">الأولوية<select name="priority">${Object.entries(priorityNames).map(([v,n])=>`<option value="${v}" ${(t.priority||'medium')===v?'selected':''}>${n}</option>`).join('')}</select></label>
  <label class="field">الخانات المتوقعة (الخانة ١٥ دقيقة)<input name="expectedSlots" type="number" min="0" max="96" step="1" value="${t.expectedSlots||0}" required></label>
- <label class="field">الفعل المرتبط<select name="actionId"><option value="">بدون ربط</option>${state.actions.map(a=>`<option value="${esc(a.id)}" ${t.actionId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></label>
+ <div class="field task-action-field"><input type="hidden" name="actionId" value="${esc(t.actionId||'')}"><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span class="task-action-caption">الفعل المرتبط</span><span class="task-action-selected" data-task-action-label>بدون ربط — اختر فعلًا</span><span class="task-action-arrow" aria-hidden="true">▾</span></button></div>
  ${includeDate?`<label class="field">اليوم (اتركه فارغًا لصندوق الوارد)<input name="taskDate" type="date" value="${t.date||''}"></label><label class="field">فترة الصلاة<select name="taskPrayer">${prayerOrder.map(p=>`<option value="${p}" ${p===(t.prayer??prayer)?'selected':''}>${names[p]}</option>`).join('')}</select></label>`:''}`}
+function attachTaskActionPicker(form){
+ const trigger=form.querySelector('[data-task-action-trigger]');
+ if(!trigger)return;
+ const input=form.elements.actionId;
+ const updateLabel=()=>{
+  const action=state.actions.find(a=>a.id===input.value);
+  trigger.querySelector('[data-task-action-label]').textContent=action?.name||'بدون ربط — اختر فعلًا';
+  trigger.setAttribute('aria-label','الفعل المرتبط: '+(action?.name||'بدون ربط'));
+ };
+ trigger.onclick=()=>{
+  let dialog=document.querySelector('#taskActionPicker');
+  if(!dialog){
+   dialog=document.createElement('dialog');
+   dialog.id='taskActionPicker';
+   dialog.setAttribute('aria-labelledby','taskActionPickerTitle');
+   document.body.append(dialog);
+  }
+  const actions=state.actions.filter(a=>!a.archived||a.id===input.value);
+  dialog.innerHTML=`<div class="slot-editor"><div class="dialog-head"><h2 id="taskActionPickerTitle">اختيار الفعل المرتبط</h2><button type="button" id="closeTaskActionPicker" aria-label="إغلاق">×</button></div>${SlotTools.actionChoices({action:input.value,actions,categories:state.categories,color:a=>ActionCategories.color(state,a),category:a=>ActionCategories.category(state,a)?.name||'بدون قسم'})}</div>`;
+  dialog.querySelector('#closeTaskActionPicker').onclick=()=>dialog.close();
+  dialog.querySelectorAll('[data-action-choice]').forEach(b=>b.onclick=()=>{
+   input.value=b.dataset.actionChoice;
+   updateLabel();
+   dialog.close();
+   trigger.focus();
+  });
+  dialog.showModal();
+ };
+ updateLabel();
+}
 function openPlannerEditor(t=null,parent=null){
  let dialog=$('#plannerEditor');if(!dialog){dialog=document.createElement('dialog');dialog.id='plannerEditor';dialog.setAttribute('aria-labelledby','plannerTitle');document.body.append(dialog)}
  const editorState=state;
  const draft=t||{id:uid(),name:'',date:parent?'':date,prayer,priority:'medium',expectedSlots:0,parentId:parent?.id,parentName:parent?.name,parentDate:parent?.date||''};
  dialog.innerHTML=`<div class="dialog-head"><h2 id="plannerTitle">${t?'تعديل وتوزيع المهمة':parent?'إضافة مهمة فرعية':'إضافة مهمة'}</h2><button type="button" id="closePlanner" aria-label="إغلاق">×</button></div><form id="plannerForm"><label class="field">المهمة<input name="taskName" maxlength="150" required value="${esc(draft.name)}"></label>${draft.parentId?`<p>ضمن: ${esc(parentName(draft))}</p>`:''}<div class="planner-fields">${taskFields(draft)}${t?.date?`<label class="field">الخانات المنجزة<input name="completedSlots" type="number" min="0" max="9999" step="1" required value="${completedSlots(t)}"></label>`:''}</div><p id="plannerCapacity" class="capacity-note"></p><label class="field">بداية التنفيذ في خانات الفعل المطلوب<select name="startSlot"></select></label><p class="hint">التخطيط يحجز عدد الخانات المتوقع ويكتب الفعل المرتبط. لا يغيّر تسجيلك الفعلي ولا يضع علامة إنجاز تلقائيًا.</p>${t?.recurrent?'<p class="hint">تعديل هذه النسخة يفصلها عن السلسلة لهذا اليوم فقط.</p>':''}<p id="plannerError" role="alert"></p><button class="primary">حفظ المهمة</button></form>${t?'<div class="planner-edit-actions"><button type="button" id="editorAddChild" class="secondary">＋ إضافة مهمة فرعية</button><button type="button" id="editorDeleteTask" class="danger">حذف المهمة</button></div>':''}`;
- const form=$('#plannerForm'),f=form.elements;
+ const form=$('#plannerForm'),f=form.elements;attachTaskActionPicker(form);
  const refresh=()=>{const key=f.taskDate.value,p=+f.taskPrayer.value,old=f.startSlot.value;
   $('#plannerCapacity').textContent=key?capacityText(key,p,t?.date===key?t.id:''):'ستظهر المهمة في «تحتاج توزيعًا» حتى تختار يومًا.';
   f.startSlot.innerHTML='<option value="">بدون حجز وقت محدد</option>'+(key?periodSlots(key,p).map(n=>`<option value="${n}">${time(n)}</option>`).join(''):'');
@@ -122,7 +152,7 @@ function installQuickTask(){if($('#quickTaskButton'))return;const b=document.cre
 function renderRepeat(edit=null){
  renderRepeatLegacy(edit);
  const form=$('#repeatForm');
- const extra=document.createElement('div');extra.className='planner-fields';extra.innerHTML=taskFields(edit||{},false);form.insertBefore(extra,form.querySelector('.primary'));
+ const extra=document.createElement('div');extra.className='planner-fields';extra.innerHTML=taskFields(edit||{},false);form.insertBefore(extra,form.querySelector('.primary'));attachTaskActionPicker(form);
  const submit=form.onsubmit;
  form.onsubmit=e=>{
   const f=form.elements,count=+f.expectedSlots.value;
