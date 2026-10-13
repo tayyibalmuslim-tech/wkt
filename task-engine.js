@@ -20,7 +20,8 @@ function allTasksOn(key){
  const repeats=key<activeDay()?(d.repeatSnapshot||[]):repeatFor(key);
  return [...d.tasks,...repeats.filter(t=>!d.excludedRepeat?.[t.id])].map(t=>({...t,date:key}));
 }
-function outcome(t){const d=state.sunsetDays[t.date];return d?.done?.[t.id]?'done':d?.failed?.[t.id]?'failed':'pending'}
+function outcome(t){if(!t.date)return t.inboxOutcome||'pending';const d=state.sunsetDays[t.date];return d?.done?.[t.id]?'done':d?.failed?.[t.id]?'failed':'pending'}
+function setInboxOutcome(t,value){if(t.inboxOutcome===value)delete t.inboxOutcome;else t.inboxOutcome=value}
 function completedSlots(t){return state.sunsetDays[t.date]?.taskProgress?.[t.id]||0}
 function taskEntries(){return [...Object.keys(state.sunsetDays).sort().flatMap(allTasksOn),...(state.taskInbox||[]).map(t=>({...t,date:''}))]}
 function findTask(id,key){return key?allTasksOn(key).find(t=>t.id===id):(state.taskInbox||[]).find(t=>t.id===id)}
@@ -57,6 +58,7 @@ function savePlannedTask(original,next,progress=null){
  if(progress!==null&&(!Number.isInteger(progress)||progress<0||progress>9999))throw Error('الخانات المنجزة يجب أن تكون بين ٠ و٩٩٩٩.');
  // Validate the schedule against a temporary copy before touching the real state.
  const snapshot=structuredClone(state);
+ const previousOutcome=original?outcome(original):'pending';
  try{
   if(original?.date)removeTaskSchedule(original.date,original.id);
   const moved=original&&original.date!==next.date;
@@ -67,14 +69,23 @@ function savePlannedTask(original,next,progress=null){
   let item={...next};delete item.recurrent;
   if(original?.recurrent){item.id=uid();item.detachedFrom=original.id;}
   if(item.date){
+   delete item.inboxOutcome;
    const d=taskDay(item.date);d.tasks.push(item);
+   if(original&&!original.date&&previousOutcome!=='pending')(d[previousOutcome]??={})[item.id]=true;
    if(original?.date&&(moved||original.recurrent)){
     const old=taskDay(original.date);
     for(const field of ['done','failed','taskProgress']){if(old[field]?.[original.id]!==undefined){(d[field]??={})[item.id]=old[field][original.id];delete old[field][original.id];}}
    }
    if(progress!==null)(d.taskProgress??={})[item.id]=progress;
    scheduleTask(item,item.startSlot??null);
-  }else state.taskInbox.push(item);
+  }else{
+   if(original?.date){
+    if(previousOutcome==='pending')delete item.inboxOutcome;else item.inboxOutcome=previousOutcome;
+    const old=taskDay(original.date);
+    for(const field of ['done','failed','taskProgress'])if(old[field])delete old[field][original.id];
+   }
+   state.taskInbox.push(item);
+  }
   // Child names stay readable if the parent is subsequently removed.
   if(original)for(const child of [...Object.values(state.sunsetDays).flatMap(d=>d.tasks),...state.taskInbox])if(child.parentId===original.id&&(!child.parentDate||child.parentDate===original.date)){child.parentId=item.id;child.parentName=item.name;child.parentDate=item.date||'';}
   save();return item;
@@ -176,6 +187,7 @@ function validatePlanning(s){
  const checkTask=t=>{
   if(!t||typeof t.id!=='string'||typeof t.name!=='string')throw Error('مهمة غير صالحة');
   if(t.priority!==undefined&&!Object.hasOwn(priorityNames,t.priority))throw Error('أولوية غير صالحة');
+  if(t.inboxOutcome!==undefined&&!['done','failed'].includes(t.inboxOutcome))throw Error('حالة مهمة غير موزعة غير صالحة');
   if(t.expectedSlots!==undefined&&(!Number.isInteger(t.expectedSlots)||t.expectedSlots<0||t.expectedSlots>96))throw Error('عدد خانات غير صالح');
   if(t.date&&!validDate(t.date)||t.startDate&&!validDate(t.startDate)||t.parentDate&&!validDate(t.parentDate))throw Error('تاريخ مهمة غير صالح');
   if(t.startSlot!=null&&(!Number.isInteger(t.startSlot)||t.startSlot<0||t.startSlot>192))throw Error('وقت غير صالح');
