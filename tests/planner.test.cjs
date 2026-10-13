@@ -16,9 +16,9 @@ click('#plannerResults [data-outcome="failed"]');assert.equal(run("outcome(state
 run("plannerStatus='done';render()");assert.equal($('#plannerResults [data-task-id]'),null);
 run("plannerStatus='failed';render()");assert.ok($('#plannerResults [data-task-id]'));
 run("plannerStatus='all';render()");
-click('[data-task-edit]');let f=$('#plannerForm').elements;f.taskDate.value=run('date');f.taskPrayer.value='0';f.taskDate.dispatchEvent(new w.Event('change'));f.priority.value='high';f.expectedSlots.value='2';f.actionId.value=run('state.actions[0].id');f.startSlot.value=run('String(periodSlots(date,0)[0])');submit('#plannerForm');assert.equal(run('state.taskInbox.length'),0);assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');assert.equal(run('allTasksOn(date)[0].expectedSlots'),2);assert.equal(run('Object.keys(day().planned).length'),2);
+click('[data-task-edit]');let f=$('#plannerForm').elements;f.taskDate.value=run('date');$('#plannerForm').querySelectorAll('[name=taskPeriods]').forEach(b=>b.checked=b.value==='0');f.taskDate.dispatchEvent(new w.Event('change'));f.priority.value='high';f.expectedSlots.value='2';f.actionId.value=run('state.actions[0].id');f.startSlot.value=run('String(periodSlots(date,0)[0])');submit('#plannerForm');assert.equal(run('state.taskInbox.length'),0);assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');assert.equal(run('allTasksOn(date)[0].expectedSlots'),2);assert.equal(run('Object.keys(day().planned).length'),2);
 click('[data-planner-tab="day"]');assert.equal(w.document.querySelectorAll('[data-task-id]').length,1);let progress=$('[data-progress]');progress.value='1';progress.dispatchEvent(new w.Event('change'));assert.equal(run('completedSlots(allTasksOn(date)[0])'),1);click('[data-outcome="done"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'done');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'pending');
-click('[data-task-child]');f=$('#plannerForm').elements;f.taskName.value='فرعية غدًا';f.taskDate.value=run('addDate(date,1)');f.taskPrayer.value='4';f.expectedSlots.value='3';submit('#plannerForm');assert.equal(run("allTasksOn(addDate(date,1))[0].parentId"),run('allTasksOn(date)[0].id'));
+click('[data-task-child]');f=$('#plannerForm').elements;f.taskName.value='فرعية غدًا';f.taskDate.value=run('addDate(date,1)');$('#plannerForm').querySelectorAll('[name=taskPeriods]').forEach(b=>b.checked=b.value==='4');f.expectedSlots.value='3';submit('#plannerForm');assert.equal(run("allTasksOn(addDate(date,1))[0].parentId"),run('allTasksOn(date)[0].id'));
 click('[data-planner-tab="future"]');assert.match($('#plannerResults').textContent,/فرعية غدًا/);assert.equal(w.document.querySelectorAll('[data-task-id]').length,1);
 run("state.repeat.push({id:'r',name:'متكررة أصلية',prayer:0,days:[0,1,2,3,4,5,6],priority:'low',expectedSlots:1,startDate:date});state.taskHistoryThrough=addDate(date,-2);state.taskHistoryStart=addDate(date,-1);state.repeat[0].startDate=addDate(date,-1);initializeTaskHistory();render()");
 assert.equal(run("allTasksOn(addDate(date,-1)).find(t=>t.id==='r').name"),'متكررة أصلية');
@@ -43,4 +43,35 @@ assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'bad',name:'bad
 // A manual slot edit relinquishes ownership so task cleanup cannot erase it.
 run("const sd=taskDay(date);sd.taskSlotOwners={1:'manual'};sd.taskSlotValues={1:'old'};sd.taskSlotNotes={1:'old'};SlotTools.apply(sd,1,2,'planned','chosen','note',0);");
 assert.equal(run('day().taskSlotOwners[1]'),undefined);assert.equal(run('day().planned[1]'),'chosen');
+// Optional/multiple periods: one occurrence, shared outcome/progress and valid export.
+run("view='day';prayer=0;openPlannerEditor()");
+f=$('#plannerForm').elements;f.taskName.value='عدة فترات';f.expectedSlots.value='2';
+click('#plannerForm [data-no-period]');
+click('#plannerForm [name=taskPeriods][value="0"]');click('#plannerForm [name=taskPeriods][value="4"]');submit('#plannerForm');
+const multiId=run("allTasksOn(date).find(t=>t.name==='عدة فترات').id");
+assert.equal(run('taskPeriods(findTask('+JSON.stringify(multiId)+',date)).length'),2);
+assert.equal($('#allDayTaskCards').querySelectorAll('[data-task-id="'+multiId+'"]').length,1);
+click('#dailyTaskCards [data-task-id="'+multiId+'"] [data-outcome="done"]');
+run('prayer=4;render()');assert.equal($('#dailyTaskCards [data-task-id="'+multiId+'"] [data-outcome="done"]').getAttribute('aria-pressed'),'true');
+let multiProgress=$('#dailyTaskCards [data-task-id="'+multiId+'"] [data-progress]');multiProgress.value='2';multiProgress.dispatchEvent(new w.Event('change'));
+assert.equal($('#allDayTaskCards [data-task-id="'+multiId+'"] [data-progress]').value,'2');
+click('#allDayTaskCards [data-task-id="'+multiId+'"] [data-task-edit]');
+assert.equal($('#plannerForm').querySelectorAll('[name=taskPeriods]:checked').length,2);
+click('#plannerForm [data-no-period]');assert.equal($('#plannerForm').elements.startSlot.disabled,true);submit('#plannerForm');
+assert.equal($('#dailyTaskCards [data-task-id="'+multiId+'"]'),null);assert.ok($('#allDayTaskCards [data-task-id="'+multiId+'"]'));
+run("view='dashboard';plannerTab='day';render()");assert.match($('#plannerResults').lastElementChild.textContent,/بدون فترة محددة/);
+run("plannerTab='week';render()");assert.ok($('[data-week-task="'+multiId+'"]'));
+run('validate(state)');
+assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'invalid-periods',name:'bad',prayers:[0,0]}]})"));
+assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'invalid-periods',name:'bad',prayers:[5]}]})"));
+// Recurring tasks also support no period and multiple periods.
+run("view='repeat';render()");f=$('#repeatForm').elements;f.name.value='تكرار بدون فترة';click('#repeatForm [data-no-period]');submit('#repeatForm');
+assert.equal(run('taskPeriods(state.repeat.at(-1)).length'),0);run('validate(state)');
+run('renderRepeat(state.repeat.at(-1))');click('#repeatForm [name=taskPeriods][value="1"]');click('#repeatForm [name=taskPeriods][value="2"]');submit('#repeatForm');
+assert.equal(run('taskPeriods(state.repeat.at(-1)).length'),2);run('validate(state)');
+// Scheduling can use either chosen period, but cannot spill beyond one period.
+run("savePlannedTask(null,{id:'multi-scheduled',name:'حجز متعدد',date,prayers:[0,4],prayer:0,expectedSlots:1,actionId:state.actions[0].id,startSlot:periodSlots(date,4)[0]})");
+assert.equal(run("day().taskSlotOwners[periodSlots(date,4)[0]%96]"),'multi-scheduled');
+assert.throws(()=>run("scheduleTask({id:'no-period',date,prayers:[],expectedSlots:1,actionId:state.actions[0].id},periodSlots(date,0)[0])"));
+
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();

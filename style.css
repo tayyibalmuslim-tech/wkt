@@ -31,3 +31,5 @@ dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;mar
 
 /* Tiny editable slot count inside the existing single-line daily task metadata. */
 .daily-task-progress{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;font-size:10px;color:#526749}.daily-task-progress input{width:38px;min-width:0;height:25px;min-height:0;padding:2px 3px;border-radius:5px;font-size:11px;text-align:center;color:var(--green);font-variant-numeric:tabular-nums;appearance:textfield;-moz-appearance:textfield}.daily-task-progress input::-webkit-inner-spin-button,.daily-task-progress input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.daily-task-progress input:focus-visible{outline:2px solid var(--green);outline-offset:1px}@media(max-width:650px){.daily-task-progress input{width:34px;height:24px}}
+
+.task-period-picker{border:1px solid #dce4dc;border-radius:12px;padding:12px;min-width:0;grid-column:1 / -1}.task-period-picker legend{font-weight:700}.task-period-picker>label{display:flex;align-items:center;gap:8px;margin-bottom:10px}.task-period-picker input[type=checkbox]{width:auto}
