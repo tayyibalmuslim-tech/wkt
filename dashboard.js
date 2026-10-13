@@ -1,9 +1,9 @@
 /* Unified daily, backlog, future, inbox, monthly and weekly planning. */
 let plannerTab='day',plannerQuery='',plannerPriority='all',plannerStatus='all',plannerMonth='',plannerWeek='';
 function dashboardTasks(){return allTasksOn(date)}
-function taskStatus(t){return outcome({...t,date:t.date||date})}
+function taskStatus(t){return outcome(t)}
 function taskCard(t){
- const status=t.date?outcome(t):'pending',count=t.date?completedSlots(t):0,expected=t.expectedSlots||0;
+ const status=outcome(t),count=t.date?completedSlots(t):0,expected=t.expectedSlots||0;
  const children=taskEntries().filter(x=>x.parentId===t.id&&(!x.parentDate||x.parentDate===t.date)),action=state.actions.find(a=>a.id===t.actionId);
  const doneChildren=children.filter(x=>x.date&&outcome(x)==='done').length;
  return `<article class="planner-task ${status}" data-task-id="${esc(t.id)}" data-task-date="${t.date||''}"><div class="planner-task-heading"><strong>${esc(t.name)}</strong><span class="priority ${t.priority||'medium'}">${priorityNames[t.priority]||priorityNames.medium}</span></div>
@@ -12,7 +12,7 @@ function taskCard(t){
  <div class="task-effort">${t.date?`<label>الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>`:'<span>التقدير</span>'}<strong> / ${expected} خانة مستهدفة</strong><span class="hint">${expected*15} دقيقة مخططة${count>expected?' · تجاوزت المستهدف':''}</span></div>
  ${expected?`<progress value="${Math.min(count,expected)}" max="${expected}" aria-label="تقدم الخانات"></progress>`:''}
  ${children.length?`<details class="task-children"><summary>${children.length} مهام فرعية · ${doneChildren} مكتملة</summary>${children.map(c=>`<p>${esc(c.name)} — ${c.date?c.date+' · '+names[c.prayer]:'تحتاج توزيعًا'} · ${c.date?completedSlots(c):0}/${c.expectedSlots||0} خانة</p>`).join('')}</details>`:''}
- <div class="task-controls">${t.date?`<button data-outcome="done" class="secondary ${status==='done'?'selected-outcome':''}" aria-pressed="${status==='done'}">✓ فعلتها</button><button data-outcome="failed" class="secondary ${status==='failed'?'selected-outcome':''}" aria-pressed="${status==='failed'}">✕ لم أفعلها</button>`:''}<button data-task-edit class="secondary">${t.date?'تعديل / توزيع':'توزيع المهمة'}</button><button data-task-child class="secondary">＋ فرعية</button><button data-task-delete class="danger">حذف</button></div></article>`;
+ <div class="task-controls"><button data-outcome="done" class="secondary ${status==='done'?'selected-outcome':''}" aria-pressed="${status==='done'}">✓ فعلتها</button><button data-outcome="failed" class="secondary ${status==='failed'?'selected-outcome':''}" aria-pressed="${status==='failed'}">✕ لم أفعلها</button><button data-task-edit class="secondary">${t.date?'تعديل / توزيع':'توزيع المهمة'}</button><button data-task-child class="secondary">＋ فرعية</button><button data-task-delete class="danger">حذف</button></div></article>`;
 }
 function compactTaskCard(t){
  const status=outcome(t),count=completedSlots(t),expected=t.expectedSlots||0;
@@ -28,14 +28,14 @@ function compactTaskCard(t){
 }
 function bindTaskCards(root=app){root.querySelectorAll('[data-task-id]').forEach(card=>{
  const get=()=>findTask(card.dataset.taskId,card.dataset.taskDate);
- card.querySelectorAll('[data-outcome]').forEach(b=>b.onclick=()=>{const t=get();if(!t)return;setTaskOutcome(taskDay(t.date),t.id,b.dataset.outcome);save();render()});
+ card.querySelectorAll('[data-outcome]').forEach(b=>b.onclick=()=>{const t=get();if(!t)return;if(t.date)setTaskOutcome(taskDay(t.date),t.id,b.dataset.outcome);else setInboxOutcome(t,b.dataset.outcome);save();render()});
  const progress=card.querySelector('[data-progress]');if(progress){progress.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();progress.blur()}};progress.onchange=()=>{const t=get(),n=+progress.value;if(!t)return;if(!Number.isInteger(n)||n<0||n>9999||progress.value===''){progress.value=completedSlots(t);toast('أدخل عددًا صحيحًا بين ٠ و٩٩٩٩');return}(taskDay(t.date).taskProgress??={})[t.id]=n;save();render()};}
  card.querySelector('[data-task-edit]').onclick=()=>openPlannerEditor(get());
  if(card.querySelector('[data-task-child]'))card.querySelector('[data-task-child]').onclick=()=>openPlannerEditor(null,get());
  if(card.querySelector('[data-task-delete]'))card.querySelector('[data-task-delete]').onclick=()=>{const t=get();if(t)deletePlannedTask(t)};
  })}
 function sortedTasks(list){const order={high:0,medium:1,low:2};return [...list].sort((a,b)=>(order[a.priority||'medium']??1)-(order[b.priority||'medium']??1)||a.name.localeCompare(b.name,'ar'))}
-function filteredTasks(list){return sortedTasks(list.filter(t=>(!plannerQuery||t.name.toLocaleLowerCase().includes(plannerQuery.trim().toLocaleLowerCase()))&&(plannerPriority==='all'||(t.priority||'medium')===plannerPriority)&&(plannerStatus==='all'||(t.date?outcome(t):'pending')===plannerStatus)))}
+function filteredTasks(list){return sortedTasks(list.filter(t=>(!plannerQuery||t.name.toLocaleLowerCase().includes(plannerQuery.trim().toLocaleLowerCase()))&&(plannerPriority==='all'||(t.priority||'medium')===plannerPriority)&&(plannerStatus==='all'||outcome(t)===plannerStatus)))}
 function daySummary(key){const tasks=allTasksOn(key),d=state.sunsetDays[key]||emptyDay();return {total:tasks.length,done:tasks.filter(t=>outcome(t)==='done').length,checks:prayerOrder.reduce((n,p)=>n+checks.filter((_,i)=>d.checks[p+'-'+i]).length,0)}}
 function dateControls(){return `<div class="date"><button data-planner-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="plannerDate" value="${date}" aria-label="اليوم المختار"><button data-planner-shift="1" aria-label="اليوم التالي">←</button><button id="plannerToday">اليوم</button></div>`}
 function renderDashboard(){
