@@ -7,7 +7,16 @@ w.eval(['vendor/adhan.js','calendar.js','categories.js','slots.js','task-engine.
 const run=w.test.run,$=s=>w.document.querySelector(s),click=s=>$(s).click(),submit=s=>$(s).dispatchEvent(new w.Event('submit',{cancelable:true}));
 run("view='dashboard';render()");assert.equal(w.document.querySelectorAll('.planner-period').length,5);
 click('#quickTaskButton');$('#quickTaskForm').elements.taskName.value='مهمة سريعة';submit('#quickTaskForm');assert.equal(run('state.taskInbox.length'),1);
-click('[data-planner-tab="inbox"]');click('[data-task-edit]');let f=$('#plannerForm').elements;f.taskDate.value=run('date');f.taskPrayer.value='0';f.taskDate.dispatchEvent(new w.Event('change'));f.priority.value='high';f.expectedSlots.value='2';f.actionId.value=run('state.actions[0].id');f.startSlot.value=run('String(periodSlots(date,0)[0])');submit('#plannerForm');assert.equal(run('state.taskInbox.length'),0);assert.equal(run('allTasksOn(date)[0].expectedSlots'),2);assert.equal(run('Object.keys(day().planned).length'),2);
+click('[data-planner-tab="inbox"]');
+assert.equal($('#plannerResults [data-outcome="done"]').disabled,false);
+click('#plannerResults [data-outcome="done"]');assert.equal(run("state.taskInbox[0].inboxOutcome"),'done');
+assert.equal($('#plannerResults [data-outcome="done"]').getAttribute('aria-pressed'),'true');
+click('#plannerResults [data-outcome="done"]');assert.equal(run("outcome(state.taskInbox[0])"),'pending');
+click('#plannerResults [data-outcome="failed"]');assert.equal(run("outcome(state.taskInbox[0])"),'failed');
+run("plannerStatus='done';render()");assert.equal($('#plannerResults [data-task-id]'),null);
+run("plannerStatus='failed';render()");assert.ok($('#plannerResults [data-task-id]'));
+run("plannerStatus='all';render()");
+click('[data-task-edit]');let f=$('#plannerForm').elements;f.taskDate.value=run('date');f.taskPrayer.value='0';f.taskDate.dispatchEvent(new w.Event('change'));f.priority.value='high';f.expectedSlots.value='2';f.actionId.value=run('state.actions[0].id');f.startSlot.value=run('String(periodSlots(date,0)[0])');submit('#plannerForm');assert.equal(run('state.taskInbox.length'),0);assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');assert.equal(run('allTasksOn(date)[0].expectedSlots'),2);assert.equal(run('Object.keys(day().planned).length'),2);
 click('[data-planner-tab="day"]');assert.equal(w.document.querySelectorAll('[data-task-id]').length,1);let progress=$('[data-progress]');progress.value='1';progress.dispatchEvent(new w.Event('change'));assert.equal(run('completedSlots(allTasksOn(date)[0])'),1);click('[data-outcome="done"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'done');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'pending');
 click('[data-task-child]');f=$('#plannerForm').elements;f.taskName.value='فرعية غدًا';f.taskDate.value=run('addDate(date,1)');f.taskPrayer.value='4';f.expectedSlots.value='3';submit('#plannerForm');assert.equal(run("allTasksOn(addDate(date,1))[0].parentId"),run('allTasksOn(date)[0].id'));
 click('[data-planner-tab="future"]');assert.match($('#plannerResults').textContent,/فرعية غدًا/);assert.equal(w.document.querySelectorAll('[data-task-id]').length,1);
