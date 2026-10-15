@@ -198,7 +198,7 @@ run("state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[{id:
 const monthChip=id=>'[data-month-task="'+id+'"]';
 assert.ok($(monthChip('legacy-month')));assert.equal(w.document.querySelectorAll(monthChip('legacy-month')).length,1);
 assert.equal($(monthChip('slots-only')).classList.contains('pending'),true);
-assert.match($(monthChip('slots-only')).textContent,/100٪/);
+assert.match($(monthChip('slots-only')).getAttribute('aria-label'),/100٪/);
 assert.equal(run('monthlySummary(monthlyTasks(date)).done'),0);
 assert.equal($('.month-day').tagName,'SECTION');
 assert.equal($('button button'),null);
@@ -302,7 +302,7 @@ const sheet=w.document.createElement('style');sheet.textContent=fs.readFileSync(
 assert.equal(w.getComputedStyle($('.month-tasks')).display,'flex');
 assert.equal(w.getComputedStyle($('.month-tasks')).flexWrap,'wrap');
 assert.equal(w.getComputedStyle($('.task-month')).display,'grid');
-assert.equal(w.getComputedStyle($('.task-month')).minWidth,'1120px');
+assert.equal(w.getComputedStyle($('.task-month')).minWidth,'1400px');
 assert.equal(w.getComputedStyle($('.task-month-scroll')).overflowX,'auto');
 assert.equal(w.getComputedStyle($('.month-task')).whiteSpace,'normal');
 assert.equal(w.getComputedStyle($('.month-task')).overflowWrap,'anywhere');
