@@ -87,10 +87,45 @@ function openProjectTaskLink(project){
   if(series){view='repeat';render();renderRepeat(draft)}else openPlannerEditor(draft);
  });dialog.showModal();
 }
+
+function importProjectPackage(data){
+ if(!data||data.format!=='wkt-project-v1'||data.version!==1||!data.project||!Array.isArray(data.tasks)||!data.tasks.length||data.tasks.length>1000)throw Error('هذا ليس ملف مشروع wkt مدعومًا.');
+ const p=data.project;
+ if(typeof p.name!=='string'||!p.name.trim()||p.name.length>100||p.description!==undefined&&(typeof p.description!=='string'||p.description.length>1000))throw Error('اسم المشروع أو وصفه غير صالح.');
+ const ids=new Map(),tasks=[],roots=[],projectId=uid();
+ for(const t of data.tasks){
+  if(!t||typeof t.id!=='string'||!t.id||t.id.length>120||ids.has(t.id)||typeof t.name!=='string'||!t.name.trim()||t.name.length>150||t.description!==undefined&&(typeof t.description!=='string'||t.description.length>500))throw Error('يوجد اسم مهمة أو وصف أو معرف غير صالح في الملف.');
+  if(t.parentId!==undefined&&(typeof t.parentId!=='string'||!ids.has(t.parentId)))throw Error('المهام الفرعية يجب أن تأتي بعد مهامها الرئيسية.');
+  if(t.priority!==undefined&&(!Number.isInteger(t.priority)||t.priority<1||t.priority>5))throw Error('أولوية غير صالحة.');
+  if(t.expectedSlots!==undefined&&(!Number.isInteger(t.expectedSlots)||t.expectedSlots<0||t.expectedSlots>96))throw Error('عدد خانات غير صالح.');
+  if(t.showInMonthlyCalendar!==undefined&&typeof t.showInMonthlyCalendar!=='boolean')throw Error('خيار التقويم غير صالح.');
+  const newId=uid(),parent=t.parentId?ids.get(t.parentId):null;
+  const item={id:newId,name:t.name.trim(),description:t.description||'',projectId,priority:t.priority??3,expectedSlots:t.expectedSlots??0,completedSlotCount:0,showInMonthlyCalendar:t.showInMonthlyCalendar!==false,prayers:[]};
+  if(parent){item.parentId=parent.id;item.parentDate='';item.parentName=parent.name;}else roots.push(item);
+  ids.set(t.id,item);tasks.push(item);
+ }
+ if(!roots.length)throw Error('الملف بلا مهام رئيسية.');
+ const project={id:projectId,name:p.name.trim(),description:p.description||'',taskOrder:roots.map(t=>taskIdentity(t))};
+ const candidate={...state,projects:[...(state.projects||[]),project],taskInbox:[...(state.taskInbox||[]),...tasks]};
+ validatePlanning(candidate);
+ // Validate everything before changing the current snapshot.
+ state.projects=candidate.projects;state.taskInbox=candidate.taskInbox;
+ selectedProject=project.id;view='projects';save();render();toast('تمت إضافة المشروع مع '+roots.length+' مهمة رئيسية و'+(tasks.length-roots.length)+' فرعية');
+ return project;
+}
 function renderProjects(){
  const projects=state.projects||[],project=projects.find(p=>p.id===selectedProject);
- app.innerHTML=`<div class="top"><div><h1>المشاريع</h1><p>اجمع المهام المرتبطة بهدف واحد، وتابع إنجازها.</p></div><button class="primary" id="newProject">＋ مشروع جديد</button></div><div class="project-layout"><section class="panel"><h2>مشاريعي (${projects.length})</h2><div class="project-list">${projects.map(p=>{const list=taskGroups(projectTasks(p.id)),done=list.filter(t=>taskCompletion(t)===100).length;return `<button class="secondary ${p.id===selectedProject?'chosen':''}" data-project="${esc(p.id)}" aria-pressed="${p.id===selectedProject}"><strong>${esc(p.name)}</strong><small>${percentLabel(projectCompletion(p.id))} إنجاز · ${done} / ${list.length} مهام مكتملة</small></button>`}).join('')||'<p class="empty-note">أضف أول مشروع، ثم اربط به مهامك.</p>'}</div></section><section class="panel" id="projectDetails"></section></div>`;
+ app.innerHTML=`<div class="top"><div><h1>المشاريع</h1><p>اجمع المهام المرتبطة بهدف واحد، وتابع إنجازها.</p></div><div class="planner-toolbar"><button class="primary" id="newProject">＋ مشروع جديد</button><label class="secondary project-import-label">↑ استيراد مشروع<input type="file" id="projectImport" accept=".json,application/json" hidden></label></div></div><div class="project-layout"><section class="panel"><h2>مشاريعي (${projects.length})</h2><div class="project-list">${projects.map(p=>{const list=taskGroups(projectTasks(p.id)),done=list.filter(t=>taskCompletion(t)===100).length;return `<button class="secondary ${p.id===selectedProject?'chosen':''}" data-project="${esc(p.id)}" aria-pressed="${p.id===selectedProject}"><strong>${esc(p.name)}</strong><small>${percentLabel(projectCompletion(p.id))} إنجاز · ${done} / ${list.length} مهام مكتملة</small></button>`}).join('')||'<p class="empty-note">أضف أول مشروع، ثم اربط به مهامك.</p>'}</div></section><section class="panel" id="projectDetails"></section></div>`;
  $('#newProject').onclick=()=>openProjectEditor();
+ $('#projectImport').onchange=async e=>{
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  try{
+   if(file.size>1000000)throw Error('ملف المشروع أكبر من الحد المسموح (1 ميجابايت).');
+   const data=JSON.parse(await file.text());
+   if(state.projects?.some(p=>p.name===data?.project?.name)&&!confirm('هناك مشروع بهذا الاسم؛ هل تريد إضافة نسخة جديدة مستقلة؟'))return;
+   importProjectPackage(data);
+  }catch(err){toast(err instanceof SyntaxError?'ملف JSON غير صالح':err.message||'تعذر استيراد المشروع');}
+ };
  app.querySelectorAll('[data-project]').forEach(b=>b.onclick=()=>{selectedProject=b.dataset.project;render()});
  const details=$('#projectDetails');
  if(!project){details.innerHTML='<p class="empty-note">اختر مشروعًا لعرض مهامه أو أنشئ مشروعًا جديدًا.</p>';return}

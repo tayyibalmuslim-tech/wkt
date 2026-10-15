@@ -98,3 +98,10 @@ dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;mar
 
 .sync-header .backup-download{white-space:nowrap;padding:8px 12px}
 @media(max-width:650px){.sync-header .backup-download{font-size:11px;padding:7px 9px}}
+
+/* Small optional description beside task titles, across tasks, projects and calendars. */
+.task-inline-description{font-size:11px;font-weight:normal;color:var(--muted);margin-inline-start:7px;vertical-align:baseline;line-height:1.5;overflow-wrap:anywhere}
+.daily-task-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px}
+.daily-task-title .task-inline-description{margin-inline-start:3px}
+.month-task .task-inline-description,.week-task .task-inline-description{display:inline;font-size:10px;opacity:.85}
+.project-import-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;white-space:nowrap}
