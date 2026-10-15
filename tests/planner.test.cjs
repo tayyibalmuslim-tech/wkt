@@ -406,4 +406,40 @@ assert.ok(unassignedSection().querySelector('[data-task-id="gp"] [data-task-id="
 assert.equal($('[data-planner-project="group-q"]').getAttribute('aria-pressed'),'true');
 console.log('PASS: project tabs and independent sections in inbox/missed, inherited families, filters, outcomes and missing projects');
 
+// Bulk project edits include inherited children, series and saved occurrences, and are atomic.
+run("state.days={};state.sunsetDays={};state.taskInbox=[{id:'bulk-root',name:'أصل',priority:3,projectId:'bulk-p',expectedSlots:2},{id:'bulk-child',name:'فرع',priority:2,parentId:'bulk-root',parentDate:'',expectedSlots:1,completedSlotCount:1,inboxOutcome:'done'},{id:'bulk-other',name:'مستقلة بمشروع آخر',priority:4,projectId:'bulk-q',expectedSlots:7}];state.projects=[{id:'bulk-p',name:'تعديل جماعي'},{id:'bulk-q',name:'آخر'}];state.repeat=[{id:'bulk-repeat',name:'سلسلة',prayer:0,days:[0,1,2,3,4,5,6],priority:3,projectId:'bulk-p',expectedSlots:2}];const bulkKey=activeDay(),bulkSlots=periodSlots(bulkKey,0);for(let i=0;i<2;i++){const t={id:'bulk-scheduled-'+i,name:'مجدولة '+i,prayer:0,priority:3,projectId:'bulk-p',expectedSlots:2,actionId:state.actions[0].id,startSlot:bulkSlots[0]+i*3};taskDay(bulkKey).tasks.push(t);scheduleTask({...t,date:bulkKey},t.startSlot)}taskDay(bulkKey).done['bulk-scheduled-0']=true;taskDay(bulkKey).taskProgress={'bulk-scheduled-0':1};taskDay(addDate(bulkKey,-1)).repeatSnapshot=[{...state.repeat[0]}];view='projects';selectedProject='bulk-p';render()");
+const beforeBulk=run('JSON.stringify(state)'),otherBulk=run("JSON.stringify(state.taskInbox.find(t=>t.id==='bulk-other'))");
+assert.throws(()=>run("bulkUpdateProjectTasks(state,'bulk-p',{})"));
+for(const patch of [{priority:6},{expectedSlots:-1},{showInMonthlyCalendar:'false'},{actionId:'missing'},{name:'bad'}])assert.throws(()=>run('bulkUpdateProjectTasks(state,"bulk-p",'+JSON.stringify(patch)+')'));
+assert.equal(run('JSON.stringify(state)'),beforeBulk);
+// Two three-slot reservations fit; four slots collide and must not mutate anything.
+assert.throws(()=>run("bulkUpdateProjectTasks(state,'bulk-p',{priority:1,expectedSlots:4})"));
+assert.equal(run('JSON.stringify(state)'),beforeBulk);
+run("const changed=bulkUpdateProjectTasks(state,'bulk-p',{priority:1,expectedSlots:3,showInMonthlyCalendar:false,actionId:state.actions[1].id});if(state===changed)throw Error('must prepare a copy');window.bulkCandidate=changed;");
+assert.equal(run('JSON.stringify(state)'),beforeBulk);
+run('state=window.bulkCandidate;delete window.bulkCandidate;save();render()');
+assert.equal(run("JSON.stringify(state.taskInbox.find(t=>t.id==='bulk-other'))"),otherBulk);
+assert.equal(run("projectTaskRecords(state,'bulk-p').every(r=>r.task.priority===1&&r.task.expectedSlots===3&&r.task.showInMonthlyCalendar===false&&r.task.actionId===state.actions[1].id)"),true);
+assert.equal(run("state.taskInbox.find(t=>t.id==='bulk-child').completedSlotCount"),1);
+assert.equal(run("state.taskInbox.find(t=>t.id==='bulk-child').inboxOutcome"),'done');
+assert.equal(run("taskDay(activeDay()).done['bulk-scheduled-0']"),true);
+assert.equal(run("taskDay(activeDay()).taskProgress['bulk-scheduled-0']"),1);
+assert.equal(run("Object.keys(taskDay(activeDay()).taskSlotOwners).length"),6);
+assert.equal(run("Object.values(taskDay(activeDay()).planned).every(id=>id===state.actions[1].id)"),true);
+click('#bulkProjectTasks');assert.equal($('#projectBulkEditor').open,true);
+submit('#projectBulkForm');assert.match($('#projectBulkError').textContent,/اختر حقلًا/);
+let bulkCheck=$('#projectBulkForm [data-bulk-field="priority"]');bulkCheck.checked=true;bulkCheck.dispatchEvent(new w.Event('change'));
+assert.equal($('#projectBulkForm [data-bulk-value="priority"]').disabled,false);
+assert.equal($('#projectBulkForm [data-bulk-value="expectedSlots"]').disabled,true);
+$('#projectBulkForm').elements.priority.value='5';submit('#projectBulkForm');
+assert.equal($('#projectBulkEditor').open,false);
+assert.equal(run("projectTaskRecords(state,'bulk-p').every(r=>r.task.priority===5&&r.task.expectedSlots===3&&r.task.showInMonthlyCalendar===false)"),true);
+// Removing the linked action clears reservations but leaves recorded actual work intact.
+run("const d=taskDay(activeDay()),slot=periodSlots(activeDay(),0)[0]%96;d.slots[slot]=state.actions[0].id;d.actualTasks={[slot]:{id:'bulk-scheduled-0',name:'عمل مسجل',actionId:state.actions[0].id}};state=bulkUpdateProjectTasks(state,'bulk-p',{actionId:''});validatePlanning(state)");
+assert.equal(run('Object.keys(taskDay(activeDay()).taskSlotOwners).length'),0);
+assert.equal(run('Object.values(taskDay(activeDay()).slots)[0]'),run('state.actions[0].id'));
+assert.equal(run('Object.values(taskDay(activeDay()).actualTasks)[0].name'),'عمل مسجل');
+assert.equal(run('taskDay(activeDay()).tasks.every(t=>t.startSlot===null)'),true);
+console.log('PASS: selective project bulk edits, inherited children, recurrence history, reservation rebuild/rollback and retained outcomes/actual slots');
+
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();

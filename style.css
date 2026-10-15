@@ -109,3 +109,9 @@ dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;mar
 .planner-task-section + .planner-task-section{border-top:1px solid var(--line);margin-top:24px;padding-top:16px}
 .planner-task-section > h2{font-size:18px;margin:14px 0}
 .planner-task-section .planner-tabs{flex-wrap:wrap}
+
+.bulk-project-field{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0}
+.bulk-project-field > label{display:flex;align-items:center;gap:8px;font-weight:bold}
+.bulk-project-field fieldset{border:0;padding:8px 0 0;margin:0;min-width:0}
+.bulk-project-field fieldset:disabled{opacity:.5}
+#projectBulkError{color:#8d2923}

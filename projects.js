@@ -49,6 +49,67 @@ function bindProjectTaskOrder(details,project,list){
   (card.querySelector('.planner-task-heading')||card.querySelector('h3')).append(controls);
  });
 }
+// Include stored series and historical occurrences, not generated future copies.
+function projectTaskRecords(snapshot,projectId){
+ const records=[],add=(tasks,key='',scheduled=false)=>{for(const task of tasks||[])records.push({task,key,scheduled,entry:{...task,date:key}})};
+ add(snapshot.taskInbox);add(snapshot.repeat);
+ for(const [key,day] of Object.entries(snapshot.sunsetDays||{})){add(day.tasks,key,true);add(day.repeatSnapshot,key)}
+ for(const [key,day] of Object.entries(snapshot.days||{})){add(day.tasks,key);add(day.repeatSnapshot,key)}
+ const entries=records.map(r=>r.entry);
+ return taskReadScope(()=>records.filter(r=>mainTask(r.entry,entries)?.projectId===projectId))();
+}
+function bulkUpdateProjectTasks(snapshot,projectId,patch){
+ if(!snapshot.projects?.some(p=>p.id===projectId))throw Error('المشروع لم يعد موجودًا.');
+ const fields=Object.keys(patch),allowed=['priority','showInMonthlyCalendar','expectedSlots','actionId'];
+ if(!fields.length)throw Error('اختر حقلًا واحدًا على الأقل لتعديله.');
+ if(fields.some(key=>!allowed.includes(key)))throw Error('حقل غير مدعوم.');
+ if('priority' in patch&&(!Number.isInteger(patch.priority)||patch.priority<1||patch.priority>5))throw Error('الأهمية يجب أن تكون من 1 إلى 5.');
+ if('showInMonthlyCalendar' in patch&&typeof patch.showInMonthlyCalendar!=='boolean')throw Error('اختر إظهار المهام في التقويم أو إخفاءها.');
+ if('expectedSlots' in patch&&(!Number.isInteger(patch.expectedSlots)||patch.expectedSlots<0||patch.expectedSlots>96))throw Error('الخانات المتوقعة يجب أن تكون بين 0 و96.');
+ if('actionId' in patch&&(typeof patch.actionId!=='string'||patch.actionId&&!snapshot.actions.some(a=>a.id===patch.actionId)))throw Error('اختر فعلًا موجودًا أو بدون ربط.');
+ const next=structuredClone(snapshot),records=projectTaskRecords(next,projectId);
+ if(!records.length)throw Error('لا توجد مهام في هذا المشروع.');
+ const reschedule=records.filter(r=>r.scheduled&&r.task.startSlot!=null&&fields.some(key=>['expectedSlots','actionId'].includes(key)&&patch[key]!==r.task[key]));
+ for(const r of records)Object.assign(r.task,patch);
+ // Rebuild all affected reservations together; a conflict discards the whole copy.
+ const previous=state;
+ try{
+  state=next;invalidateTaskReads();
+  for(const r of reschedule)removeTaskSchedule(r.key,r.task.id);
+  for(const r of reschedule){
+   if(!r.task.actionId||!r.task.expectedSlots)r.task.startSlot=null;
+   else scheduleTask({...r.task,date:r.key},r.task.startSlot);
+  }
+  validatePlanning(next);
+ }finally{state=previous;invalidateTaskReads()}
+ return next;
+}
+function openProjectBulkEditor(project){
+ let dialog=$('#projectBulkEditor');if(!dialog){dialog=document.createElement('dialog');dialog.id='projectBulkEditor';document.body.append(dialog)}
+ const originalState=state;
+ const row=(key,title,control)=>`<section class="bulk-project-field"><label><input type="checkbox" data-bulk-field="${key}"> تعديل ${title}</label><fieldset data-bulk-value="${key}" disabled>${control}</fieldset></section>`;
+ dialog.setAttribute('aria-labelledby','projectBulkTitle');
+ dialog.innerHTML=`<div class="dialog-head"><h2 id="projectBulkTitle">تعديل جميع مهام ${esc(project.name)}</h2><button type="button" data-close-bulk aria-label="إغلاق">×</button></div><p class="hint">اختر الحقول التي تريد تطبيقها. يشمل التعديل المهام الرئيسية والفرعية، الموزعة وغير الموزعة، والسلاسل المتكررة ونسخ الأيام المحفوظة.</p><form id="projectBulkForm">
+ ${row('priority','الأهمية',`<label class="field">الأهمية (1 الأعلى، 5 الأدنى)<select name="priority">${Object.entries(priorityNames).map(([v,n])=>`<option value="${v}" ${v==='3'?'selected':''}>${n}</option>`).join('')}</select></label>`)}
+ ${row('showInMonthlyCalendar','الظهور في التقويم',`<label class="field">التقويم الشهري<select name="showInMonthlyCalendar"><option value="true">إظهار جميع مهام المشروع</option><option value="false">إخفاء جميع مهام المشروع</option></select></label>`)}
+ ${row('expectedSlots','الخانات المتوقعة','<label class="field">الخانات المتوقعة لكل مهمة<input name="expectedSlots" type="number" min="0" max="96" step="1" required value="0"></label>')}
+ ${row('actionId','الفعل المرتبط','<input type="hidden" name="actionId" value=""><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span data-task-action-label>بدون ربط — اختر فعلًا</span></button>')}
+ <p class="hint">عند تغيير الخانات أو الفعل تُحدّث الحجوزات المخططة. اختيار صفر خانات أو «بدون ربط» يلغي الحجز. إذا تعارضت الحجوزات فلن يُطبق أي تعديل.</p><p id="projectBulkError" role="alert"></p><button type="submit" class="primary">تطبيق على جميع مهام المشروع</button></form>`;
+ dialog.querySelector('[data-close-bulk]').onclick=()=>dialog.close();
+ const form=$('#projectBulkForm');attachTaskActionPicker(form);
+ form.querySelectorAll('[data-bulk-field]').forEach(input=>input.onchange=()=>{form.querySelector(`[data-bulk-value="${input.dataset.bulkField}"]`).disabled=!input.checked});
+ form.onsubmit=e=>{e.preventDefault();try{
+  if(state!==originalState)throw Error('تغيرت البيانات. أغلق النافذة وافتحها مجددًا.');
+  const f=form.elements,patch={};
+  for(const input of form.querySelectorAll('[data-bulk-field]:checked')){
+   const key=input.dataset.bulkField,value=f[key].value;
+   if(key==='expectedSlots'&&value==='')throw Error('أدخل عدد الخانات المتوقعة.');
+   patch[key]=['priority','expectedSlots'].includes(key)?Number(value):key==='showInMonthlyCalendar'?value==='true':value;
+  }
+  state=bulkUpdateProjectTasks(state,project.id,patch);save();dialog.close();render();toast('تم تعديل مهام المشروع');
+ }catch(err){$('#projectBulkError').textContent=err.message}};
+ dialog.showModal();
+}
 function openProjectEditor(project=null){
  let dialog=$('#projectEditor');if(!dialog){dialog=document.createElement('dialog');dialog.id='projectEditor';document.body.append(dialog)}
  const originalState=state;
@@ -171,7 +232,7 @@ function renderProjects(){
  const details=$('#projectDetails');
  if(!project){details.innerHTML='<p class="empty-note">اختر مشروعًا لعرض مهامه أو أنشئ مشروعًا جديدًا.</p>';return}
  const list=orderedProjectTasks(project.id),done=list.filter(t=>taskCompletion(t)===100).length;
- details.innerHTML=`<div class="panel-title"><h2>${esc(project.name)}</h2><button class="secondary" id="editProject">تعديل المشروع</button></div>${project.description?`<p class="project-description">${esc(project.description)}</p>`:''}<p>${done} مكتملة · ${list.filter(t=>outcome(t)==='failed').length} لم تُفعل · ${list.filter(t=>outcome(t)==='pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong>${percentLabel(projectCompletion(project.id))}</strong></p><progress value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="secondary" id="deleteProject">حذف المشروع فقط (الاحتفاظ بالمهام)</button><button class="danger" id="deleteProjectWithTasks">حذف المشروع وجميع مهامه</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). اكتب رقم الموضع في خانة الترتيب لنقل المهمة الرئيسية مع فروعها؛ تبدأ الأرقام من 1. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p>${list.map(t=>taskCard(t)).join('')||'<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
- $('#editProject').onclick=()=>openProjectEditor(project);$('#deleteProject').onclick=()=>deleteProject(project);$('#deleteProjectWithTasks').onclick=()=>deleteProjectWithTasks(project);
+ details.innerHTML=`<div class="panel-title"><h2>${esc(project.name)}</h2><button class="secondary" id="editProject">تعديل المشروع</button></div>${project.description?`<p class="project-description">${esc(project.description)}</p>`:''}<p>${done} مكتملة · ${list.filter(t=>outcome(t)==='failed').length} لم تُفعل · ${list.filter(t=>outcome(t)==='pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong>${percentLabel(projectCompletion(project.id))}</strong></p><progress value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="secondary" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button class="secondary" id="deleteProject">حذف المشروع فقط (الاحتفاظ بالمهام)</button><button class="danger" id="deleteProjectWithTasks">حذف المشروع وجميع مهامه</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). اكتب رقم الموضع في خانة الترتيب لنقل المهمة الرئيسية مع فروعها؛ تبدأ الأرقام من 1. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p>${list.map(t=>taskCard(t)).join('')||'<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
+ $('#editProject').onclick=()=>openProjectEditor(project);$('#bulkProjectTasks').onclick=()=>openProjectBulkEditor(project);$('#deleteProject').onclick=()=>deleteProject(project);$('#deleteProjectWithTasks').onclick=()=>deleteProjectWithTasks(project);
  $('#newProjectTask').onclick=()=>openPlannerEditor(null,null,project.id);$('#linkProjectTask').onclick=()=>openProjectTaskLink(project);bindTaskCards(details);bindProjectTaskOrder(details,project,list);
 }
