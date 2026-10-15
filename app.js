@@ -1,10 +1,11 @@
 const $=s=>document.querySelector(s), names=['الفجر','الظهر','العصر','المغرب','العشاء'],week=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'],checks=['صف أول','جماعة أولى','سنة','أذكار','ورد'];
 const defaults={times:['05:00','12:00','15:15','17:45','19:00'],...ActionCategories.starter(),repeat:[],days:{}};
 let state;try{state=JSON.parse(localStorage.getItem('waqti-v1'))||structuredClone(defaults)}catch{state=structuredClone(defaults)}
+if(installDefaultTafsir(state)){try{localStorage.setItem('waqti-v1',JSON.stringify(state))}catch{}}
 setupCalendar();
 let date=activeDay(), prayer=currentPrayer(),prayerDialogPrayer=prayer,view='day',slot=null,slotKind='actual',taskEditTarget=null,followToday=true,lastActiveDay=date,lastCivilDay=zonedDate();const app=$('#app');
 function localDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function uid(){return crypto.randomUUID()}function save(){invalidateTaskReads();if(window.WaqtiSync){window.WaqtiSync.changed();return}try{localStorage.setItem('waqti-v1',JSON.stringify(state))}catch{alert('تعذر الحفظ. صدّر نسخة احتياطية لتجنب فقد البيانات.')}}function toast(s){$('#toast').textContent=s;$('#toast').style.display='block';setTimeout(()=>$('#toast').style.display='none',2300)}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function uid(){return crypto.randomUUID()}function save(){installDefaultTafsir(state);invalidateTaskReads();if(window.WaqtiSync){window.WaqtiSync.changed();return}try{localStorage.setItem('waqti-v1',JSON.stringify(state))}catch{alert('تعذر الحفظ. صدّر نسخة احتياطية لتجنب فقد البيانات.')}}function toast(s){$('#toast').textContent=s;$('#toast').style.display='block';setTimeout(()=>$('#toast').style.display='none',2300)}
 
 function downloadBackup(){
  if(window.WaqtiSync?.canExport&&!window.WaqtiSync.canExport()){toast('انتظر تحميل بيانات الحساب قبل تصديرها');return false}

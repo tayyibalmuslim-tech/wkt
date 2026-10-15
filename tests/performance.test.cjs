@@ -2,7 +2,7 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/stri
 process.chdir(require('node:path').resolve(__dirname,'..'));
 const dom=new JSDOM(fs.readFileSync('index.html','utf8'),{url:'https://test.local',runScripts:'outside-only'}),w=dom.window;
 w.structuredClone=structuredClone;w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.confirm=()=>true;
-w.eval(['vendor/adhan.js','calendar.js','categories.js','slots.js','task-engine.js','dashboard.js','projects.js','app.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n')+`\n
+w.eval(['vendor/adhan.js','calendar.js','categories.js','slots.js','task-engine.js','dashboard.js','projects.js','tafsir-default.js','app.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n')+`\n
 state.starterIntroPending=false;state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[{id:'bench',name:'اختبار'}];
 for(let i=0;i<60;i++){const key=addDate(date,-i),d=taskDay(key);d.tasks=Array.from({length:4},(_,j)=>({id:'t-'+i+'-'+j,name:'مهمة '+j,prayer:0,priority:3,projectId:'bench',expectedSlots:4,...(j?{parentId:'t-'+i+'-0',parentDate:key}:{})}));}
 state.taskHistoryStart=date;state.taskHistoryThrough=addDate(date,-1);

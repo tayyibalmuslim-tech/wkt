@@ -3,7 +3,7 @@ const root=require('node:path').resolve(__dirname,'..')+'/';
 const dom=new JSDOM(fs.readFileSync(root+'index.html','utf8'),{url:'https://test.local',runScripts:'outside-only'});
 const w=dom.window;w.structuredClone=structuredClone;w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.confirm=()=>true;
 const errors=[];w.addEventListener('error',e=>errors.push(e.error));
-w.eval(['vendor/adhan.js','calendar.js','categories.js','slots.js','task-engine.js','dashboard.js','projects.js','app.js'].map(f=>fs.readFileSync(root+f,'utf8')).join('\n')+'\nwindow.test={run:code=>eval(code)};');
+w.eval(['vendor/adhan.js','calendar.js','categories.js','slots.js','task-engine.js','dashboard.js','projects.js','tafsir-default.js','app.js'].map(f=>fs.readFileSync(root+f,'utf8')).join('\n')+'\nwindow.test={run:code=>eval(code)};');
 const run=w.test.run,$=s=>w.document.querySelector(s),click=s=>$(s).click(),submit=s=>$(s).dispatchEvent(new w.Event('submit',{cancelable:true}));
 run("view='dashboard';render()");assert.equal(w.document.querySelectorAll('.planner-period').length,5);
 click('#quickTaskButton');$('#quickTaskForm').elements.taskName.value='مهمة سريعة';submit('#quickTaskForm');assert.equal(run('state.taskInbox.length'),1);
