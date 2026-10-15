@@ -320,16 +320,17 @@ console.log('PASS: expanded monthly calendar, visibility, filters, outcomes, fam
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'order-p',name:'ترتيب المشروع'},{id:'order-other',name:'مشروع مستقل'}];state.taskInbox=[{id:'order-a',name:'الأولى',priority:1,projectId:'order-p'},{id:'order-b',name:'الثانية',priority:2,projectId:'order-p'},{id:'order-c',name:'الثالثة',priority:3,projectId:'order-p'},{id:'order-child',name:'فرع الأولى',parentId:'order-a',parentDate:'',inboxOutcome:'done'},{id:'order-x',name:'مهمة المشروع الآخر',projectId:'order-other'}];view='projects';selectedProject='order-p';render()");
 const orderedIds=()=>[...$('#projectDetails').children].filter(c=>c.matches('[data-task-id]')).map(c=>c.dataset.taskId).join();
 assert.equal(orderedIds(),'order-a,order-b,order-c');
-assert.equal($('#projectDetails [data-task-id="order-a"] [data-project-order-move="-1"]').disabled,true);
-assert.equal($('#projectDetails [data-task-id="order-c"] [data-project-order-move="1"]').disabled,true);
-assert.equal($('#projectDetails [data-task-id="order-child"] [data-project-order-move]'),null);
+assert.equal($('#projectDetails [data-task-id="order-a"] [data-project-order-key]').value,'1');
+assert.equal($('#projectDetails [data-task-id="order-c"] [data-project-order-key]').value,'3');
+assert.equal($('#projectDetails [data-task-id="order-child"] [data-project-order-key]'),null);
 const beforeOrderingTasks=run('JSON.stringify(state.taskInbox)'),beforeOrderingProgress=run("projectCompletion('order-p')");
-click('#projectDetails [data-task-id="order-b"] [data-project-order-move="-1"]');
+const orderInput=(id)=>$('#projectDetails [data-task-id="'+id+'"] [data-project-order-key]');
+orderInput('order-b').value='1';orderInput('order-b').dispatchEvent(new w.Event('change'));
 assert.equal(orderedIds(),'order-b,order-a,order-c');
 assert.ok($('#projectDetails > [data-task-id="order-a"] [data-task-id="order-child"]'));
 assert.equal(run('JSON.stringify(state.taskInbox)'),beforeOrderingTasks);
 assert.equal(run("projectCompletion('order-p')"),beforeOrderingProgress);
-click('#projectDetails [data-task-id="order-a"] [data-project-order-move="1"]');
+orderInput('order-a').value='3';orderInput('order-a').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
 assert.equal(orderedIds(),'order-b,order-c,order-a');
 assert.equal(run("state.projects.find(p=>p.id==='order-other').taskOrder"),undefined);
 click('#editProject');$('#projectForm').elements.projectName.value='مشروع مرتب';submit('#projectForm');
@@ -341,8 +342,13 @@ assert.equal(orderedIds(),'order-b,order-c,order-a,order-new');
 assert.ok(JSON.parse(w.localStorage.getItem('waqti-v1')).projects[0].taskOrder.length);
 run("selectedProject='order-other';render()");assert.equal(orderedIds(),'order-x');
 for(const taskOrder of [null,{},[3],['same','same']])assert.throws(()=>run('validateProjects({projects:[{id:"bad-order",name:"bad",taskOrder:'+JSON.stringify(taskOrder)+'}]})'));
-run("selectedProject='order-p';render();const first=orderedProjectTasks('order-p')[0];moveProjectTask('order-p',taskIdentity(first),-1)");
+run("selectedProject='order-p';render();const first=orderedProjectTasks('order-p')[0];moveProjectTask('order-p',taskIdentity(first),0)");
 assert.equal(orderedIds(),'order-b,order-c,order-a,order-new');
+// Invalid positions restore the shown rank and never alter the saved order.
+for(const value of ['', '0','5','1.5']){orderInput('order-b').value=value;orderInput('order-b').dispatchEvent(new w.Event('change'));assert.equal(orderInput('order-b').value,'1');assert.equal(orderedIds(),'order-b,order-c,order-a,order-new')}
+orderInput('order-b').value='4';orderInput('order-b').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',cancelable:true}));assert.equal(orderInput('order-b').value,'1');
+orderInput('order-new').value='1';orderInput('order-new').dispatchEvent(new w.Event('change'));assert.equal(orderedIds(),'order-new,order-b,order-c,order-a');
+assert.equal(orderInput('order-a').value,'4');
 console.log('PASS: project task order, family grouping, independent projects, persistence and validation');
 
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();

@@ -93,5 +93,5 @@ dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;mar
 @media(max-width:650px){.monthly-view main{padding-inline:10px}.monthly-panel{padding:10px}.task-month{min-width:1400px;gap:5px}.month-day{padding:5px;min-height:112px}.month-weekday{font-size:12px}.month-task span{font-size:10px}.month-task .month-task-text small{font-size:9px}.month-day-heading strong{font-size:20px}.month-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .project-task-order{display:inline-flex;gap:4px;margin-inline-start:auto;flex-shrink:0;vertical-align:middle}
-.project-task-order .secondary{padding:4px 9px;min-width:32px;min-height:32px;font-size:17px}
-.project-task-order button:disabled{opacity:.3;cursor:default}
+.project-task-order{align-items:center;font-size:12px;font-weight:normal}
+.project-task-order input{width:62px;min-width:0;min-height:32px;padding:4px 6px;text-align:center}
