@@ -253,6 +253,21 @@ try {
   input('#projectSearch', 'أصل محذوف');
   assert.ok($('#projectTaskList > .task-family'));
   assert.ok(row('orphan-search'));
+  // Hiding completed work changes visibility only, including nested rows and project navigation.
+  run(`hideCompletedWork=false;state.sunsetDays={};state.repeat=[];state.projects=[{id:'hide-finished',name:'منتهٍ'},{id:'hide-active',name:'جارٍ'}];state.taskInbox=[{id:'hide-done',name:'منتهية',projectId:'hide-finished',inboxOutcome:'done',expectedSlots:2},{id:'hide-root',name:'رئيسية',projectId:'hide-active'},{id:'hide-child',name:'فرعية منتهية',parentId:'hide-root',parentDate:'',inboxOutcome:'done',expectedSlots:1},{id:'hide-pending',name:'فرعية باقية',parentId:'hide-root',parentDate:'',expectedSlots:3}];selectedProject='hide-active';view='projects';expandedTaskRows.clear();render();`);
+  const hiddenBackup=run('JSON.stringify(state)'), hiddenProgress=run("projectCompletion('hide-active')");
+  $('#toggleCompletedWork').click();
+  assert.equal($('[data-project="hide-finished"]').hidden,true);
+  own(row('hide-root'),'[data-task-toggle]').click();
+  assert.equal(row('hide-child').hidden,true);assert.equal(row('hide-pending').hidden,false);
+  assert.equal(run('JSON.stringify(state)'),hiddenBackup);
+  assert.equal(run("projectCompletion('hide-active')"),hiddenProgress);
+  $('#toggleCompletedWork').click();
+  assert.equal(row('hide-child').hidden,false);assert.equal($('[data-project="hide-finished"]').hidden,false);
+  run("view='dashboard';plannerTab='inbox';render()");
+  $('#toggleCompletedWork').click();
+  assert.equal($('#plannerResults [data-task-id="hide-done"]').hidden,true);
+  $('#toggleCompletedWork').click();assert.equal($('#plannerResults [data-task-id="hide-done"]').hidden,false);
   assert.deepEqual(errors, []);
   console.log(
     'PASS: project workspace navigation, searchable nested paths, session expansion/scroll, local reorder, CRUD/import preservation and safe unlink deletion',

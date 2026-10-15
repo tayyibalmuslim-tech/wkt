@@ -6,6 +6,56 @@ let plannerTab = 'day',
   plannerProject = 'all',
   plannerMonth = '',
   plannerWeek = '';
+// Presentation preference only: outcomes, estimates and project totals stay intact.
+let hideCompletedWork = false;
+try { hideCompletedWork = sessionStorage.getItem('wkt-hide-completed') === 'true'; } catch {}
+function applyCompletedVisibility() {
+  if (!['projects','dashboard','day'].includes(view)) return;
+  if (!hideCompletedWork) {
+    app.querySelectorAll('[data-completed-hidden]').forEach(node => { node.hidden = false;delete node.dataset.completedHidden; });
+    return;
+  }
+  const hide = (node, value) => { node.hidden = !!value;if(value) node.dataset.completedHidden = '';else delete node.dataset.completedHidden; };
+  app.querySelectorAll('.task-row').forEach(card => {
+    const task = rowTask(card);
+    hide(card,task && taskCompletion(task) === 100);
+  });
+  app.querySelectorAll('[data-month-task]').forEach(chip => {
+    const task = findTask(chip.dataset.monthTask, chip.dataset.monthDate);
+    hide(chip,task && taskCompletion(task) === 100);
+  });
+  if (view === 'projects') {
+    const complete = id => { const model = projectModel(id);return model.roots.length > 0 && model.done === model.roots.length; };
+    app.querySelectorAll('#projectNavigation [data-project]').forEach(button => {
+      hide(button,complete(button.dataset.project));
+    });
+    app.querySelectorAll('#projectSelect option[value]').forEach(option => {
+      hide(option,option.value && complete(option.value));
+    });
+  }
+}
+function installCompletedToggle() {
+  if (!['projects','dashboard','day'].includes(view)) return;
+  let button = app.querySelector('#toggleCompletedWork');
+  if (!button) {
+    button = document.createElement('button');button.id = 'toggleCompletedWork';
+    button.type = 'button';button.className = 'secondary';
+    (app.querySelector('.project-page-actions') || app.querySelector('.top')).append(button);
+  }
+  button.textContent = hideCompletedWork ? 'إظهار المكتمل' : 'إخفاء المكتمل';
+  button.setAttribute('aria-pressed',String(hideCompletedWork));
+  button.onclick = () => {
+    hideCompletedWork = !hideCompletedWork;
+    try { sessionStorage.setItem('wkt-hide-completed',String(hideCompletedWork)); } catch {}
+    installCompletedToggle();
+    if (view === 'projects' && app.querySelector('#projectNavigation .chosen')?.hidden) {
+      const next = [...app.querySelectorAll('#projectNavigation [data-project]')].find(node => !node.hidden);
+      if (next) selectProject(next.dataset.project);
+      else { selectedProject = '';renderProjectDetails();$('#projectSelect').value = ''; }
+    }
+  };
+  applyCompletedVisibility();
+}
 function dashboardTasks() {
   return allTasksOn(date);
 }
@@ -192,6 +242,7 @@ function toggleTaskRow(card) {
     container.replaceChildren();
   }
   container.hidden = !opening;
+  applyCompletedVisibility();
 }
 function refreshTaskRowValues(changed = null) {
   const affected = new Set();
@@ -335,6 +386,7 @@ function taskRowChanged(t) {
     )
       refreshFilteredTaskRows();
     refreshTaskRowValues(t);
+    applyCompletedVisibility();
   })();
   toast(
     outcome(t) === 'done'
@@ -345,6 +397,7 @@ function taskRowChanged(t) {
   );
 }
 function bindTaskCards(root = app, insideManager = false) {
+  applyCompletedVisibility();
   root.dataset.taskList = '';
   root.onclick = taskReadScope((e) => {
     const card = e.target.closest('.task-row');
@@ -926,6 +979,7 @@ function openMonthTaskMenu(anchor) {
         taskReadScope(() => {
           refreshMonthTaskValues();
           refreshTaskRowValues(current);
+          applyCompletedVisibility();
         })();
         [...app.querySelectorAll('[data-month-task]')]
           .find(
@@ -1090,6 +1144,7 @@ function renderTaskMonth() {
   app
     .querySelectorAll('[data-month-task]')
     .forEach((b) => (b.onclick = () => openMonthTaskMenu(b)));
+  applyCompletedVisibility();
 }
 function renderTaskWeek() {
   plannerWeek ||= addDate(date, -new Date(date + 'T12:00:00').getDay());
