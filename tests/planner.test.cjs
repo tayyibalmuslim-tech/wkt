@@ -34,7 +34,7 @@ assert.throws(()=>run("savePlannedTask(null,{id:'overflow',name:'تجاوز',dat
 // Main view integrates cards, progress and capacity without altering slot controls.
 run("view='day';prayer=0;render()");assert.equal($('#dailyTaskCards').querySelectorAll('input,select,textarea').length,1);assert.equal($('#dailyTaskCards [data-progress]').value,'1');$('#dailyTaskCards [data-progress]').value='2';$('#dailyTaskCards [data-progress]').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(run('completedSlots(allTasksOn(date)[0])'),2);assert.equal($('#dailyTaskCards .task-row-primary').querySelectorAll('button').length,3);click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.completedSlots.value,'2');$('#plannerForm').elements.completedSlots.value='3';submit('#plannerForm');assert.equal(run('completedSlots(allTasksOn(date)[0])'),3);assert.equal($('#dailyTaskCards [data-progress]').value,'3');assert.ok($('[data-slot]'));assert.match($('.capacity-note').textContent,/مشغولة/);
 // Delete removes task-owned planned slots; preserves later manual changes.
-run("day().planned[periodSlots(date,0)[0]%96]='manual-edit'");click('#dailyTaskCards [data-task-edit]');click('#editorDeleteTask');assert.equal($('#plannerEditor').open,false);assert.equal(run('Object.keys(day().planned).length'),1);assert.equal(run('Object.values(day().planned)[0]'),'manual-edit');
+run("day().planned[periodSlots(date,0)[0]%144]='manual-edit'");click('#dailyTaskCards [data-task-edit]');click('#editorDeleteTask');assert.equal($('#plannerEditor').open,false);assert.equal(run('Object.keys(day().planned).length'),1);assert.equal(run('Object.values(day().planned)[0]'),'manual-edit');
 run('validate(state)');
 // Import/export preserves optional planning data and rejects malformed progress.
 const exported=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(exported)+');validate(state);render()');
@@ -91,7 +91,7 @@ run('renderRepeat(state.repeat.at(-1))');click('#repeatForm [name=taskPeriods][v
 assert.equal(run('taskPeriods(state.repeat.at(-1)).length'),2);run('validate(state)');
 // Scheduling can use either chosen period, but cannot spill beyond one period.
 run("savePlannedTask(null,{id:'multi-scheduled',name:'حجز متعدد',date,prayers:[0,4],prayer:0,expectedSlots:1,actionId:state.actions[0].id,startSlot:periodSlots(date,4)[0]})");
-assert.equal(run("day().taskSlotOwners[periodSlots(date,4)[0]%96]"),'multi-scheduled');
+assert.equal(run("day().taskSlotOwners[periodSlots(date,4)[0]%144]"),'multi-scheduled');
 assert.throws(()=>run("scheduleTask({id:'no-period',date,prayers:[],expectedSlots:1,actionId:state.actions[0].id},periodSlots(date,0)[0])"));
 
 // Numeric priorities migrate every storage location, including history, and sort/filter.
@@ -102,7 +102,7 @@ assert.equal(run("sortedTasks([5,2,4,1,3].map(priority=>({priority,name:'a'}))).
 run("plannerPriority='2'");assert.equal(run("filteredTasks([1,2,3,4,5].map(priority=>({priority,name:'a'}))).length"),1);run("plannerPriority='all';plannerStatus='all'");
 for(const priority of [0,6,1.5,'2'])assert.throws(()=>run('validatePlanning({...state,taskInbox:[{id:"bad",name:"bad",priority:'+JSON.stringify(priority)+'}]})'));
 run("view='day';prayer=3;state.taskInbox=[];day().tasks=[{id:'actual-task',name:'مهمة <اختبار>',prayers:[3,4],priority:2,actionId:state.actions[0].id},{id:'no-action',name:'بلا فعل',prayer:3},{id:'other-period',name:'فترة أخرى',prayer:0,actionId:state.actions[0].id}];render()");
-const actualSlot=run('range(3)[0]'),actualIndex=actualSlot%96;
+const actualSlot=run('range(3)[0]'),actualIndex=actualSlot%144;
 const plannedBefore=run('JSON.stringify(day().planned)'),progressBefore=run('JSON.stringify(day().taskProgress)'),doneBefore=run('JSON.stringify(day().done)');
 click('.slot-actual[data-slot="'+actualSlot+'"]');
 assert.equal($('#slotTasks').hidden,false);
@@ -121,7 +121,7 @@ assert.equal(run('day().actualTasks['+actualIndex+'].id'),'actual-task');
 click('.slot-planned[data-slot="'+actualSlot+'"]');assert.equal($('#slotTasks').hidden,true);click('#close');
 // Bulk task registration covers the chosen range and survives export/import.
 click('#bulkSlots');$('#slotTo').value=String(actualSlot+2);click('[data-task-choice="actual-task"]');submit('#slotForm');
-assert.equal(run('day().actualTasks['+((actualSlot+1)%96)+'].id'),'actual-task');
+assert.equal(run('day().actualTasks['+((actualSlot+1)%144)+'].id'),'actual-task');
 const actualExport=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(actualExport)+');validate(state);render()');
 assert.equal(run('JSON.stringify(state)'),actualExport);
 // A bulk range crossing an unrelated prayer must leave the entire state untouched.
@@ -134,8 +134,8 @@ run("state.repeat.push({id:'actual-repeat',name:'متكررة فعلية',prayer
 run("prayer=3;day().tasks=day().tasks.filter(t=>t.id!=='actual-task');render()");
 click('.slot-actual[data-slot="'+actualSlot+'"]');$('#slotNote').value='بعد حذف المهمة';submit('#slotForm');assert.equal($('#picker').open,false);assert.equal(run('day().actualTasks['+actualIndex+'].name'),'مهمة <اختبار>');
 click('.slot-actual[data-slot="'+actualSlot+'"]');click('[data-action-choice]');assert.equal(run('day().actualTasks['+actualIndex+']'),undefined);
-run("prayer=4;render()");click('.slot-actual');click('[data-task-choice="actual-repeat"]');click('.slot-actual');click('#clearSlot');assert.equal(run('day().actualTasks[range(4)[0]%96]'),undefined);assert.equal(run('day().slots[range(4)[0]%96]'),undefined);
-assert.throws(()=>run("validatePlanning({...state,sunsetDays:{[date]:{...day(),actualTasks:{96:{id:'a',name:'a',actionId:'a'}}}}})"));
+run("prayer=4;render()");click('.slot-actual');click('[data-task-choice="actual-repeat"]');click('.slot-actual');click('#clearSlot');assert.equal(run('day().actualTasks[range(4)[0]%144]'),undefined);assert.equal(run('day().slots[range(4)[0]%144]'),undefined);
+assert.throws(()=>run("validatePlanning({...state,sunsetDays:{[date]:{...day(),actualTasks:{144:{id:'a',name:'a',actionId:'a'}}}}})"));
 run('validate(state)');
 
 // Project lifecycle, existing-task linking, recurrence, subtasks and backup compatibility.
@@ -192,8 +192,8 @@ const percentBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.st
 
 // Subtasks are grouped under their true parent across dates and projects.
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'family',name:'مشروع العائلة'},{id:'other',name:'مشروع آخر'}];state.taskInbox=[{id:'root-family',name:'المهمة الرئيسية',projectId:'family',prayers:[]}];taskDay(date).tasks.push({id:'child-family',name:'الفرعية في العصر',parentId:'root-family',parentDate:'',parentName:'المهمة الرئيسية',date,prayers:[2],prayer:2,expectedSlots:2,actionId:state.actions[0].id,projectId:'other'});view='projects';selectedProject='family';render()");
-assert.equal($('#projectDetails').querySelectorAll(':scope > [data-task-id]').length,1);
-click('#projectDetails > [data-task-id="root-family"] [data-task-toggle]');assert.ok($('#projectDetails > [data-task-id="root-family"] .task-children [data-task-id="child-family"]'));
+assert.equal($('#projectTaskList').querySelectorAll(':scope > [data-task-id]').length,1);
+click('#projectTaskList > [data-task-id="root-family"] [data-task-toggle]');assert.ok($('#projectTaskList > [data-task-id="root-family"] .task-children [data-task-id="child-family"]'));
 assert.equal(run("projectName(findTask('child-family',date))"),'مشروع العائلة');
 run("selectedProject='other';render()");assert.equal($('#projectDetails [data-task-id]'),null);
 run("view='day';prayer=2;render()");
@@ -202,17 +202,17 @@ assert.equal($('#allDayTaskCards').querySelectorAll(':scope > [data-task-id]').l
 click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.taskName.value,'المهمة الرئيسية');
 click('#plannerEditor [data-task-id="child-family"] [data-task-edit]');f=$('#plannerForm').elements;assert.equal(f.taskName.value,'الفرعية في العصر');assert.equal($('#plannerForm input[name=projectIds]:checked').value,'family');f.taskName.value='فرعية معدلة';f.completedSlots.value='1';submit('#plannerForm');
 assert.equal($('#plannerForm').elements.taskName.value,'المهمة الرئيسية');assert.equal(run("taskCompletion(findTask('root-family',''))"),50);click('#closePlanner');
-const childSlot=run('range(2)[0]'),childSlotIndex=childSlot%96;
+const childSlot=run('range(2)[0]'),childSlotIndex=childSlot%144;
 click('.slot-actual[data-slot="'+childSlot+'"]');assert.match($('#slotTasks [data-task-choice="child-family"]').textContent,/المهمة الرئيسية/);click('[data-task-choice="child-family"]');
 assert.equal(run('day().actualTasks['+childSlotIndex+'].parentName'),'المهمة الرئيسية');
 assert.equal($('.slot-actual[data-slot="'+childSlot+'"] .slot-task-parent').textContent,'المهمة الرئيسية');assert.equal($('.slot-actual[data-slot="'+childSlot+'"] .slot-task-name').textContent,'فرعية معدلة');
 run("view='dashboard';plannerTab='week';plannerWeek=date;render()");assert.equal($('.week-period > [data-task-id="child-family"]'),null);assert.match($('.week-period > [data-task-id="root-family"]').textContent,/فرعية معدلة/);click('.week-period > [data-task-id="root-family"] [data-task-edit]');assert.equal($('#plannerForm').elements.taskName.value,'المهمة الرئيسية');click('#closePlanner');
 // Moving the parent preserves exact occurrence identity and the child remains nested.
-run("const root=findTask('root-family','');savePlannedTask(root,{...root,date,prayers:[]},0);view='projects';selectedProject='family';render()");assert.equal(run("findTask('child-family',date).parentDate"),run('date'));assert.equal($('#projectDetails').querySelectorAll(':scope > [data-task-id]').length,1);
+run("const root=findTask('root-family','');savePlannedTask(root,{...root,date,prayers:[]},0);view='projects';selectedProject='family';render()");assert.equal(run("findTask('child-family',date).parentDate"),run('date'));assert.equal($('#projectTaskList').querySelectorAll(':scope > [data-task-id]').length,1);
 assert.equal(run("childTasks({id:'root-family',date:''}).length"),0);
 const nestedBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(nestedBackup)+');validate(state);render()');assert.equal(run('day().actualTasks['+childSlotIndex+'].parentName'),'المهمة الرئيسية');
 // Legacy deleted parents stay grouped rather than turning their children into main tasks.
-run("day().tasks=day().tasks.filter(t=>t.id!=='root-family');render()");if(!$('#projectDetails > .task-family [data-task-id="child-family"]'))click('#projectDetails > .task-family [data-task-toggle]');assert.ok($('#projectDetails > .task-family [data-task-id="child-family"]'));assert.equal($('#projectDetails > [data-task-id="child-family"]'),null);
+run("day().tasks=day().tasks.filter(t=>t.id!=='root-family');render()");if(!$('#projectTaskList > .task-family [data-task-id="child-family"]'))click('#projectTaskList > .task-family [data-task-toggle]');assert.ok($('#projectTaskList > .task-family [data-task-id="child-family"]'));assert.equal($('#projectTaskList > [data-task-id="child-family"]'),null);
 
 // Expanded monthly calendar: visibility, result state, filters and task families.
 run("state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[{id:'monthly-project',name:'مشروع الشهر'}];date=activeDay();plannerMonth=date.slice(0,7);view='dashboard';plannerTab='month';Object.assign(monthFilters,{project:'all',category:'all',status:'all',priority:'all',period:'all',query:''});taskDay(date).tasks=[{id:'legacy-month',name:'قديمة',prayers:[3,4],priority:1,expectedSlots:2},{id:'slots-only',name:'خانات كاملة',prayers:[],expectedSlots:2}];taskDay(date).taskProgress={'legacy-month':1,'slots-only':2};render()");
@@ -261,7 +261,7 @@ assert.equal(run("taskCompletion(findTask('month-parent',addDate(date,-1)))"),50
 click(monthChip('m-sub-a'));click('[data-month-edit]');assert.equal($('#plannerForm').elements.taskName.value,'رئيسية يوم آخر');
 assert.ok($('#plannerEditor [data-task-id="m-sub-a"]'));click('#closePlanner');
 run("view='projects';selectedProject='monthly-project';render()");
-assert.equal($('#projectDetails > progress').value,25);assert.equal($('#projectDetails > [data-task-id="m-sub-a"]'),null);
+assert.equal($('#projectDetails > progress').value,25);assert.equal($('#projectTaskList > [data-task-id="m-sub-a"]'),null);
 run("view='dashboard';plannerTab='month';render();openPlannerEditor(findTask('m-sub-a',date))");
 f=$('#plannerForm').elements;f.showInMonthlyCalendar.checked=false;submit('#plannerForm');assert.equal(run("projectCompletion('monthly-project')"),25);
 assert.equal($(monthChip('m-sub-a')),null);click('#closePlanner');
@@ -340,7 +340,7 @@ console.log('PASS: expanded monthly calendar, visibility, filters, outcomes, fam
 // Project ordering moves whole families, persists independently of task priority and progress.
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'order-p',name:'ترتيب المشروع'},{id:'order-other',name:'مشروع مستقل'}];state.taskInbox=[{id:'order-a',name:'الأولى',priority:1,projectId:'order-p'},{id:'order-b',name:'الثانية',priority:2,projectId:'order-p'},{id:'order-c',name:'الثالثة',priority:3,projectId:'order-p'},{id:'order-child',name:'فرع الأولى',parentId:'order-a',parentDate:'',inboxOutcome:'done'},{id:'order-x',name:'مهمة المشروع الآخر',projectId:'order-other'}];view='projects';selectedProject='order-p';render()");
 click('#projectDetails [data-task-id="order-a"] [data-task-toggle]');
-const orderedIds=()=>[...$('#projectDetails').children].filter(c=>c.matches('[data-task-id]')).map(c=>c.dataset.taskId).join();
+const orderedIds=()=>[...$('#projectTaskList').children].filter(c=>c.matches('[data-task-id]')).map(c=>c.dataset.taskId).join();
 assert.equal(orderedIds(),'order-a,order-b,order-c');
 assert.equal($('#projectDetails [data-task-id="order-a"] [data-project-order-key]').value,'1');
 assert.equal($('#projectDetails [data-task-id="order-c"] [data-project-order-key]').value,'3');
@@ -349,7 +349,7 @@ const beforeOrderingTasks=run('JSON.stringify(state.taskInbox)'),beforeOrderingP
 const orderInput=(id)=>$('#projectDetails [data-task-id="'+id+'"] [data-project-order-key]');
 orderInput('order-b').value='1';orderInput('order-b').dispatchEvent(new w.Event('change',{bubbles:true}));
 assert.equal(orderedIds(),'order-b,order-a,order-c');
-assert.ok($('#projectDetails > [data-task-id="order-a"] [data-task-id="order-child"]'));
+assert.ok($('#projectTaskList > [data-task-id="order-a"] [data-task-id="order-child"]'));
 assert.equal(run('JSON.stringify(state.taskInbox)'),beforeOrderingTasks);
 assert.equal(run("projectCompletion('order-p')"),beforeOrderingProgress);
 orderInput('order-a').value='3';orderInput('order-a').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
@@ -437,7 +437,7 @@ $('#projectBulkForm').elements.priority.value='5';submit('#projectBulkForm');
 assert.equal($('#projectBulkEditor').open,false);
 assert.equal(run("projectTaskRecords(state,'bulk-p').every(r=>r.task.priority===5&&r.task.expectedSlots===3&&r.task.showInMonthlyCalendar===false)"),true);
 // Removing the linked action clears reservations but leaves recorded actual work intact.
-run("const d=taskDay(activeDay()),slot=periodSlots(activeDay(),0)[0]%96;d.slots[slot]=state.actions[0].id;d.actualTasks={[slot]:{id:'bulk-scheduled-0',name:'عمل مسجل',actionId:state.actions[0].id}};state=bulkUpdateProjectTasks(state,'bulk-p',{actionId:''});validatePlanning(state)");
+run("const d=taskDay(activeDay()),slot=periodSlots(activeDay(),0)[0]%144;d.slots[slot]=state.actions[0].id;d.actualTasks={[slot]:{id:'bulk-scheduled-0',name:'عمل مسجل',actionId:state.actions[0].id}};state=bulkUpdateProjectTasks(state,'bulk-p',{actionId:''});validatePlanning(state)");
 assert.equal(run('Object.keys(taskDay(activeDay()).taskSlotOwners).length'),0);
 assert.equal(run('Object.values(taskDay(activeDay()).slots)[0]'),run('state.actions[0].id'));
 assert.equal(run('Object.values(taskDay(activeDay()).actualTasks)[0].name'),'عمل مسجل');

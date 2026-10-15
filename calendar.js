@@ -123,6 +123,7 @@ function setupCalendar() {
   state.method ??= 'Egyptian';
   state.offsets ??= [0, 0, 0, 0, 0];
   state.hijriOffset ??= 0;
+  const migrated = SlotTools.migrate(state);
   if (!state.sunsetDays) {
     state.sunsetDays = {};
     let target = (k) => (state.sunsetDays[k] ??= emptyDay());
@@ -148,10 +149,10 @@ function setupCalendar() {
       }
       for (let [key, value] of Object.entries(d.slots || {})) {
         let n = +key,
-          civil = addDate(oldDate, Math.floor(n / 96)),
-          wall = ((n % 96) + 96) % 96,
+          civil = addDate(oldDate, Math.floor(n / 144)),
+          wall = ((n % 144) + 144) % 144,
           dest =
-            wall * 15 >= minute(clockAt(solar(civil).maghrib))
+            wall * SlotTools.minutes >= minute(clockAt(solar(civil).maghrib))
               ? addDate(civil, 1)
               : civil;
         target(dest).slots[wall] = value;
@@ -159,6 +160,7 @@ function setupCalendar() {
     }
     save();
   }
+  if (migrated) save();
 }
 function goDay(d, live = false) {
   date = d;

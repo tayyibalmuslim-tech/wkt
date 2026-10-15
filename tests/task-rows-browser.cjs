@@ -20,7 +20,7 @@ module.exports = async function taskRowsBrowser(browser, url) {
    window.rowsRenderCount=0;const realRowsRender=render;render=(...args)=>{window.rowsRenderCount++;return realRowsRender(...args)};
   `);
     });
-    const rows = page.locator('#projectDetails > .task-row');
+    const rows = page.locator('#projectTaskList > .task-row');
     assert.equal(await rows.count(), 24);
     assert.equal(
       await page.locator('[data-task-id="visual-child"]').count(),
@@ -40,7 +40,7 @@ module.exports = async function taskRowsBrowser(browser, url) {
       geometry.filter((r) => r.top >= 0 && r.bottom <= 1080).length >= 15,
       'at least 15 whole rows fit a 1080px viewport',
     );
-    const root = page.locator('#projectDetails > [data-task-id="visual-0"]');
+    const root = page.locator('#projectTaskList > [data-task-id="visual-0"]');
     await root.locator(':scope > .task-row-heading [data-task-toggle]').click();
     assert.equal(
       await page.locator('[data-task-id="visual-child"]').count(),

@@ -36,9 +36,21 @@ function taskRowMetrics(t, children = childTasks(t)) {
   const expected = t.expectedSlots || 0,
     count = completedSlots(t);
   const completion = taskCompletion(t);
-  return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}" aria-label="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ" aria-label="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}<bdi>${time(t.startSlot)}</bdi></span>` : ''}${expected ? `<span title="الخانات المنجزة / المتوقعة · ${expected * 15} دقيقة مخططة" aria-label="${count} من ${expected} خانة">${taskIcon('slots')}<bdi>${count}/${expected}</bdi></span>` : ''}${t.recurrent ? `<span title="متكررة" aria-label="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || expected || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
+  return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}" aria-label="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ" aria-label="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}<bdi>${time(t.startSlot)}</bdi></span>` : ''}${expected ? `<span title="الخانات المنجزة / المتوقعة · ${expected * SlotTools.minutes} دقيقة مخططة" aria-label="${count} من ${expected} خانة">${taskIcon('slots')}<bdi>${count}/${expected}</bdi></span>` : ''}${t.recurrent ? `<span title="متكررة" aria-label="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || expected || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
 }
-function taskRow(t, mode = 'planner', depth = 0, path = new Set()) {
+function taskOrderField(key, context) {
+  const order = context?.order?.get(key);
+  return order
+    ? `<label class="project-task-order"><span>الترتيب</span><input type="number" min="1" max="${order.total}" step="1" inputmode="numeric" value="${order.position}" data-project-order-key="${esc(key)}" aria-label="ترتيب ${esc(order.name)}" title="اكتب موضع المهمة من 1 إلى ${order.total}"></label>`
+    : '';
+}
+function taskRow(
+  t,
+  mode = 'planner',
+  depth = 0,
+  path = new Set(),
+  context = null,
+) {
   const rowId = 'task-row-' + ++taskRowSerial;
   const key = taskIdentity(t);
   if (path.has(key)) return '';
@@ -48,9 +60,14 @@ function taskRow(t, mode = 'planner', depth = 0, path = new Set()) {
     ? []
     : childTasks(t).filter((c) => !path.has(taskIdentity(c)));
   const status = t.virtual ? 'pending' : outcome(t);
-  const expanded = children.length > 0 && expandedTaskRows.has(key);
+  const visibleChildren = children.filter(
+    (c) => !context?.visible || context.visible.has(taskIdentity(c)),
+  );
+  const expanded =
+    visibleChildren.length > 0 &&
+    (expandedTaskRows.has(key) || !!context?.forced.has(key));
   const fullText = t.name + (t.description ? ' — ' + t.description : '');
-  const context =
+  const contextLabel =
     mode === 'series'
       ? taskPeriodLabel(t) +
         ' · ' +
@@ -66,9 +83,9 @@ function taskRow(t, mode = 'planner', depth = 0, path = new Set()) {
           ]
             .filter(Boolean)
             .join(' · ');
-  return `<article class="task-row ${mode === 'planner' ? 'planner-task' : 'daily-task'} ${t.virtual ? 'task-family' : ''} ${status}" data-task-id="${esc(t.id)}" data-task-date="${esc(t.date || '')}" data-row-mode="${mode}" data-row-depth="${depth}" ${t.virtual ? 'data-virtual="true"' : ''} style="--task-indent:${Math.min(depth, 3)}">
+  return `<article class="task-row ${mode === 'planner' ? 'planner-task' : 'daily-task'} ${t.virtual ? 'task-family' : ''} ${status}" data-task-id="${esc(t.id)}" data-task-date="${esc(t.date || '')}" data-row-mode="${mode}" ${context?.matches?.has(key) ? 'data-project-match="true"' : ''} data-row-depth="${depth}" ${t.virtual ? 'data-virtual="true"' : ''} style="--task-indent:${Math.min(depth, 3)}">
     <div class="task-row-heading planner-task-heading">
-      ${children.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
+      ${visibleChildren.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
       <button type="button" class="task-row-select" data-task-select aria-controls="${rowId}-actions" aria-expanded="false" title="${esc(fullText)}">
         <span class="task-row-status" role="img" aria-label="${mode === 'series' ? 'سلسلة متكررة' : { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[status]}">${taskIcon(mode === 'series' ? 'repeat' : status === 'done' ? 'check' : status === 'failed' ? 'cross' : 'circle')}</span>
         <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
@@ -77,14 +94,14 @@ function taskRow(t, mode = 'planner', depth = 0, path = new Set()) {
       </button>
     </div>
     <div id="${rowId}-actions" class="task-row-actions daily-task-controls" hidden>
-      <p class="task-row-full">${esc(fullText)}</p><p class="task-row-context">${esc(context)}</p>
-      ${mode === 'series' ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}">${taskIcon('edit')} تعديل السلسلة</button></div><details class="task-row-secondary"><summary aria-label="المزيد">${taskIcon('more')}</summary><div><button type="button" data-del="${esc(t.id)}">حذف السلسلة</button></div></details>` : t.virtual ? '<button type="button" class="secondary" data-task-edit>إدارة الفروع المحفوظة</button>' : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}">${taskIcon('check')} فعلتها</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}">${taskIcon('cross')} لم أفعلها</button><button type="button" data-task-edit>${taskIcon('edit')} تعديل</button></div><details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}">${taskIcon('more')}<span class="sr-only">المزيد</span></summary><div><button type="button" data-task-child>＋ إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>${t.expectedSlots || t.date ? `<label class="row-slot-editor">الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>` : ''}</div></details>`}
+      <p class="task-row-full">${esc(fullText)}</p><p class="task-row-context">${esc(contextLabel)}</p>
+      ${mode === 'series' ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}">${taskIcon('edit')} تعديل السلسلة</button></div><details class="task-row-secondary"><summary aria-label="المزيد">${taskIcon('more')}</summary><div><button type="button" data-del="${esc(t.id)}">حذف السلسلة</button></div></details>` : t.virtual ? `<button type="button" class="secondary" data-task-edit>إدارة الفروع المحفوظة</button>${taskOrderField(key, context)}` : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}">${taskIcon('check')} فعلتها</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}">${taskIcon('cross')} لم أفعلها</button><button type="button" data-task-edit>${taskIcon('edit')} تعديل</button></div><details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}">${taskIcon('more')}<span class="sr-only">المزيد</span></summary><div><button type="button" data-task-child>＋ إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>${taskOrderField(key, context)}${t.expectedSlots || t.date ? `<label class="row-slot-editor">الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>` : ''}</div></details>`}
     </div>
-    ${children.length ? `<div id="${rowId}-children" class="task-children" ${expanded ? '' : 'hidden'}>${expanded ? children.map((c) => taskRow(c, mode, depth + 1, path)).join('') : ''}</div>` : ''}
+    ${visibleChildren.length ? `<div id="${rowId}-children" class="task-children" ${expanded ? '' : 'hidden'}>${expanded ? visibleChildren.map((c) => taskRow(c, mode, depth + 1, path, context)).join('') : ''}</div>` : ''}
   </article>`;
 }
-function taskCard(t) {
-  return taskRow(t);
+function taskCard(t, context = null) {
+  return taskRow(t, 'planner', 0, new Set(), context);
 }
 function compactTaskCard(t) {
   return taskRow(t, 'period');
@@ -147,13 +164,17 @@ function toggleTaskRow(card) {
       );
       ancestor = ancestor.parentElement.closest('.task-row');
     }
+    const context =
+      typeof projectRowContext === 'function' ? projectRowContext(card) : null;
     container.innerHTML = childTasks(t)
+      .filter((c) => !context?.visible || context.visible.has(taskIdentity(c)))
       .map((c) =>
         taskRow(
           c,
           card.dataset.rowMode,
           Number(card.dataset.rowDepth) + 1,
           path,
+          context,
         ),
       )
       .join('');
@@ -231,6 +252,8 @@ function refreshTaskRowValues(changed = null) {
     if (node.tagName === 'PROGRESS') node.value = projectCompletion(id);
     else if (node.dataset.summaryKind === 'outcomes')
       node.textContent = `${done} مكتملة · ${list.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${list.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل`;
+    else if (node.dataset.summaryKind === 'count')
+      node.textContent = `${done}/${list.length}`;
     else if (node.dataset.summaryKind === 'percent')
       node.textContent = percentLabel(projectCompletion(id));
     else

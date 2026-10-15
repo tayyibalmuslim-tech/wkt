@@ -431,11 +431,11 @@ function capacity(key, p, ignoreId = '') {
     slots = periodSlots(key, p);
   const occupied = slots.filter(
     (n) =>
-      (d.planned?.[n % 96] || d.plannedNotes?.[n % 96]) &&
-      d.taskSlotOwners?.[n % 96] !== ignoreId,
+      (d.planned?.[n % 144] || d.plannedNotes?.[n % 144]) &&
+      d.taskSlotOwners?.[n % 144] !== ignoreId,
   ).length;
   const actual = slots.filter(
-    (n) => d.slots?.[n % 96] || d.actualNotes?.[n % 96],
+    (n) => d.slots?.[n % 144] || d.actualNotes?.[n % 144],
   ).length;
   const estimates = allTasksOn(key)
     .filter((t) => taskInPeriod(t, p) && t.id !== ignoreId)
@@ -486,8 +486,8 @@ function scheduleTask(t, start) {
   if (
     selected.some(
       (n) =>
-        (d.planned?.[n % 96] || d.plannedNotes?.[n % 96]) &&
-        d.taskSlotOwners?.[n % 96] !== t.id,
+        (d.planned?.[n % 144] || d.plannedNotes?.[n % 144]) &&
+        d.taskSlotOwners?.[n % 144] !== t.id,
     )
   )
     throw Error(
@@ -502,7 +502,7 @@ function scheduleTask(t, start) {
   ])
     d[field] ??= {};
   for (const n of selected) {
-    const slot = n % 96;
+    const slot = n % 144;
     d.planned[slot] = t.actionId;
     d.plannedNotes[slot] = 'مهمة: ' + t.name;
     d.taskSlotOwners[slot] = t.id;
@@ -626,7 +626,7 @@ function taskFields(t = {}, includeDate = true) {
        `<option value="${v}" ${String(taskPriority(t)) === v ? 'selected' : ''}>${n}</option>`,
    )
    .join('')}</select></label>
- <label class="field">الخانات المتوقعة (الخانة ١٥ دقيقة)<input name="expectedSlots" type="number" min="0" max="96" step="1" value="${t.expectedSlots || 0}" required></label>
+ <label class="field">الخانات المتوقعة (الخانة ١٠ دقائق)<input name="expectedSlots" type="number" min="0" max="144" step="1" value="${t.expectedSlots || 0}" required></label>
  <div class="field task-action-field"><input type="hidden" name="actionId" value="${esc(t.actionId || '')}"><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span class="task-action-caption">الفعل المرتبط</span><span class="task-action-selected" data-task-action-label>بدون ربط — اختر فعلًا</span><span class="task-action-arrow" aria-hidden="true">▾</span></button></div>
  ${includeDate ? `<label class="field">اليوم (اتركه فارغًا لصندوق الوارد)<input name="taskDate" type="date" value="${t.date || ''}"></label>${periodPicker(t)}` : ''}`;
 }
@@ -794,8 +794,8 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
           'تغيرت البيانات أو الحساب. أغلق النافذة وافتح المهمة مجددًا.',
         );
       const count = +f.expectedSlots.value;
-      if (!Number.isInteger(count) || count < 0 || count > 96)
-        throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و٩٦.');
+      if (!Number.isInteger(count) || count < 0 || count > 144)
+        throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و١٤٤.');
       const selectedProjects = selectedProjectIds(form, draft);
       const next = {
           ...draft,
@@ -906,9 +906,9 @@ function renderRepeat(edit = null) {
   form.onsubmit = (e) => {
     const f = form.elements,
       count = +f.expectedSlots.value;
-    if (!Number.isInteger(count) || count < 0 || count > 96) {
+    if (!Number.isInteger(count) || count < 0 || count > 144) {
       e.preventDefault();
-      toast('الخانات المتوقعة بين ٠ و٩٦');
+      toast('الخانات المتوقعة بين ٠ و١٤٤');
       return;
     }
     if (!f.name.value.trim() || !form.querySelector('[name=days]:checked')) {
@@ -1018,7 +1018,7 @@ function validatePlanning(s) {
       t.expectedSlots !== undefined &&
       (!Number.isInteger(t.expectedSlots) ||
         t.expectedSlots < 0 ||
-        t.expectedSlots > 96)
+        t.expectedSlots > 144)
     )
       throw Error('عدد خانات غير صالح');
     if (
@@ -1029,7 +1029,7 @@ function validatePlanning(s) {
       throw Error('تاريخ مهمة غير صالح');
     if (
       t.startSlot != null &&
-      (!Number.isInteger(t.startSlot) || t.startSlot < 0 || t.startSlot > 192)
+      (!Number.isInteger(t.startSlot) || t.startSlot < 0 || t.startSlot > 288)
     )
       throw Error('وقت غير صالح');
     for (const key of ['actionId', 'parentId', 'parentName', 'projectId'])
@@ -1069,7 +1069,8 @@ function validatePlanning(s) {
       for (const [slot, t] of Object.entries(d.actualTasks))
         if (
           (t?.parentName !== undefined && typeof t.parentName !== 'string') ||
-          !/^(?:[0-9]|[1-8][0-9]|9[0-5])$/.test(slot) ||
+          !/^(0|[1-9]\d*)$/.test(slot) ||
+          +slot >= (s.slotMinutes === 10 ? 144 : 96) ||
           !t ||
           typeof t.id !== 'string' ||
           typeof t.name !== 'string' ||

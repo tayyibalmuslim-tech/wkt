@@ -126,17 +126,19 @@ function minute(t) {
 }
 function starts() {
   let t = prayerTimes(),
-    s = t.map((v, i) => Math.floor(minute(v) / 15) - (i === 3 ? 0 : 1));
-  return s.map((n, i) => (i < 3 ? n + 96 : n));
+    s = t.map(
+      (v, i) => Math.floor(minute(v) / SlotTools.minutes) - (i === 3 ? 0 : 1),
+    );
+  return s.map((n, i) => (i < 3 ? n + 144 : n));
 }
 function time(n) {
-  n = ((n % 96) + 96) % 96;
-  return displayTime(`${Math.floor(n / 4)}:${(n % 4) * 15}`);
+  n = ((n % 144) + 144) % 144;
+  return displayTime(`${Math.floor(n / 6)}:${(n % 6) * SlotTools.minutes}`);
 }
 function range(p) {
   let s = starts(),
     index = prayerOrder.indexOf(p),
-    end = index === 4 ? s[3] + 96 : s[prayerOrder[index + 1]];
+    end = index === 4 ? s[3] + 144 : s[prayerOrder[index + 1]];
   return Array.from({ length: Math.max(0, end - s[p]) }, (_, i) => s[p] + i);
 }
 function tasks() {
@@ -149,6 +151,7 @@ function colorText(c) {
     : '#ffffff';
 }
 function render() {
+  rememberProjectView();
   app.onclick = app.onchange = app.onkeydown = null;
   document.body.classList.toggle(
     'monthly-view',
@@ -175,19 +178,19 @@ function render() {
 }
 function renderDay() {
   let d = day(),
-    filled = Array.from({ length: 96 }, (_, i) => starts()[3] + i).filter(
+    filled = Array.from({ length: 144 }, (_, i) => starts()[3] + i).filter(
       (n) =>
-        state.actions.some((a) => a.id === d.slots[n % 96]) ||
-        !!d.actualNotes?.[n % 96],
+        state.actions.some((a) => a.id === d.slots[n % 144]) ||
+        !!d.actualNotes?.[n % 144],
     ).length,
     done = Object.values(d.checks).filter(Boolean).length;
-  app.innerHTML = `<div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="hero"><div><h2>أعطِ كل وقت معنى</h2><p>ابدأ بخانة واحدة، وابنِ يومك على مهل.</p><span class="hint" style="color:#d0dec8">${dayRangeLabel()}</span></div><div class="stats"><div class="stat"><strong>${filled}<small style="font-size:14px"> / 96</small></strong><span>خانة مسجلة فعليًا</span></div><div class="stat"><strong>${96 - filled}</strong><span>خانة لم تُسجل فعليًا</span></div><div class="stat"><strong>${done}<small style="font-size:14px"> / 25</small></strong><span>من قائمة الصلوات</span></div></div></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCount(i) === 5 ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/5</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">☑ مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">＋ إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٥ دقيقة</span></div><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لربع ساعة للحفاظ على ٩٦ خانة.</p><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button><div class="grid">${range(
+  app.innerHTML = `<div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="hero"><div><h2>أعطِ كل وقت معنى</h2><p>ابدأ بخانة واحدة، وابنِ يومك على مهل.</p><span class="hint" style="color:#d0dec8">${dayRangeLabel()}</span></div><div class="stats"><div class="stat"><strong>${filled}<small style="font-size:14px"> / 144</small></strong><span>خانة مسجلة فعليًا</span></div><div class="stat"><strong>${144 - filled}</strong><span>خانة لم تُسجل فعليًا</span></div><div class="stat"><strong>${done}<small style="font-size:14px"> / 25</small></strong><span>من قائمة الصلوات</span></div></div></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCount(i) === 5 ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/5</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">☑ مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">＋ إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button><div class="grid">${range(
     prayer,
   )
     .map((n) => {
-      let a = state.actions.find((a) => a.id === d.slots[n % 96]),
-        planned = state.actions.find((a) => a.id === d.planned?.[n % 96]);
-      return `<div class="slot split-slot"><button class="slot-actual" data-slot="${n}" data-kind="actual" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}" aria-label="ما فعلته من ${time(n)} إلى ${time(n + 1)}"><span class="time"><bdi>${time(n)}</bdi> – <bdi>${time(n + 1)}</bdi></span><span class="label">${a ? esc(a.name) : '＋ ما فعلته'}</span>${d.actualTasks?.[n % 96] ? `${d.actualTasks[n % 96].parentName ? `<small class="slot-task-parent">${esc(d.actualTasks[n % 96].parentName)}</small>` : ''}<small class="slot-task-name">${esc(d.actualTasks[n % 96].name)}</small>` : ''}${d.actualNotes?.[n % 96] ? `<small class="slot-note">${esc(d.actualNotes[n % 96])}</small>` : ''}</button><button class="slot-planned" data-slot="${n}" data-kind="planned" style="${planned ? `background:${ActionCategories.color(state, planned)};color:${colorText(ActionCategories.color(state, planned))}` : ''}" aria-label="المطلوب من ${time(n)} إلى ${time(n + 1)}">${planned ? 'المطلوب: ' + esc(planned.name) : '＋ الفعل المطلوب'}${d.plannedNotes?.[n % 96] ? `<small class="slot-note">${esc(d.plannedNotes[n % 96])}</small>` : ''}</button></div>`;
+      let a = state.actions.find((a) => a.id === d.slots[n % 144]),
+        planned = state.actions.find((a) => a.id === d.planned?.[n % 144]);
+      return `<div class="slot split-slot"><button class="slot-actual" data-slot="${n}" data-kind="actual" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}" aria-label="ما فعلته من ${time(n)} إلى ${time(n + 1)}"><span class="time"><bdi>${time(n)}</bdi> – <bdi>${time(n + 1)}</bdi></span><span class="label">${a ? esc(a.name) : '＋ ما فعلته'}</span>${d.actualTasks?.[n % 144] ? `${d.actualTasks[n % 144].parentName ? `<small class="slot-task-parent">${esc(d.actualTasks[n % 144].parentName)}</small>` : ''}<small class="slot-task-name">${esc(d.actualTasks[n % 144].name)}</small>` : ''}${d.actualNotes?.[n % 144] ? `<small class="slot-note">${esc(d.actualNotes[n % 144])}</small>` : ''}</button><button class="slot-planned" data-slot="${n}" data-kind="planned" style="${planned ? `background:${ActionCategories.color(state, planned)};color:${colorText(ActionCategories.color(state, planned))}` : ''}" aria-label="المطلوب من ${time(n)} إلى ${time(n + 1)}">${planned ? 'المطلوب: ' + esc(planned.name) : '＋ الفعل المطلوب'}${d.plannedNotes?.[n % 144] ? `<small class="slot-note">${esc(d.plannedNotes[n % 144])}</small>` : ''}</button></div>`;
     })
     .join(
       '',
@@ -289,9 +292,9 @@ function openPicker(n, kind = 'actual', bulk = false) {
     d = day(),
     first = starts()[3];
   const read = (n, k) => ({
-    action: k === 'actual' ? d.slots[n % 96] : d.planned?.[n % 96],
-    note: d[k + 'Notes']?.[n % 96] || '',
-    task: k === 'actual' ? d.actualTasks?.[n % 96] : null,
+    action: k === 'actual' ? d.slots[n % 144] : d.planned?.[n % 144],
+    note: d[k + 'Notes']?.[n % 144] || '',
+    task: k === 'actual' ? d.actualTasks?.[n % 144] : null,
   });
   const initial = read(n, kind);
   SlotTools.open({
@@ -504,6 +507,8 @@ function renderSettings() {
   };
 }
 function validate(s) {
+  if (s?.slotMinutes !== undefined && ![10, 15].includes(s.slotMinutes))
+    throw Error();
   validatePlanning(s);
   if (
     !s ||
@@ -546,8 +551,13 @@ function validate(s) {
     throw Error();
   let m = s.times.map(minute);
   if (
-    m[0] < 15 ||
-    m.some((v, i) => i && Math.floor(v / 15) <= Math.floor(m[i - 1] / 15))
+    m[0] < SlotTools.minutes ||
+    m.some(
+      (v, i) =>
+        i &&
+        Math.floor(v / SlotTools.minutes) <=
+          Math.floor(m[i - 1] / SlotTools.minutes),
+    )
   )
     throw Error();
   for (let a of s.actions)

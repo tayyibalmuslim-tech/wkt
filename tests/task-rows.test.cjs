@@ -306,7 +306,7 @@ try {
   run(
     `state.sunsetDays={};state.taskInbox=[];state.projects=[{id:'dated',name:'تواريخ'}];for(const key of [date,addDate(date,-1)]){taskDay(key).tasks=[{id:'same-root',name:'أصل '+key,projectId:'dated'},{id:'same-child',name:'فرع '+key,parentId:'same-root',parentDate:key}];}view='projects';selectedProject='dated';expandedTaskRows.clear();render();`,
   );
-  const dated = [...w.document.querySelectorAll('#projectDetails > .task-row')];
+  const dated = [...w.document.querySelectorAll('#projectTaskList > .task-row')];
   assert.equal(dated.length, 2);
   own(dated[0], '[data-task-toggle]').click();
   assert.equal(

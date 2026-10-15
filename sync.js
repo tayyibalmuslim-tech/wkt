@@ -75,7 +75,8 @@
     applying = true;
     try {
       state = structuredClone(s);
-      const seeded = installDefaultTafsir(state);
+      const migrated = SlotTools.migrate(state),
+        seeded = installDefaultTafsir(state);
       prayerCache.clear();
       setupCalendar();
       if (followToday) {
@@ -86,7 +87,7 @@
       lastCivilDay = zonedDate();
       document.querySelectorAll('dialog[open]').forEach((d) => d.close());
       render();
-      return seeded;
+      return seeded || migrated;
     } finally {
       applying = false;
     }

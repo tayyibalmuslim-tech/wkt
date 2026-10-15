@@ -50,6 +50,7 @@ const server=http.createServer((req,res)=>{
    await page.keyboard.press('Escape');
   }
   await require('./task-rows-browser.cjs')(browser,'http://127.0.0.1:'+server.address().port);
+  await require('./projects-browser.cjs')(browser,'http://127.0.0.1:'+server.address().port);
   assert.deepEqual(errors,[]);
   console.log('PASS: Chromium desktop/mobile, horizontal wrapping, expanded rows, long text, menu positioning and toggling');
  }finally{await browser?.close();await new Promise(resolve=>server.close(resolve))}

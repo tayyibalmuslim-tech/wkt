@@ -50,10 +50,12 @@ function validateProjects(s) {
   }
 }
 function projectTasks(id) {
-  const entries = progressEntries();
-  return sortedTasks(
-    entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
-  );
+  return cachedTaskRead('project-tasks:' + id, () => {
+    const entries = progressEntries();
+    return sortedTasks(
+      entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
+    );
+  });
 }
 // Order belongs to the project; it never changes task priority, dates or parent links.
 function orderedProjectTasks(id) {
@@ -82,52 +84,90 @@ function moveProjectTask(projectId, key, position) {
     ...(project.taskOrder || []).filter((k) => !visible.has(k)),
   ];
   save();
-  render();
+  if (
+    view === 'projects' &&
+    $('#projectTaskList') &&
+    selectedProject === projectId
+  ) {
+    taskReadScope(() => {
+      const list = orderedProjectTasks(projectId),
+        root = $('#projectTaskList');
+      const cards = new Map(
+        [...root.children]
+          .filter((el) => el.matches('.task-row'))
+          .map((card) => [taskIdentity(rowTask(card)), card]),
+      );
+      const scroll = $('#projectDetails').scrollTop;
+      for (const task of list) {
+        const card = cards.get(taskIdentity(task));
+        if (card) root.append(card);
+      }
+      bindProjectTaskOrder(root, project, list, true);
+      $('#projectDetails').scrollTop = scroll;
+    })();
+  } else render();
   [...document.querySelectorAll('[data-project-order-key]')]
     .find((input) => input.dataset.projectOrderKey === key)
-    ?.focus();
+    ?.focus({ preventScroll: true });
 }
-function bindProjectTaskOrder(details, project, list) {
-  const cards = [...details.children].filter((el) =>
-    el.matches('.planner-task,.task-family'),
+function bindProjectTaskOrder(root, project, list, updateInputs = false) {
+  const ranks = new Map(list.map((t, i) => [taskIdentity(t), i + 1]));
+  root.projectOrderContext = {
+    projectId: project.id,
+    total: list.length,
+    ranks,
+  };
+  if (updateInputs)
+    root.querySelectorAll('[data-project-order-key]').forEach((input) => {
+      const rank = ranks.get(input.dataset.projectOrderKey);
+      input.value = rank;
+      input.dataset.projectOrderRank = rank;
+      input.max = list.length;
+    });
+  if (root.projectOrderBound) return;
+  root.projectOrderBound = true;
+  const apply = (input) => {
+    const current = root.projectOrderContext,
+      position = Number(input.value);
+    if (
+      !input.value ||
+      !Number.isInteger(position) ||
+      position < 1 ||
+      position > current.total
+    ) {
+      input.value = current.ranks.get(input.dataset.projectOrderKey);
+      toast(`أدخل رقم ترتيب من 1 إلى ${current.total}`);
+      return;
+    }
+    moveProjectTask(current.projectId, input.dataset.projectOrderKey, position);
+  };
+  root.addEventListener(
+    'change',
+    (e) => {
+      if (!e.target.matches('[data-project-order-key]')) return;
+      e.stopImmediatePropagation();
+      apply(e.target);
+    },
+    true,
   );
-  cards.forEach((card, index) => {
-    const t = list[index];
-    if (!t) return;
-    const controls = document.createElement('label');
-    controls.className = 'project-task-order';
-    controls.innerHTML = `<span>الترتيب</span><input type="number" min="1" max="${list.length}" step="1" inputmode="numeric" value="${index + 1}" aria-label="ترتيب ${esc(t.name)}" title="اكتب موضع المهمة من 1 إلى ${list.length}">`;
-    const input = controls.querySelector('input');
-    input.dataset.projectOrderKey = taskIdentity(t);
-    const apply = () => {
-      const position = Number(input.value);
-      if (
-        !input.value ||
-        !Number.isInteger(position) ||
-        position < 1 ||
-        position > list.length
-      ) {
-        input.value = index + 1;
-        toast(`أدخل رقم ترتيب من 1 إلى ${list.length}`);
-        return;
-      }
-      moveProjectTask(project.id, input.dataset.projectOrderKey, position);
-    };
-    input.onchange = apply;
-    input.onkeydown = (e) => {
+  root.addEventListener(
+    'keydown',
+    (e) => {
+      if (!e.target.matches('[data-project-order-key]')) return;
       if (e.key === 'Enter') {
         e.preventDefault();
-        apply();
+        e.stopImmediatePropagation();
+        apply(e.target);
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        input.value = index + 1;
+        e.stopImmediatePropagation();
+        e.target.value = root.projectOrderContext.ranks.get(
+          e.target.dataset.projectOrderKey,
+        );
       }
-    };
-    (
-      card.querySelector('.task-row-secondary > div') ||
-      card.querySelector('.task-row-actions')
-    ).append(controls);
-  });
+    },
+    true,
+  );
 }
 // Include stored series and historical occurrences, not generated future copies.
 function projectTaskRecords(snapshot, projectId) {
@@ -182,9 +222,9 @@ function bulkUpdateProjectTasks(snapshot, projectId, patch) {
     'expectedSlots' in patch &&
     (!Number.isInteger(patch.expectedSlots) ||
       patch.expectedSlots < 0 ||
-      patch.expectedSlots > 96)
+      patch.expectedSlots > 144)
   )
-    throw Error('الخانات المتوقعة يجب أن تكون بين 0 و96.');
+    throw Error('الخانات المتوقعة يجب أن تكون بين 0 و144.');
   if (
     'actionId' in patch &&
     (typeof patch.actionId !== 'string' ||
@@ -248,7 +288,7 @@ function openProjectBulkEditor(project) {
      .join('')}</select></label>`,
  )}
  ${row('showInMonthlyCalendar', 'الظهور في التقويم', `<label class="field">التقويم الشهري<select name="showInMonthlyCalendar"><option value="true">إظهار جميع مهام المشروع</option><option value="false">إخفاء جميع مهام المشروع</option></select></label>`)}
- ${row('expectedSlots', 'الخانات المتوقعة', '<label class="field">الخانات المتوقعة لكل مهمة<input name="expectedSlots" type="number" min="0" max="96" step="1" required value="0"></label>')}
+ ${row('expectedSlots', 'الخانات المتوقعة', '<label class="field">الخانات المتوقعة لكل مهمة<input name="expectedSlots" type="number" min="0" max="144" step="1" required value="0"></label>')}
  ${row('actionId', 'الفعل المرتبط', '<input type="hidden" name="actionId" value=""><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span data-task-action-label>بدون ربط — اختر فعلًا</span></button>')}
  <p class="hint">عند تغيير الخانات أو الفعل تُحدّث الحجوزات المخططة. اختيار صفر خانات أو «بدون ربط» يلغي الحجز. إذا تعارضت الحجوزات فلن يُطبق أي تعديل.</p><p id="projectBulkError" role="alert"></p><button type="submit" class="primary">تطبيق على جميع مهام المشروع</button></form>`;
   dialog.querySelector('[data-close-bulk]').onclick = () => dialog.close();
@@ -579,7 +619,7 @@ function importProjectPackage(data) {
       t.expectedSlots !== undefined &&
       (!Number.isInteger(t.expectedSlots) ||
         t.expectedSlots < 0 ||
-        t.expectedSlots > 96)
+        t.expectedSlots > 144)
     )
       throw Error('عدد خانات غير صالح.');
     if (
@@ -638,20 +678,330 @@ function importProjectPackage(data) {
   );
   return project;
 }
-function renderProjects() {
+
+// Project navigation state lives only in this tab's JS session, outside the data snapshot.
+const projectViews = new Map();
+let mountedProject = null,
+  activeProjectContext = null,
+  projectMenusInstalled = false;
+function projectView(id) {
+  if (!projectViews.has(id))
+    projectViews.set(id, {
+      query: '',
+      expanded: new Set(),
+      scroll: 0,
+      browseScroll: 0,
+      windowScroll: 0,
+    });
+  return projectViews.get(id);
+}
+function rememberProjectView() {
+  const panel = $('#projectDetails');
+  if (
+    !panel ||
+    !mountedProject ||
+    panel.dataset.projectId !== mountedProject.id
+  )
+    return;
+  const ui = projectView(mountedProject.id);
+  ui.scroll = panel.scrollTop;
+  ui.windowScroll = window.scrollY;
+  if (!ui.query)
+    ui.expanded = new Set(
+      [...expandedTaskRows].filter((key) => mountedProject.keys.has(key)),
+    );
+}
+function projectModel(id) {
+  return cachedTaskRead('project-model:' + id, () => {
+    const entries = projectTasks(id),
+      roots = orderedProjectTasks(id);
+    return {
+      entries,
+      roots,
+      keys: new Set([...entries, ...roots].map(taskIdentity)),
+      order: new Map(
+        roots.map((t, i) => [
+          taskIdentity(t),
+          { position: i + 1, total: roots.length, name: t.name },
+        ]),
+      ),
+      percent: projectCompletion(id),
+      done: roots.filter((t) => taskCompletion(t) === 100).length,
+    };
+  });
+}
+function normalizeProjectSearch(text) {
+  return String(text)
+    .normalize('NFKD')
+    .replace(/[\u064b-\u065f\u0670\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)))
+    .toLocaleLowerCase()
+    .trim();
+}
+function projectSearchContext(model, query) {
+  query = normalizeProjectSearch(query);
+  if (!query) return null;
+  const matches = new Set(),
+    visible = new Set(),
+    forced = new Set(),
+    visited = new Set();
+  const candidates = [
+    ...model.entries,
+    ...model.roots.filter((t) => t.virtual),
+  ];
+  for (const t of candidates)
+    if (
+      normalizeProjectSearch(t.name + ' ' + (t.description || '')).includes(
+        query,
+      )
+    )
+      matches.add(taskIdentity(t));
+  const visit = (t) => {
+    const key = taskIdentity(t);
+    if (visited.has(key)) return;
+    visited.add(key);
+    visible.add(key);
+    childTasks(t).forEach(visit);
+  };
+  for (const t of candidates)
+    if (matches.has(taskIdentity(t))) {
+      visit(t);
+      if (childTasks(t).length) forced.add(taskIdentity(t));
+      let current = t;
+      const seen = new Set();
+      while (current.parentId && !seen.has(taskIdentity(current))) {
+        seen.add(taskIdentity(current));
+        current = parentTask(current) || mainTask(current);
+        const key = taskIdentity(current);
+        visible.add(key);
+        forced.add(key);
+        if (current.virtual) break;
+      }
+    }
+  return { visible, forced, matches };
+}
+function projectRowContext(card) {
+  return card.closest('#projectTaskList') ? activeProjectContext : null;
+}
+function applyProjectExpansion(model, ui) {
+  for (const key of model.keys) expandedTaskRows.delete(key);
+  for (const key of ui.expanded)
+    if (model.keys.has(key)) expandedTaskRows.add(key);
+}
+function renderProjectTaskList(context = undefined) {
+  return taskReadScope(() => {
+    const project = state.projects?.find((p) => p.id === selectedProject),
+      root = $('#projectTaskList');
+    if (!project || !root) return;
+    const model = projectModel(project.id),
+      ui = projectView(project.id);
+    applyProjectExpansion(model, ui);
+    const searchContext =
+      context === undefined ? projectSearchContext(model, ui.query) : context;
+    activeProjectContext = {
+      ...(searchContext || {
+        visible: null,
+        forced: new Set(),
+        matches: new Set(),
+      }),
+      order: model.order,
+    };
+    const roots = model.roots.filter(
+      (t) =>
+        !activeProjectContext?.visible ||
+        activeProjectContext.visible.has(taskIdentity(t)),
+    );
+    root.innerHTML =
+      roots.map((t) => taskCard(t, activeProjectContext)).join('') ||
+      `<p class="empty-note">${ui.query ? 'لا توجد مهام تطابق البحث في هذا المشروع.' : 'لا توجد مهام مرتبطة بهذا المشروع بعد.'}</p>`;
+    $('#projectSearchResults').textContent = ui.query
+      ? `${activeProjectContext?.matches.size || 0} مطابقة · ${roots.length} مهام رئيسية`
+      : `${model.roots.length} مهام رئيسية`;
+    $('#clearProjectSearch').hidden = !ui.query;
+    bindTaskCards(root);
+    bindProjectTaskOrder(root, project, model.roots);
+  })();
+}
+function expandProjectTasks(open) {
+  taskReadScope(() => {
+    rememberProjectView();
+    const ui = projectView(selectedProject),
+      model = projectModel(selectedProject),
+      root = $('#projectTaskList');
+    const scroll = $('#projectDetails').scrollTop;
+    ui.expanded = open
+      ? new Set(
+          [...model.entries, ...model.roots]
+            .filter((t) => childTasks(t).length)
+            .map(taskIdentity),
+        )
+      : new Set();
+    applyProjectExpansion(model, ui);
+    if (activeProjectContext)
+      activeProjectContext = { ...activeProjectContext, forced: new Set() };
+    if (open) {
+      let buttons = [
+        ...root.querySelectorAll('[data-task-toggle][aria-expanded="false"]'),
+      ];
+      while (buttons.length) {
+        buttons.forEach((button) => toggleTaskRow(button.closest('.task-row')));
+        buttons = [
+          ...root.querySelectorAll('[data-task-toggle][aria-expanded="false"]'),
+        ];
+      }
+    } else {
+      [...root.children]
+        .filter((card) => card.matches('.task-row'))
+        .forEach((card) => {
+          if (
+            rowOwn(card, '[data-task-toggle]')[0]?.getAttribute(
+              'aria-expanded',
+            ) === 'true'
+          )
+            toggleTaskRow(card);
+        });
+    }
+    $('#projectDetails').scrollTop = scroll;
+    rememberProjectView();
+  })();
+}
+function selectProject(id) {
+  if (!state.projects?.some((p) => p.id === id)) return;
+  taskReadScope(() => {
+    rememberProjectView();
+    selectedProject = id;
+    updateProjectNavigation();
+    renderProjectDetails();
+  })();
+}
+function updateProjectNavigation() {
   const projects = state.projects || [],
-    project = projects.find((p) => p.id === selectedProject);
-  app.innerHTML = `<div class="top"><div><h1>المشاريع</h1><p>اجمع المهام المرتبطة بهدف واحد، وتابع إنجازها.</p></div><div class="planner-toolbar"><button class="primary" id="newProject">＋ مشروع جديد</button><label class="secondary project-import-label">↑ استيراد مشروع<input type="file" id="projectImport" accept=".json,application/json" hidden></label></div></div><div class="project-layout"><section class="panel"><h2>مشاريعي (${projects.length})</h2><div class="project-list">${
-    projects
-      .map((p) => {
-        const list = taskGroups(projectTasks(p.id)),
-          done = list.filter((t) => taskCompletion(t) === 100).length;
-        return `<button class="secondary ${p.id === selectedProject ? 'chosen' : ''}" data-project="${esc(p.id)}" aria-pressed="${p.id === selectedProject}"><strong>${esc(p.name)}</strong><small data-project-summary="${esc(p.id)}">${percentLabel(projectCompletion(p.id))} إنجاز · ${done} / ${list.length} مهام مكتملة</small></button>`;
-      })
-      .join('') || '<p class="empty-note">أضف أول مشروع، ثم اربط به مهامك.</p>'
-  }</div></section><section class="panel" id="projectDetails"></section></div>`;
+    nav = $('#projectNavigation'),
+    select = $('#projectSelect');
+  const signature = JSON.stringify(projects.map((p) => [p.id, p.name]));
+  if (nav.dataset.signature !== signature) {
+    nav.innerHTML =
+      projects
+        .map(
+          (p) =>
+            `<button type="button" class="project-nav-item" data-project="${esc(p.id)}"><span>${esc(p.name)}</span><small data-project-summary="${esc(p.id)}"></small></button>`,
+        )
+        .join('') || '<p class="empty-note">أضف أول مشروع.</p>';
+    select.innerHTML =
+      '<option value="">اختر مشروعًا</option>' +
+      projects
+        .map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`)
+        .join('');
+    nav.dataset.signature = signature;
+  }
+  nav.querySelectorAll('[data-project]').forEach((button) => {
+    const id = button.dataset.project,
+      model = projectModel(id),
+      current = id === selectedProject;
+    button.classList.toggle('chosen', current);
+    button.setAttribute('aria-pressed', String(current));
+    button.querySelector('small').textContent =
+      `${percentLabel(model.percent)} إنجاز · ${model.done} / ${model.roots.length} مهام مكتملة`;
+    button.onclick = () => selectProject(id);
+  });
+  select.value = selectedProject;
+  select.onchange = () => selectProject(select.value);
+}
+function renderProjectDetails() {
+  const details = $('#projectDetails'),
+    project = state.projects?.find((p) => p.id === selectedProject);
+  activeProjectContext = null;
+  if (!project) {
+    mountedProject = null;
+    details.removeAttribute('data-project-id');
+    details.innerHTML =
+      '<p class="empty-note">اختر مشروعًا لعرض مهامه أو أنشئ مشروعًا جديدًا.</p>';
+    return;
+  }
+  const model = projectModel(project.id),
+    ui = projectView(project.id);
+  // Preserve expansion from phase 1 the first time this project is opened.
+  if (!ui.initialized) {
+    ui.expanded = new Set(
+      [...expandedTaskRows].filter((key) => model.keys.has(key)),
+    );
+    ui.initialized = true;
+  }
+  mountedProject = { id: project.id, keys: model.keys };
+  details.dataset.projectId = project.id;
+  details.innerHTML = `<div class="project-heading"><div><h2>${esc(project.name)}</h2><span class="project-heading-count"><b data-project-summary="${esc(project.id)}" data-summary-kind="count">${model.done}/${model.roots.length}</b> مهام رئيسية مكتملة</span></div><strong class="project-heading-percent" data-project-summary="${esc(project.id)}" data-summary-kind="percent">${percentLabel(model.percent)}</strong><details class="project-menu"><summary aria-label="إجراءات مشروع ${esc(project.name)}">${taskIcon('more')}</summary><div><button type="button" id="editProject">تعديل المشروع</button><button type="button" id="linkProjectTask">ربط مهمة موجودة</button><button type="button" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button type="button" id="deleteProject">حذف المشروع (الاحتفاظ بالمهام)</button><details><summary>خيارات إضافية</summary><button type="button" id="deleteProjectWithTasks">حذف المشروع ومهامه الحصرية نهائيًا</button></details><details class="project-info"><summary>تفاصيل المشروع والتقدم</summary>${project.description ? `<p>${esc(project.description)}</p>` : ''}<p data-project-summary="${esc(project.id)}" data-summary-kind="outcomes">${model.done} مكتملة · ${model.roots.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${model.roots.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل</p><p class="hint">المهام المشتركة تحتسب في كل مشروع مرتبط وتتشارك التقدم والنتائج. الأصل ذو الفروع يُحسب من فروعه دون احتسابه مرتين. المهام تشمل صندوق الوارد والنسخ الموزعة والمتكررة المسجلة ونسخ اليوم (${date}). الترتيب بالأرقام في «المزيد» لكل مهمة رئيسية.</p></details></div></details></div>
+    <progress class="project-heading-progress" data-project-summary="${esc(project.id)}" value="${model.percent}" max="100" aria-label="إنجاز ${esc(project.name)}"></progress>
+    <div class="project-list-toolbar"><label class="project-search"><span class="sr-only">بحث داخل المشروع</span><input type="search" id="projectSearch" placeholder="ابحث عن مهمة أو جزء أو صفحات…" value="${esc(ui.query)}" aria-controls="projectTaskList"></label><button type="button" id="clearProjectSearch" class="secondary" ${ui.query ? '' : 'hidden'}>مسح</button><button type="button" id="newProjectTask" class="primary">＋ مهمة</button><div class="project-expansion"><button type="button" id="expandProjectTasks">فتح الكل</button><button type="button" id="collapseProjectTasks">طي الكل</button></div><span id="projectSearchResults" role="status" aria-live="polite"></span></div><section id="projectTaskList" aria-label="مهام ${esc(project.name)}"></section>`;
+  $('#editProject').onclick = () => openProjectEditor(project);
+  $('#bulkProjectTasks').onclick = () => openProjectBulkEditor(project);
+  $('#deleteProject').onclick = () => deleteProject(project);
+  $('#deleteProjectWithTasks').onclick = () => deleteProjectWithTasks(project);
+  $('#newProjectTask').onclick = () =>
+    openPlannerEditor(null, null, project.id);
+  $('#linkProjectTask').onclick = () => openProjectTaskLink(project);
+  $('#expandProjectTasks').onclick = () => expandProjectTasks(true);
+  $('#collapseProjectTasks').onclick = () => expandProjectTasks(false);
+  const search = $('#projectSearch');
+  const changeSearch = () => {
+    rememberProjectView();
+    const old = ui.query;
+    if (!old) ui.browseScroll = details.scrollTop;
+    ui.query = search.value;
+    renderProjectTaskList();
+    details.scrollTop = ui.query ? 0 : ui.browseScroll;
+    ui.scroll = details.scrollTop;
+  };
+  search.oninput = changeSearch;
+  search.onkeydown = (e) => {
+    if (e.key === 'Escape' && search.value) {
+      e.preventDefault();
+      search.value = '';
+      changeSearch();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const target = details.querySelector(
+        '[data-project-match] [data-task-select]',
+      );
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView?.({ block: 'nearest' });
+    }
+  };
+  $('#clearProjectSearch').onclick = () => {
+    search.value = '';
+    changeSearch();
+    search.focus({ preventScroll: true });
+  };
+  details.onkeydown = (e) => {
+    if (e.key === 'Escape' && e.target.closest('.project-menu')) {
+      const menu = details.querySelector('.project-menu');
+      menu.open = false;
+      menu.querySelector('summary').focus({ preventScroll: true });
+    }
+  };
+  renderProjectTaskList();
+  details.scrollTop = ui.scroll;
+}
+function renderProjects() {
+  if (!projectMenusInstalled) {
+    document.addEventListener('pointerdown', (e) =>
+      document.querySelectorAll('.project-menu[open]').forEach((menu) => {
+        if (!menu.contains(e.target)) menu.open = false;
+      }),
+    );
+    projectMenusInstalled = true;
+  }
+  rememberProjectView();
+  const projects = state.projects || [];
+  if (selectedProject && !projects.some((p) => p.id === selectedProject))
+    selectedProject = '';
+  if (!app.querySelector('.project-workspace')) {
+    app.innerHTML = `<div class="project-workspace"><div class="top project-page-heading"><div><h1>المشاريع</h1><p>هدف واضح، وخطوة صغيرة كل يوم.</p></div><div class="project-page-actions"><button type="button" class="primary" id="newProject">＋ مشروع جديد</button><details class="project-menu project-page-menu"><summary aria-label="إجراءات المشاريع">${taskIcon('more')}</summary><div><label class="project-import-label" role="button" tabindex="0">↑ استيراد مشروع<input type="file" id="projectImport" accept=".json,application/json" hidden></label></div></details></div></div><label class="project-mobile-picker">المشروع<select id="projectSelect" aria-label="اختيار المشروع"></select></label><div class="project-layout"><section class="project-sidebar" aria-label="قائمة المشاريع"><h2>مشاريعي</h2><div class="project-list" id="projectNavigation"></div></section><section class="panel" id="projectDetails" tabindex="-1" aria-label="المشروع المختار"></section></div></div>`;
+  }
   $('#newProject').onclick = () => openProjectEditor();
-  $('#projectImport').onchange = async (e) => {
+  const input = $('#projectImport');
+  input.onchange = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -664,6 +1014,7 @@ function renderProjects() {
         !confirm('هناك مشروع بهذا الاسم؛ هل تريد إضافة نسخة جديدة مستقلة؟')
       )
         return;
+      input.closest('details').open = false;
       importProjectPackage(data);
     } catch (err) {
       toast(
@@ -673,29 +1024,12 @@ function renderProjects() {
       );
     }
   };
-  app.querySelectorAll('[data-project]').forEach(
-    (b) =>
-      (b.onclick = () => {
-        selectedProject = b.dataset.project;
-        render();
-      }),
-  );
-  const details = $('#projectDetails');
-  if (!project) {
-    details.innerHTML =
-      '<p class="empty-note">اختر مشروعًا لعرض مهامه أو أنشئ مشروعًا جديدًا.</p>';
-    return;
-  }
-  const list = orderedProjectTasks(project.id),
-    done = list.filter((t) => taskCompletion(t) === 100).length;
-  details.innerHTML = `<div class="panel-title"><h2>${esc(project.name)}</h2><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="editProject">تعديل المشروع</button></div></div>${project.description ? `<p class="project-description">${esc(project.description)}</p>` : ''}<p data-project-summary="${esc(project.id)}" data-summary-kind="outcomes">${done} مكتملة · ${list.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${list.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong data-project-summary="${esc(project.id)}" data-summary-kind="percent">${percentLabel(projectCompletion(project.id))}</strong></p><progress data-project-summary="${esc(project.id)}" value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><details class="project-options"><summary>إدارة المشروع وتفاصيل التقدم</summary><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهام المشتركة تحتسب في كل مشروع مرتبط، وتتشارك نفس التقدم ونتيجة الإنجاز. المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="secondary" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button class="secondary" id="deleteProject">حذف المشروع فقط (الاحتفاظ بالمهام)</button><button class="danger" id="deleteProjectWithTasks">حذف المشروع وجميع مهامه</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). اكتب رقم الموضع في خانة الترتيب لنقل المهمة الرئيسية مع فروعها؛ تبدأ الأرقام من 1. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p></details>${list.map((t) => taskCard(t)).join('') || '<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
-  $('#editProject').onclick = () => openProjectEditor(project);
-  $('#bulkProjectTasks').onclick = () => openProjectBulkEditor(project);
-  $('#deleteProject').onclick = () => deleteProject(project);
-  $('#deleteProjectWithTasks').onclick = () => deleteProjectWithTasks(project);
-  $('#newProjectTask').onclick = () =>
-    openPlannerEditor(null, null, project.id);
-  $('#linkProjectTask').onclick = () => openProjectTaskLink(project);
-  bindTaskCards(details);
-  bindProjectTaskOrder(details, project, list);
+  input.closest('label').onkeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      input.click();
+    }
+  };
+  updateProjectNavigation();
+  renderProjectDetails();
 }

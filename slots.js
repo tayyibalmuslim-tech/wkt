@@ -1,4 +1,4 @@
-/* Slot notes and half-open quarter-hour ranges. */
+/* Slot notes and half-open ten-minute ranges. */
 const SlotTools = (() => {
   const esc = (s) =>
     String(s ?? '').replace(
@@ -12,12 +12,82 @@ const SlotTools = (() => {
           "'": '&#39;',
         })[m],
     );
+  // Old snapshots have no duration marker. Retain their exact maps before resampling.
+  function migrate(data) {
+    if (data.slotMinutes === 10) return false;
+    if (data.slotMinutes !== undefined && data.slotMinutes !== 15)
+      throw Error('مدة خانات غير مدعومة');
+    const groups = [
+      ['slots', 'actualNotes', 'actualTasks'],
+      [
+        'planned',
+        'plannedNotes',
+        'taskSlotOwners',
+        'taskSlotValues',
+        'taskSlotNotes',
+      ],
+    ];
+    const seen = new Set();
+    for (const d of [
+      ...Object.values(data.days || {}),
+      ...Object.values(data.sunsetDays || {}),
+    ]) {
+      if (!d || seen.has(d)) continue;
+      seen.add(d);
+      const fields = groups.flat().filter((f) => d[f] !== undefined);
+      if (fields.some((f) => Object.keys(d[f] || {}).length)) {
+        d.legacyQuarterHour = Object.fromEntries(
+          fields.map((f) => [f, structuredClone(d[f])]),
+        );
+        for (const group of groups) {
+          const source = Object.fromEntries(group.map((f) => [f, d[f] || {}]));
+          const occupied = (i) => group.some((f) => source[f][i] !== undefined);
+          const mapped = Object.fromEntries(
+            group.filter((f) => d[f] !== undefined).map((f) => [f, {}]),
+          );
+          // Civil-day legacy indices can extend past midnight; preserve their day offset.
+          const max = Math.max(
+            95,
+            ...group.flatMap((f) =>
+              Object.keys(source[f])
+                .map(Number)
+                .filter((n) => Number.isInteger(n) && n >= 0 && n < 192),
+            ),
+          );
+          for (let i = 0; i < Math.ceil((max + 1) * 1.5); i++) {
+            const start = i * 10,
+              end = start + 10,
+              a = Math.floor(start / 15),
+              b = Math.floor((end - 1) / 15);
+            const overlapA = Math.min(end, (a + 1) * 15) - start,
+              overlapB = end - Math.max(start, b * 15);
+            const old =
+              a === b ||
+              overlapA > overlapB ||
+              (overlapA === overlapB && occupied(a))
+                ? a
+                : b;
+            for (const f of Object.keys(mapped))
+              if (source[f][old] !== undefined)
+                mapped[f][i] = structuredClone(source[f][old]);
+          }
+          Object.assign(d, mapped);
+        }
+      }
+      for (const t of [...(d.tasks || []), ...(d.repeatSnapshot || [])])
+        if (t.startSlot != null) t.startSlot = Math.floor(t.startSlot * 1.5);
+    }
+    for (const t of [...(data.repeat || []), ...(data.taskInbox || [])])
+      if (t.startSlot != null) t.startSlot = Math.floor(t.startSlot * 1.5);
+    data.slotMinutes = 10;
+    return true;
+  }
   function validate(start, end, first) {
     if (
       !Number.isInteger(start) ||
       !Number.isInteger(end) ||
       start < first ||
-      end > first + 96 ||
+      end > first + 144 ||
       end <= start
     )
       throw Error('اختر وقت نهاية بعد البداية داخل هذا اليوم.');
@@ -42,7 +112,7 @@ const SlotTools = (() => {
       throw Error('بيانات غير صالحة');
     note = note.trim();
     for (let n = start; n < end; n++) {
-      const i = ((n % 96) + 96) % 96;
+      const i = ((n % 144) + 144) % 144;
       if (kind === 'actual') {
         if (task)
           (day.actualTasks ??= {})[i] = {
@@ -127,7 +197,7 @@ const SlotTools = (() => {
   function open(o) {
     const q = (s) => document.querySelector(s),
       first = o.first,
-      last = first + 96;
+      last = first + 144;
     let selected = o.action || '',
       selectedTask = o.task || null;
     const options = (from, to, value) =>
@@ -190,7 +260,8 @@ const SlotTools = (() => {
         e = +q('#slotTo').value;
       try {
         validate(s, e, first);
-        q('#slotCount').textContent = `${e - s} خانة · ${(e - s) * 15} دقيقة`;
+        q('#slotCount').textContent =
+          `${e - s} خانة · ${(e - s) * SlotTools.minutes} دقيقة`;
         q('#slotError').textContent = '';
       } catch (err) {
         q('#slotCount').textContent = '';
@@ -256,5 +327,13 @@ const SlotTools = (() => {
     refresh();
     if (o.show) o.show();
   }
-  return { apply, validate, open, actionChoices };
+  return {
+    minutes: 10,
+    perDay: 144,
+    migrate,
+    apply,
+    validate,
+    open,
+    actionChoices,
+  };
 })();
