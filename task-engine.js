@@ -200,20 +200,32 @@ function taskIdentity(t) {
   return JSON.stringify([t.id, t.date || '']);
 }
 function childTasks(t, entries = progressEntries()) {
-  if (!taskReadCache)
-    return entries.filter(
-      (c) =>
-        c.parentId === t.id &&
-        (c.parentDate === undefined || c.parentDate === (t.date || '')),
-    );
-  const index = taskEntryIndex(entries),
-    dated = index.datedChildren.get(taskIdentity(t)) || [],
-    legacy = index.children.get(t.id) || [];
-  if (!legacy.length) return dated;
-  if (!dated.length) return legacy;
-  return [...dated, ...legacy].sort(
-    (a, b) => index.order.get(a) - index.order.get(b),
-  );
+  let children;
+  if (!taskReadCache) children = entries.filter(c => c.parentId === t.id &&
+    (c.parentDate === undefined || c.parentDate === (t.date || '')));
+  else {
+    const index = taskEntryIndex(entries),
+      dated = index.datedChildren.get(taskIdentity(t)) || [],
+      legacy = index.children.get(t.id) || [];
+    children = [...dated, ...legacy].sort((a,b) => index.order.get(a)-index.order.get(b));
+  }
+  return children.sort((a,b) => (a.subtaskPosition ?? Infinity)-(b.subtaskPosition ?? Infinity));
+}
+function moveSubtask(t, position) {
+  const parent = parentTask(t);
+  if (!parent) return false;
+  const siblings = childTasks(parent), index = siblings.findIndex(c => taskIdentity(c) === taskIdentity(t));
+  if (!Number.isInteger(position) || position < 1 || position > siblings.length || index < 0) return false;
+  siblings.splice(index,1);siblings.splice(position-1,0,t);
+  siblings.forEach((child,i) => {
+    const records = child.date
+      ? [...(state.sunsetDays[child.date]?.tasks || []), ...(state.sunsetDays[child.date]?.repeatSnapshot || []), ...(state.repeat || [])]
+      : state.taskInbox || [];
+    const stored = records.find(record => record.id === child.id);
+    if (stored) stored.subtaskPosition = i+1;
+  });
+  save();
+  return true;
 }
 function progressLeaves(roots, entries = progressEntries(), projectId = null) {
   const leaves = new Map();
@@ -1022,6 +1034,8 @@ function validatePlanning(s) {
       !['done', 'failed'].includes(t.inboxOutcome)
     )
       throw Error('حالة مهمة غير موزعة غير صالحة');
+    if (t.subtaskPosition !== undefined && (!Number.isInteger(t.subtaskPosition) || t.subtaskPosition < 1))
+      throw Error('ترتيب مهمة فرعية غير صالح');
     if (
       t.expectedSlots !== undefined &&
       (!Number.isInteger(t.expectedSlots) ||

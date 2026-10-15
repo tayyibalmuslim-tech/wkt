@@ -39,7 +39,12 @@ function taskRowMetrics(t, children = childTasks(t)) {
   const completion = taskCompletion(t);
   return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}" aria-label="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ" aria-label="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}<bdi>${time(t.startSlot)}</bdi></span>` : ''}${expected ? `<span title="الخانات المنجزة / المتوقعة · ${expected * SlotTools.minutes} دقيقة مخططة" aria-label="${count} من ${expected} خانة">${taskIcon('slots')}<bdi>${count}/${expected}</bdi></span>` : ''}${t.recurrent ? `<span title="متكررة" aria-label="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || expected || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
 }
-function taskOrderField(key, context) {
+function taskOrderField(key, context, task) {
+  const parent = task?.parentId ? parentTask(task) : null;
+  if (parent) {
+    const siblings = childTasks(parent), position = siblings.findIndex(t => taskIdentity(t) === key)+1;
+    return `<label class="project-task-order"><span>الترتيب داخل الرئيسية</span><input type="number" min="1" max="${siblings.length}" step="1" inputmode="numeric" value="${position}" data-subtask-order aria-label="ترتيب ${esc(task.name)} داخل المهمة الرئيسية"></label>`;
+  }
   const order = context?.order?.get(key);
   return order
     ? `<label class="project-task-order"><span>الترتيب</span><input type="number" min="1" max="${order.total}" step="1" inputmode="numeric" value="${order.position}" data-project-order-key="${esc(key)}" aria-label="ترتيب ${esc(order.name)}" title="اكتب موضع المهمة من 1 إلى ${order.total}"></label>`
@@ -96,7 +101,7 @@ function taskRow(
     </div>
     <div id="${rowId}-actions" class="task-row-actions daily-task-controls" hidden>
       <p class="task-row-full">${esc(fullText)}</p><p class="task-row-context">${esc(contextLabel)}</p>
-      ${mode === 'series' ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}">${taskIcon('edit')} تعديل السلسلة</button></div><details class="task-row-secondary"><summary aria-label="المزيد">${taskIcon('more')}</summary><div><button type="button" data-del="${esc(t.id)}">حذف السلسلة</button></div></details>` : t.virtual ? `<button type="button" class="secondary" data-task-edit>إدارة الفروع المحفوظة</button>${taskOrderField(key, context)}` : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}">${taskIcon('check')} فعلتها</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}">${taskIcon('cross')} لم أفعلها</button><button type="button" data-task-edit>${taskIcon('edit')} تعديل</button></div><details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}">${taskIcon('more')}<span class="sr-only">المزيد</span></summary><div><button type="button" data-task-child>＋ إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>${taskOrderField(key, context)}${t.expectedSlots || t.date ? `<label class="row-slot-editor">الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>` : ''}</div></details>`}
+      ${mode === 'series' ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}">${taskIcon('edit')} تعديل السلسلة</button></div><details class="task-row-secondary"><summary aria-label="المزيد">${taskIcon('more')}</summary><div><button type="button" data-del="${esc(t.id)}">حذف السلسلة</button></div></details>` : t.virtual ? `<button type="button" class="secondary" data-task-edit>إدارة الفروع المحفوظة</button>${taskOrderField(key, context, t)}` : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}">${taskIcon('check')} فعلتها</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}">${taskIcon('cross')} لم أفعلها</button><button type="button" data-task-edit>${taskIcon('edit')} تعديل</button></div><details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}">${taskIcon('more')}<span class="sr-only">المزيد</span></summary><div><button type="button" data-task-child>＋ إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>${taskOrderField(key, context, t)}${t.expectedSlots || t.date ? `<label class="row-slot-editor">الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>` : ''}</div></details>`}
     </div>
     ${visibleChildren.length ? `<div id="${rowId}-children" class="task-children" ${expanded ? '' : 'hidden'}>${expanded ? visibleChildren.map((c) => taskRow(c, mode, depth + 1, path, context)).join('') : ''}</div>` : ''}
   </article>`;
@@ -379,6 +384,32 @@ function bindTaskCards(root = app, insideManager = false) {
     }
   });
   root.onchange = taskReadScope((e) => {
+    const orderInput = e.target.closest('[data-subtask-order]');
+    if (orderInput) {
+      const task = rowTask(orderInput.closest('.task-row'));
+      if (!task) return;
+      const parent = parentTask(task), siblings = parent ? childTasks(parent) : [];
+      if (!orderInput.value || !moveSubtask(task, Number(orderInput.value))) {
+        orderInput.value = siblings.findIndex(c => taskIdentity(c) === taskIdentity(task))+1;
+        toast(`أدخل رقم ترتيب من 1 إلى ${siblings.length}`);
+        return;
+      }
+      // Reorder existing rows in place, preserving editor drafts, selection and scroll.
+      const ordered = childTasks(parent), ranks = new Map(ordered.map((t,i) => [taskIdentity(t),i+1]));
+      const containers = new Set();
+      document.querySelectorAll('[data-subtask-order]').forEach(input => {
+        const card = input.closest('.task-row'), current = rowTask(card);
+        const rank = current && ranks.get(taskIdentity(current));
+        if (!rank) return;
+        input.value = rank;input.max = ordered.length;
+        containers.add(card.parentElement);
+      });
+      containers.forEach(container => {
+        const cards = new Map([...container.children].filter(el => el.matches('.task-row')).map(card => [taskIdentity(rowTask(card)),card]));
+        ordered.forEach(t => { const card = cards.get(taskIdentity(t));if(card) container.append(card); });
+      });
+      return;
+    }
     const input = e.target.closest('[data-progress]');
     if (!input) return;
     const card = input.closest('.task-row'),
@@ -398,6 +429,10 @@ function bindTaskCards(root = app, insideManager = false) {
   root.onkeydown = (e) => {
     const card = e.target.closest('.task-row');
     if (!card) return;
+    if (e.target.matches('[data-subtask-order]')) {
+      if (e.key === 'Enter') { e.preventDefault();e.target.dispatchEvent(new Event('change', {bubbles:true})); }
+      return;
+    }
     if (e.key === 'Escape') {
       selectTaskRow(card, false);
       rowOwn(card, '[data-task-select]')[0].focus();
