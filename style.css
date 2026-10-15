@@ -115,3 +115,13 @@ dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;mar
 .bulk-project-field fieldset{border:0;padding:8px 0 0;margin:0;min-width:0}
 .bulk-project-field fieldset:disabled{opacity:.5}
 #projectBulkError{color:#8d2923}
+
+/* Compact multi-project picker; one task may belong to several projects. */
+.task-project-picker{min-width:0;grid-column:1/-1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0}
+.task-project-picker legend{font-size:12px;font-weight:600;color:var(--green);padding-inline:6px}
+.task-project-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:6px;max-height:175px;overflow-y:auto}
+.task-project-options label{display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;min-width:0;cursor:pointer;font-size:12px}
+.task-project-options label:has(input:checked){border-color:#8bb69b;background:#edf5ed}
+.task-project-options label:has(input:disabled){opacity:.7;cursor:default}
+.task-project-options input{flex-shrink:0;margin:0}
+.task-project-options span{overflow-wrap:anywhere}

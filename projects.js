@@ -1,7 +1,14 @@
 /* Projects live in the same snapshot as tasks, including account sync and backups. */
 let selectedProject='';
-function projectName(t){return (state.projects||[]).find(p=>p.id===effectiveProjectId(t))?.name||''}
-function projectField(t){return `<label class="field">المشروع<select name="projectId"><option value="">بدون مشروع</option>${(state.projects||[]).map(p=>`<option value="${esc(p.id)}" ${p.id===effectiveProjectId(t)?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`}
+function projectName(t){const ids=effectiveProjectIds(t);return (state.projects||[]).filter(p=>ids.includes(p.id)).map(p=>p.name).join('، ')}
+function projectField(t){
+ const ids=effectiveProjectIds(t);
+ return `<fieldset class="task-project-picker"><legend>المشاريع المرتبطة (يمكن اختيار أكثر من مشروع)</legend><div class="task-project-options">${(state.projects||[]).map(p=>`<label><input type="checkbox" name="projectIds" value="${esc(p.id)}" ${ids.includes(p.id)?'checked':''}><span>${esc(p.name)}</span></label>`).join('')||'<span class="hint">أنشئ مشروعًا من تبويب المشاريع أولًا.</span>'}</div></fieldset>`;
+}
+function selectedProjectIds(form,t){
+ if(t?.parentId)return effectiveProjectIds(t);
+ return [...form.querySelectorAll('input[name="projectIds"]:checked')].map(input=>input.value);
+}
 function validateProjects(s){
  if(s.tafsirDefaultInstalled!==undefined&&typeof s.tafsirDefaultInstalled!=='boolean')throw Error('حالة المشروع الافتراضي غير صالحة');
  if(s.projects===undefined)return;
@@ -15,7 +22,7 @@ function validateProjects(s){
 }
 function projectTasks(id){
  const entries=progressEntries();
- return sortedTasks(entries.filter(t=>effectiveProjectId(t)===id));
+ return sortedTasks(entries.filter(t=>effectiveProjectIds(t,entries).includes(id)));
 }
 // Order belongs to the project; it never changes task priority, dates or parent links.
 function orderedProjectTasks(id){
@@ -56,7 +63,7 @@ function projectTaskRecords(snapshot,projectId){
  for(const [key,day] of Object.entries(snapshot.sunsetDays||{})){add(day.tasks,key,true);add(day.repeatSnapshot,key)}
  for(const [key,day] of Object.entries(snapshot.days||{})){add(day.tasks,key);add(day.repeatSnapshot,key)}
  const entries=records.map(r=>r.entry);
- return taskReadScope(()=>records.filter(r=>mainTask(r.entry,entries)?.projectId===projectId))();
+ return taskReadScope(()=>records.filter(r=>effectiveProjectIds(r.entry,entries).includes(projectId)))();
 }
 function bulkUpdateProjectTasks(snapshot,projectId,patch){
  if(!snapshot.projects?.some(p=>p.id===projectId))throw Error('المشروع لم يعد موجودًا.');
@@ -131,7 +138,7 @@ function deleteProject(project){
  if(!confirm('حذف المشروع وإلغاء ربط مهامه؟ ستبقى المهام ونتائجها محفوظة.'))return;
  state.projects=(state.projects||[]).filter(p=>p.id!==project.id);
  const lists=[state.taskInbox||[],state.repeat||[],...[...Object.values(state.days||{}),...Object.values(state.sunsetDays||{})].flatMap(d=>[d.tasks||[],d.repeatSnapshot||[]])];
- for(const list of lists)for(const t of list)if(t.projectId===project.id)delete t.projectId;
+ for(const list of lists)for(const t of list)if(taskProjectIds(t).includes(project.id))setTaskProjects(t,taskProjectIds(t).filter(id=>id!==project.id));
  selectedProject='';save();render();
 }
 
@@ -139,53 +146,66 @@ function removeProjectAndItsTasks(snapshot,projectId){
  const next=structuredClone(snapshot);
  if(!(next.projects||[]).some(p=>p.id===projectId))throw Error('لم يعد المشروع موجودًا.');
  const days=[...Object.values(next.days||{}),...Object.values(next.sunsetDays||{})];
- const collections=[next.taskInbox||[],next.repeat||[],...days.flatMap(d=>[d.tasks||[],d.repeatSnapshot||[]])];
- const ids=new Set();let expanded=true;
- while(expanded){
-  expanded=false;
-  for(const list of collections)for(const task of list){
-   if(!ids.has(task.id)&&(task.projectId===projectId||ids.has(task.parentId)||ids.has(task.detachedFrom))){ids.add(task.id);expanded=true}
-  }
+ const records=[],add=(tasks,key='')=>{for(const task of tasks||[])records.push({task,entry:{...task,date:key}})};
+ add(next.taskInbox);add(next.repeat);
+ for(const [key,day] of Object.entries(next.sunsetDays||{})){add(day.tasks,key);add(day.repeatSnapshot,key)}
+ for(const [key,day] of Object.entries(next.days||{})){add(day.tasks,key);add(day.repeatSnapshot,key)}
+ const entries=records.map(r=>r.entry),deleteIds=new Set(),sharedIds=new Set();
+ // The project owns exclusive tasks, but shared tasks must survive in other projects.
+ for(const r of records){
+  const ids=effectiveProjectIds(r.entry,entries);
+  if(!ids.includes(projectId))continue;
+  if(ids.some(id=>id!==projectId))sharedIds.add(r.task.id);
+  else deleteIds.add(r.task.id);
  }
- const keep=list=>list.filter(t=>!ids.has(t.id));
+ for(const id of sharedIds)deleteIds.delete(id);
+ let changed=true;
+ while(changed){
+  changed=false;
+  for(const {task} of records)if(!deleteIds.has(task.id)&&!sharedIds.has(task.id)&&(deleteIds.has(task.parentId)||deleteIds.has(task.detachedFrom))){deleteIds.add(task.id);changed=true}
+ }
+ const keep=list=>list.filter(t=>!deleteIds.has(t.id));
  next.taskInbox=keep(next.taskInbox||[]);
  next.repeat=keep(next.repeat||[]);
  next.projects=next.projects.filter(p=>p.id!==projectId);
- for(const p of next.projects)if(p.taskOrder)p.taskOrder=p.taskOrder.filter(key=>{try{return !ids.has(JSON.parse(key)[0])}catch{return true}});
+ for(const p of next.projects)if(p.taskOrder)p.taskOrder=p.taskOrder.filter(key=>{try{return !deleteIds.has(JSON.parse(key)[0])}catch{return true}});
+ // Detach all surviving records from the deleted project without losing other memberships.
+ for(const {task} of records)if(!deleteIds.has(task.id)&&taskProjectIds(task).includes(projectId))setTaskProjects(task,taskProjectIds(task).filter(id=>id!==projectId));
  for(const d of days){
   if(Array.isArray(d.tasks))d.tasks=keep(d.tasks);
   if(Array.isArray(d.repeatSnapshot))d.repeatSnapshot=keep(d.repeatSnapshot);
-  for(const field of ['done','failed','taskProgress','excludedRepeat'])if(d[field])for(const id of ids)delete d[field][id];
-  for(const [slot,owner] of Object.entries(d.taskSlotOwners||{}))if(ids.has(owner)){
+  for(const field of ['done','failed','taskProgress','excludedRepeat'])if(d[field])for(const id of deleteIds)delete d[field][id];
+  for(const [slot,owner] of Object.entries(d.taskSlotOwners||{}))if(deleteIds.has(owner)){
    if(d.planned?.[slot]===d.taskSlotValues?.[slot])delete d.planned[slot];
    if(d.plannedNotes?.[slot]===d.taskSlotNotes?.[slot])delete d.plannedNotes[slot];
    delete d.taskSlotOwners[slot];if(d.taskSlotValues)delete d.taskSlotValues[slot];if(d.taskSlotNotes)delete d.taskSlotNotes[slot];
   }
-  // Keep actual recorded actions in slots, but remove deleted task labels.
-  for(const [slot,task] of Object.entries(d.actualTasks||{}))if(ids.has(task?.id))delete d.actualTasks[slot];
+  // Actual recorded work remains, but labels for physically removed tasks do not.
+  for(const [slot,task] of Object.entries(d.actualTasks||{}))if(deleteIds.has(task?.id))delete d.actualTasks[slot];
  }
  validatePlanning(next);
- return {state:next,deletedTasks:ids.size};
+ return {state:next,deletedTasks:deleteIds.size,retainedShared:sharedIds.size};
 }
 function deleteProjectWithTasks(project){
  const result=removeProjectAndItsTasks(state,project.id);
- if(!confirm('هل تريد حذف مشروع «'+project.name+'» نهائيًا مع جميع مهامه الرئيسية والفرعية والمتكررة وسجلات إنجازها ('+result.deletedTasks+' مهمة)؟ لا يتأثر أي مشروع آخر. لا يمكن التراجع؛ يُنصح بتنزيل نسخة احتياطية أولًا.'))return false;
+ if(!confirm('هل تريد حذف مشروع «'+project.name+'» نهائيًا وحذف '+result.deletedTasks+' مهمة خاصة به؟ ستبقى المهام المشتركة ('+result.retainedShared+') في المشاريع الأخرى مع تقدمها. لا يمكن التراجع؛ يُنصح بتنزيل نسخة احتياطية أولًا.'))return false;
  state=result.state;selectedProject='';save();render();toast('حُذف المشروع وجميع مهامه المرتبطة');
  return true;
 }
 
 function openProjectTaskLink(project){
  let dialog=$('#projectTaskLink');if(!dialog){dialog=document.createElement('dialog');dialog.id='projectTaskLink';document.body.append(dialog)}
- const originalState=state,entries=taskEntries().filter(t=>!t.parentId&&!t.recurrent&&t.projectId!==project.id),series=state.repeat.filter(t=>t.projectId!==project.id);
+ const originalState=state,entries=taskEntries().filter(t=>!t.parentId&&!t.recurrent&&!effectiveProjectIds(t).includes(project.id)),series=state.repeat.filter(t=>!effectiveProjectIds(t).includes(project.id));
  const options=[...entries.map(t=>({task:t,series:false})),...series.map(t=>({task:t,series:true}))];
- dialog.innerHTML=`<div class="dialog-head"><h2 id="projectLinkTitle">ربط مهمة موجودة</h2><button type="button" data-close-link aria-label="إغلاق">×</button></div><p class="hint">اختر المهمة ثم احفظها لتأكيد ربطها بهذا المشروع.</p><label class="field">بحث<input type="search" id="projectLinkSearch" placeholder="اسم المهمة"></label><div class="project-link-list">${options.map(({task:t,series},i)=>`<button type="button" class="secondary" data-link-task="${i}"><strong>${esc(t.name)}</strong><small>${series?'↻ سلسلة متكررة':t.date||'تحتاج توزيعًا'}${projectName(t)?' · '+esc(projectName(t)):''}</small></button>`).join('')||'<p class="empty-note">لا توجد مهام أخرى. يمكنك إضافة مهمة جديدة للمشروع.</p>'}</div>`;
+ dialog.innerHTML=`<div class="dialog-head"><h2 id="projectLinkTitle">ربط مهمة موجودة</h2><button type="button" data-close-link aria-label="إغلاق">×</button></div><p class="hint">اختر مهمة لإضافتها إلى هذا المشروع مع الاحتفاظ بارتباطها بالمشاريع الأخرى، ثم احفظ.</p><label class="field">بحث<input type="search" id="projectLinkSearch" placeholder="اسم المهمة"></label><div class="project-link-list">${options.map(({task:t,series},i)=>`<button type="button" class="secondary" data-link-task="${i}"><strong>${esc(t.name)}</strong><small>${series?'↻ سلسلة متكررة':t.date||'تحتاج توزيعًا'}${projectName(t)?' · '+esc(projectName(t)):''}</small></button>`).join('')||'<p class="empty-note">لا توجد مهام أخرى. يمكنك إضافة مهمة جديدة للمشروع.</p>'}</div>`;
  dialog.setAttribute('aria-labelledby','projectLinkTitle');
  dialog.querySelector('[data-close-link]').onclick=()=>dialog.close();
  $('#projectLinkSearch').oninput=e=>dialog.querySelectorAll('[data-link-task]').forEach(b=>b.hidden=!options[+b.dataset.linkTask].task.name.includes(e.target.value.trim()));
  dialog.querySelectorAll('[data-link-task]').forEach(b=>b.onclick=()=>{
   if(state!==originalState)return;
   const {task,series}=options[+b.dataset.linkTask];dialog.close();
-  const draft={...task,projectId:project.id};
+  const projectIds=[...new Set([...effectiveProjectIds(task),project.id])];
+   const draft={...task,projectIds,projectId:projectIds[0]};
   if(series){view='repeat';render();renderRepeat(draft)}else openPlannerEditor(draft);
  });dialog.showModal();
 }
@@ -202,7 +222,7 @@ function importProjectPackage(data){
   if(t.expectedSlots!==undefined&&(!Number.isInteger(t.expectedSlots)||t.expectedSlots<0||t.expectedSlots>96))throw Error('عدد خانات غير صالح.');
   if(t.showInMonthlyCalendar!==undefined&&typeof t.showInMonthlyCalendar!=='boolean')throw Error('خيار التقويم غير صالح.');
   const newId=uid(),parent=t.parentId?ids.get(t.parentId):null;
-  const item={id:newId,name:t.name.trim(),description:t.description||'',projectId,priority:t.priority??3,expectedSlots:t.expectedSlots??0,completedSlotCount:0,showInMonthlyCalendar:t.showInMonthlyCalendar!==false,prayers:[]};
+  const item={id:newId,name:t.name.trim(),description:t.description||'',projectIds:[projectId],projectId,priority:t.priority??3,expectedSlots:t.expectedSlots??0,completedSlotCount:0,showInMonthlyCalendar:t.showInMonthlyCalendar!==false,prayers:[]};
   if(parent){item.parentId=parent.id;item.parentDate='';item.parentName=parent.name;}else roots.push(item);
   ids.set(t.id,item);tasks.push(item);
  }
@@ -232,7 +252,7 @@ function renderProjects(){
  const details=$('#projectDetails');
  if(!project){details.innerHTML='<p class="empty-note">اختر مشروعًا لعرض مهامه أو أنشئ مشروعًا جديدًا.</p>';return}
  const list=orderedProjectTasks(project.id),done=list.filter(t=>taskCompletion(t)===100).length;
- details.innerHTML=`<div class="panel-title"><h2>${esc(project.name)}</h2><button class="secondary" id="editProject">تعديل المشروع</button></div>${project.description?`<p class="project-description">${esc(project.description)}</p>`:''}<p>${done} مكتملة · ${list.filter(t=>outcome(t)==='failed').length} لم تُفعل · ${list.filter(t=>outcome(t)==='pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong>${percentLabel(projectCompletion(project.id))}</strong></p><progress value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="secondary" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button class="secondary" id="deleteProject">حذف المشروع فقط (الاحتفاظ بالمهام)</button><button class="danger" id="deleteProjectWithTasks">حذف المشروع وجميع مهامه</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). اكتب رقم الموضع في خانة الترتيب لنقل المهمة الرئيسية مع فروعها؛ تبدأ الأرقام من 1. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p>${list.map(t=>taskCard(t)).join('')||'<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
+ details.innerHTML=`<div class="panel-title"><h2>${esc(project.name)}</h2><button class="secondary" id="editProject">تعديل المشروع</button></div>${project.description?`<p class="project-description">${esc(project.description)}</p>`:''}<p>${done} مكتملة · ${list.filter(t=>outcome(t)==='failed').length} لم تُفعل · ${list.filter(t=>outcome(t)==='pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong>${percentLabel(projectCompletion(project.id))}</strong></p><progress value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهام المشتركة تحتسب في كل مشروع مرتبط، وتتشارك نفس التقدم ونتيجة الإنجاز.</p><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="secondary" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button class="secondary" id="deleteProject">حذف المشروع فقط (الاحتفاظ بالمهام)</button><button class="danger" id="deleteProjectWithTasks">حذف المشروع وجميع مهامه</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). اكتب رقم الموضع في خانة الترتيب لنقل المهمة الرئيسية مع فروعها؛ تبدأ الأرقام من 1. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p>${list.map(t=>taskCard(t)).join('')||'<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
  $('#editProject').onclick=()=>openProjectEditor(project);$('#bulkProjectTasks').onclick=()=>openProjectBulkEditor(project);$('#deleteProject').onclick=()=>deleteProject(project);$('#deleteProjectWithTasks').onclick=()=>deleteProjectWithTasks(project);
  $('#newProjectTask').onclick=()=>openPlannerEditor(null,null,project.id);$('#linkProjectTask').onclick=()=>openProjectTaskLink(project);bindTaskCards(details);bindProjectTaskOrder(details,project,list);
 }

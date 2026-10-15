@@ -442,4 +442,37 @@ assert.equal(run('Object.values(taskDay(activeDay()).actualTasks)[0].name'),'ع�
 assert.equal(run('taskDay(activeDay()).tasks.every(t=>t.startSlot===null)'),true);
 console.log('PASS: selective project bulk edits, inherited children, recurrence history, reservation rebuild/rollback and retained outcomes/actual slots');
 
+
+// Shared memberships: one task identity, synchronized outcome and progress in two projects.
+run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'shared-a',name:'مشروع أ'},{id:'shared-b',name:'مشروع ب'}];state.taskInbox=[{id:'shared-parent',name:'مهمة مشتركة',projectId:'shared-a',projectIds:['shared-a','shared-b'],priority:3,prayers:[]},{id:'shared-child',name:'فرعية مشتركة',parentId:'shared-parent',parentDate:'',expectedSlots:2,completedSlotCount:0,prayers:[]},{id:'exclusive-b',name:'خاصة ب',projectId:'shared-b',prayers:[]}];selectedProject='shared-a';view='projects';render()");
+assert.ok($('#projectDetails [data-task-id="shared-parent"]'));
+assert.ok(run("projectTasks('shared-b').some(t=>t.id==='shared-parent')"));
+assert.equal(run("projectTasks('shared-a').filter(t=>t.id==='shared-parent').length"),1);
+run("setInboxOutcome(findTask('shared-child',''),'done');save()");
+assert.equal(run("projectCompletion('shared-a')"),100);
+assert.equal(run("projectCompletion('shared-b')"),50);
+run("openPlannerEditor(findTask('shared-parent',''))");
+assert.equal($('#plannerForm').querySelectorAll('input[name=projectIds]:checked').length,2);
+assert.ok($('#plannerForm').querySelector('input[name=projectIds][value="shared-b"]'));
+$('#closePlanner').click();
+run("selectedProject='shared-b';render()");
+assert.ok($('#projectDetails [data-task-id="shared-parent"]'));
+run("state.taskInbox.push({id:'legacy-a',name:'قديم أ',projectId:'shared-a',prayers:[]});validate(state)");
+assert.deepEqual(run("effectiveProjectIds(findTask('legacy-a',''))"),['shared-a']);
+assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'dup',name:'تكرار',projectIds:['shared-a','shared-a']}]})"));
+const sharedBefore=run("JSON.stringify(state)");
+run("window.sharedPurge=removeProjectAndItsTasks(state,'shared-a')");
+assert.equal(run("JSON.stringify(state)"),sharedBefore);
+assert.equal(run("window.sharedPurge.state.taskInbox.some(t=>t.id==='legacy-a')"),false);
+assert.equal(run("window.sharedPurge.state.taskInbox.some(t=>t.id==='shared-parent')"),true);
+assert.equal(run("window.sharedPurge.state.taskInbox.find(t=>t.id==='shared-parent').projectIds.join(',')"),'shared-b');
+assert.equal(run("window.sharedPurge.state.taskInbox.find(t=>t.id==='shared-child').inboxOutcome"),'done');
+assert.equal(run("window.sharedPurge.state.projects.length"),1);
+run("state=window.sharedPurge.state;delete window.sharedPurge;save();render()");
+assert.equal(run("projectCompletion('shared-b')"),50);
+run("deleteProject(state.projects[0])");
+assert.equal(run("state.taskInbox.some(t=>t.id==='shared-parent')"),true);
+assert.deepEqual(run("taskProjectIds(findTask('shared-parent',''))"),[]);
+console.log('PASS: shared project membership, inherited subtasks, unified progress, backward compatibility and safe project deletion');
+
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();

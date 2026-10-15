@@ -53,7 +53,7 @@ function dateControls(){return `<div class="date"><button data-planner-shift="-1
 const plannerProjectTabs={inbox:'',missed:''};
 function groupedPlannerTasks(list){
  const projects=state.projects||[],byProject=new Map(projects.map(p=>[p.id,[]])),unassigned=[];
- for(const t of list){const bucket=byProject.get(effectiveProjectId(t));(bucket||unassigned).push(t)}
+ for(const t of list){const ids=effectiveProjectIds(t).filter(id=>byProject.has(id));if(!ids.length)unassigned.push(t);else ids.forEach(id=>byProject.get(id).push(t))}
  const available=projects.filter(p=>byProject.get(p.id).length);
  if(!available.some(p=>p.id===plannerProjectTabs[plannerTab]))plannerProjectTabs[plannerTab]=available[0]?.id||'';
  const selected=plannerProjectTabs[plannerTab],cards=tasks=>taskGroups(tasks).map(t=>taskCard(t)).join('');
@@ -94,7 +94,7 @@ function monthlyTasks(key,entries=progressEntries()){
  return [...unique.values()].filter(t=>{
   const action=state.actions.find(a=>a.id===t.actionId);
   return t.showInMonthlyCalendar!==false&&
-   (monthFilters.project==='all'||mainTask(t,entries)?.projectId===monthFilters.project)&&
+   (monthFilters.project==='all'||effectiveProjectIds(t,entries).includes(monthFilters.project))&&
    (monthFilters.category==='all'||ActionCategories.category(state,action)?.id===monthFilters.category)&&
    (monthFilters.status==='all'||outcome(t)===monthFilters.status)&&
    (monthFilters.priority==='all'||String(taskPriority(t))===monthFilters.priority)&&
