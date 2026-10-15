@@ -9,7 +9,22 @@ function projectName(t) {
 }
 function projectField(t) {
   const ids = effectiveProjectIds(t);
-  return `<fieldset class="task-project-picker"><legend>المشاريع المرتبطة (يمكن اختيار أكثر من مشروع)</legend><div class="task-project-options">${(state.projects || []).map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}" ${ids.includes(p.id) ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') || '<span class="hint">أنشئ مشروعًا من تبويب المشاريع أولًا.</span>'}</div></fieldset>`;
+  const projects = state.projects || [];
+  const selected = projects.filter((p) => ids.includes(p.id)).map((p) => p.name).join('، ');
+  return `<details class="task-project-details"><summary>المشاريع المرتبطة <small data-project-summary>${esc(selected || 'بدون مشروع')}</small></summary><fieldset class="task-project-picker"><legend class="sr-only">اختر مشروعًا أو عدة مشاريع</legend><div class="task-project-options">${projects.map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}" ${ids.includes(p.id) ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') || '<span class="hint">أنشئ مشروعًا من تبويب المشاريع أولًا.</span>'}</div></fieldset></details>`;
+}
+function attachTaskProjectSummary(form) {
+  const details = form.querySelector('.task-project-details');
+  if (!details) return;
+  const update = () => {
+    const ids = new Set([...details.querySelectorAll('input[name="projectIds"]:checked')].map((input) => input.value));
+    const names = (state.projects || []).filter((p) => ids.has(p.id)).map((p) => p.name);
+    details.querySelector('[data-project-summary]').textContent = names.join('، ') || 'بدون مشروع';
+  };
+  details.addEventListener('change', (event) => {
+    if (event.target.matches('input[name="projectIds"]')) update();
+  });
+  update();
 }
 function selectedProjectIds(form, t) {
   if (t?.parentId) return effectiveProjectIds(t);
@@ -278,14 +293,7 @@ function openProjectBulkEditor(project) {
  ${row(
    'priority',
    'الأهمية',
-   `<label class="field">الأهمية (1 الأعلى، 5 الأدنى)<select name="priority">${Object.entries(
-     priorityNames,
-   )
-     .map(
-       ([v, n]) =>
-         `<option value="${v}" ${v === '3' ? 'selected' : ''}>${n}</option>`,
-     )
-     .join('')}</select></label>`,
+   `${priorityButtons(3)}`,
  )}
  ${row('showInMonthlyCalendar', 'الظهور في التقويم', `<label class="field">التقويم الشهري<select name="showInMonthlyCalendar"><option value="true">إظهار جميع مهام المشروع</option><option value="false">إخفاء جميع مهام المشروع</option></select></label>`)}
  ${row('expectedSlots', 'الخانات المتوقعة', '<label class="field">الخانات المتوقعة لكل مهمة<input name="expectedSlots" type="number" min="0" max="144" step="1" required value="0"></label>')}
@@ -567,6 +575,7 @@ function openProjectTaskLink(project) {
           document.querySelectorAll('#plannerForm input[name="projectIds"]').forEach(input => {
             input.checked = projectIds.includes(input.value);
           });
+          attachTaskProjectSummary(document.querySelector('#plannerForm'));
         }
       }),
   );
