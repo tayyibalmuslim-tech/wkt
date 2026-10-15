@@ -185,7 +185,7 @@ run("findTask('a1','').expectedSlots=0;render()");assert.equal($('#projectDetail
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
 run("view='day';render()");assert.ok($('#allDayTaskCards .task-row'));assert.equal($('#allDayTaskCards .task-row-primary').querySelectorAll('button').length,3);
 // Descendants without explicit project links are counted, and cyclic input stays finite.
-run("delete findTask('a1','').projectId");assert.equal(run("projectCompletion('weighted')"),25);
+run("delete findTask('a1','').projectId");assert.equal(run("projectCompletion('weighted')"),0);
 run("findTask('a1','').parentId='a2';findTask('a2','').parentId='a1'");assert.ok(Number.isFinite(run("projectCompletion('weighted')")));
 assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'bad',name:'bad',completedSlotCount:-1}]})"));
 const percentBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(percentBackup)+');validate(state);render()');assert.equal(run("findTask('a1','').completedSlotCount"),8);
@@ -446,7 +446,7 @@ console.log('PASS: selective project bulk edits, inherited children, recurrence 
 
 
 // Shared memberships: one task identity, synchronized outcome and progress in two projects.
-run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'shared-a',name:'مشروع أ'},{id:'shared-b',name:'مشروع ب'}];state.taskInbox=[{id:'shared-parent',name:'مهمة مشتركة',projectId:'shared-a',projectIds:['shared-a','shared-b'],priority:3,prayers:[]},{id:'shared-child',name:'فرعية مشتركة',parentId:'shared-parent',parentDate:'',expectedSlots:2,completedSlotCount:0,prayers:[]},{id:'exclusive-b',name:'خاصة ب',projectId:'shared-b',prayers:[]}];selectedProject='shared-a';view='projects';render()");
+run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'shared-a',name:'مشروع أ'},{id:'shared-b',name:'مشروع ب'}];state.taskInbox=[{id:'shared-parent',name:'مهمة مشتركة',projectId:'shared-a',projectIds:['shared-a','shared-b'],priority:3,prayers:[]},{id:'shared-child',name:'فرعية مشتركة',parentId:'shared-parent',parentDate:'',expectedSlots:2,completedSlotCount:0,prayers:[]},{id:'exclusive-b',name:'خاصة ب',projectId:'shared-b',expectedSlots:2,prayers:[]}];selectedProject='shared-a';view='projects';render()");
 assert.ok($('#projectDetails [data-task-id="shared-parent"]'));
 assert.ok(run("projectTasks('shared-b').some(t=>t.id==='shared-parent')"));
 assert.equal(run("projectTasks('shared-a').filter(t=>t.id==='shared-parent').length"),1);
@@ -478,3 +478,18 @@ assert.deepEqual(Array.from(run("taskProjectIds(findTask('shared-parent',''))"))
 console.log('PASS: shared project membership, inherited subtasks, unified progress, backward compatibility and safe project deletion');
 
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();
+
+// Project progress weights final tasks by slots, excludes unestimated work and caps overruns.
+run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'slot-weight',name:'وزن الخانات'}];state.taskInbox=[{id:'slot-root',name:'أصل',projectId:'slot-weight',expectedSlots:100},{id:'slot-small',name:'صغيرة',parentId:'slot-root',parentDate:'',expectedSlots:2,inboxOutcome:'done'},{id:'slot-large',name:'كبيرة',parentId:'slot-root',parentDate:'',expectedSlots:8},{id:'slot-zero',name:'بلا تقدير',projectId:'slot-weight',inboxOutcome:'done',completedSlotCount:50}];render()");
+assert.equal(run("projectCompletion('slot-weight')"),20);
+run("findTask('slot-large','').completedSlotCount=4;render()");
+assert.equal(run("projectCompletion('slot-weight')"),60);
+run("findTask('slot-large','').completedSlotCount=20;render()");
+assert.equal(run("projectCompletion('slot-weight')"),100);
+run("findTask('slot-large','').completedSlotCount=0;findTask('slot-root','').inboxOutcome='done';render()");
+assert.equal(run("projectCompletion('slot-weight')"),100);
+run("delete findTask('slot-root','').inboxOutcome;render()");
+assert.equal(run("projectCompletion('slot-weight')"),20);
+run("findTask('slot-small','').expectedSlots=0;findTask('slot-large','').expectedSlots=0;render()");
+assert.equal(run("projectCompletion('slot-weight')"),0);
+console.log('PASS: slot-weighted project completion');

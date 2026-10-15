@@ -49,7 +49,7 @@ try {
   sheet.textContent = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
   w.document.head.append(sheet);
   run(
-    `state.sunsetDays={};state.repeat=[];state.projects=[{id:'work-a',name:'المشروع الأول'},{id:'work-b',name:'المشروع الثاني'}];state.taskInbox=[{id:'work-root',name:'الجزء الأول',projectId:'work-a'},{id:'work-child',name:'فرعية',description:'فَقْرَة 123',parentId:'work-root',parentDate:'',expectedSlots:4},{id:'work-grand',name:'فرعية عميقة',parentId:'work-child',parentDate:'',expectedSlots:2},{id:'work-other',name:'مهمة أخرى',projectId:'work-a'},{id:'work-b-root',name:'مهمة المشروع الثاني',projectId:'work-b'}];expandedTaskRows.clear();projectViews.clear();view='projects';selectedProject='work-a';render();window.workspacePageRenders=0;const projectRealRender=render;render=(...args)=>{window.workspacePageRenders++;return projectRealRender(...args)};`,
+    `state.sunsetDays={};state.repeat=[];state.projects=[{id:'work-a',name:'المشروع الأول'},{id:'work-b',name:'المشروع الثاني'}];state.taskInbox=[{id:'work-root',name:'الجزء الأول',projectId:'work-a'},{id:'work-child',name:'فرعية',description:'فَقْرَة 123',parentId:'work-root',parentDate:'',expectedSlots:4},{id:'work-grand',name:'فرعية عميقة',parentId:'work-child',parentDate:'',expectedSlots:2},{id:'work-other',name:'مهمة أخرى',projectId:'work-a',expectedSlots:2},{id:'work-b-root',name:'مهمة المشروع الثاني',projectId:'work-b'}];expandedTaskRows.clear();projectViews.clear();view='projects';selectedProject='work-a';render();window.workspacePageRenders=0;const projectRealRender=render;render=(...args)=>{window.workspacePageRenders++;return projectRealRender(...args)};`,
   );
   const shell = $('.project-workspace'),
     navigation = $('#projectNavigation'),

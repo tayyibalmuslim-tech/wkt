@@ -255,13 +255,21 @@ function taskCompletion(t, entries) {
 function projectCompletion(id) {
   return cachedTaskRead('projectCompletion:' + id, () => {
     const entries = progressEntries();
-    return averageCompletion(
-      progressLeaves(
-        entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
-        entries,
-        id,
-      ),
+    const leaves = progressLeaves(
+      entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
+      entries,
+      id,
     );
+    let expected = 0, completed = 0;
+    for (const task of leaves) {
+      const slots = task.expectedSlots || 0;
+      if (slots <= 0) continue;
+      expected += slots;
+      completed += task.rollupDone || outcome(task) === 'done'
+        ? slots
+        : Math.min(slots, completedSlots(task));
+    }
+    return expected ? (completed / expected) * 100 : 0;
   });
 }
 function percentLabel(value) {

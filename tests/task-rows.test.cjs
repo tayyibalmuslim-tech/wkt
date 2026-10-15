@@ -320,7 +320,7 @@ try {
   );
   // A shared family's live progress updates both project summaries immediately.
   run(
-    `state.sunsetDays={};state.taskInbox=[{id:'ui-shared',name:'مشتركة',projectIds:['ui-a','ui-b']},{id:'ui-shared-child',name:'فرع مشترك',parentId:'ui-shared',parentDate:'',expectedSlots:2},{id:'ui-exclusive',name:'خاصة',projectId:'ui-b'}];state.projects=[{id:'ui-a',name:'أ'},{id:'ui-b',name:'ب'}];selectedProject='ui-a';view='projects';expandedTaskRows.clear();render();window.uiRenderCount=0;`,
+    `state.sunsetDays={};state.taskInbox=[{id:'ui-shared',name:'مشتركة',projectIds:['ui-a','ui-b']},{id:'ui-shared-child',name:'فرع مشترك',parentId:'ui-shared',parentDate:'',expectedSlots:2},{id:'ui-exclusive',name:'خاصة',projectId:'ui-b',expectedSlots:2}];state.projects=[{id:'ui-a',name:'أ'},{id:'ui-b',name:'ب'}];selectedProject='ui-a';view='projects';expandedTaskRows.clear();render();window.uiRenderCount=0;`,
   );
   own(row('ui-shared'), '[data-task-toggle]').click();
   own(row('ui-shared-child'), '[data-task-select]').click();
