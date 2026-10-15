@@ -2983,3 +2983,301 @@ nav .ui-icon {
     min-height: 40px;
   }
 }
+
+/* Daily workspace and navigation: keep recording controls close to their time. */
+.mobile-navigation {
+  display: none;
+}
+.day-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-block: 12px 18px;
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.day-summary strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.day-workspace .top {
+  margin-bottom: 8px;
+}
+.day-workspace .tabs {
+  gap: 8px;
+  margin-block: 12px;
+}
+.day-workspace .prayer-tab {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+.day-workspace .prayer-tab.selected {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+.day-workspace .prayer-period {
+  padding: 10px 8px;
+  gap: 4px;
+}
+.day-workspace .prayer-tasks-button {
+  min-height: 40px;
+  color: var(--color-brand);
+  border-top: 1px solid var(--color-border);
+}
+.day-workspace .prayer-count.complete {
+  color: var(--color-secondary);
+  background: var(--color-surface);
+}
+.day-workspace .panel {
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.day-workspace .panel-title {
+  margin-bottom: 8px;
+}
+.day-workspace .panel-title h2 {
+  font-size: var(--font-lg);
+}
+.day-workspace .capacity-note {
+  margin-block: 4px 8px;
+}
+.day-slot-help {
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.day-slot-help summary {
+  cursor: pointer;
+  min-height: 40px;
+  align-content: center;
+}
+.slot-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: var(--font-sm);
+  color: var(--color-secondary);
+}
+.slot-toolbar .bulk-slots {
+  margin: 0;
+  min-height: 40px;
+}
+.day-workspace .grid {
+  gap: 8px;
+}
+.day-workspace .split-slot {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  min-height: 112px;
+  box-shadow: none;
+}
+.day-workspace .slot-actual {
+  min-height: 72px;
+  padding: 8px 6px;
+}
+.day-workspace .slot-actual .time {
+  font-size: var(--font-xs);
+  color: inherit;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+.day-workspace .slot-planned {
+  min-height: 40px;
+  background: var(--color-brand-soft);
+  border-top: 1px dashed var(--color-border);
+  font-size: var(--font-xs);
+  padding: 8px 6px;
+}
+.day-workspace .slot:hover {
+  transform: none;
+  border-color: var(--color-brand);
+}
+.day-workspace .badge {
+  color: var(--color-secondary);
+  background: var(--color-bg);
+}
+.month-day {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+.month-day.is-today {
+  border-color: var(--color-brand);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+.month-day.is-today .month-day-heading strong {
+  color: var(--color-brand);
+}
+.month-day-heading {
+  min-height: 40px;
+}
+.month-task {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  border-radius: 4px;
+}
+.month-task.done {
+  color: var(--color-done);
+  background: var(--color-done-soft);
+  border-color: #94b29f;
+}
+.month-task.failed {
+  color: var(--color-failed);
+  background: var(--color-failed-soft);
+  border-color: #d3a09d;
+}
+.month-task:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 1px;
+}
+nav [aria-current='page'] {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-weight: 700;
+}
+header {
+  gap: 12px;
+}
+.backup-download {
+  min-height: 40px;
+  white-space: nowrap;
+}
+dialog#picker,
+dialog#plannerEditor,
+dialog#taskActionPicker {
+  width: 520px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+  padding: 20px;
+}
+@media (min-width: 900px) {
+  dialog#picker,
+  dialog#plannerEditor {
+    margin-block: 16px;
+    margin-inline: auto 16px;
+    height: calc(100dvh - 32px);
+    border-radius: 16px;
+  }
+}
+@media (max-width: 650px) {
+  aside {
+    display: none;
+  }
+  main {
+    padding: 12px 12px calc(100px + env(safe-area-inset-bottom));
+  }
+  header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  header > span {
+    display: none;
+  }
+  .sync-header {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .sync-header .save {
+    width: 100%;
+  }
+  .mobile-navigation {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    position: fixed;
+    inset: auto 0 0;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    margin: 0;
+    gap: 4px;
+    overflow: visible;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    z-index: 10;
+  }
+  .mobile-navigation > button,
+  .mobile-navigation summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 48px;
+    width: 100%;
+    padding: 5px 2px;
+    font-size: 11px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .mobile-navigation summary {
+    list-style: none;
+  }
+  .mobile-navigation summary::-webkit-details-marker {
+    display: none;
+  }
+  #navigationMore.has-current > summary {
+    background: var(--color-brand-soft);
+    color: var(--color-brand);
+    font-weight: 700;
+  }
+  .mobile-more-items {
+    position: absolute;
+    inset-inline-end: 8px;
+    bottom: calc(100% + 8px);
+    width: min(260px, calc(100vw - 16px));
+    padding: 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+  .mobile-more-items button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    width: 100%;
+    font-size: var(--font-sm);
+  }
+  .quick-task {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    left: 12px;
+    padding: 10px 16px;
+    min-height: 40px;
+  }
+  #toast {
+    bottom: calc(140px + env(safe-area-inset-bottom));
+  }
+  .day-workspace .tabs {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .day-workspace .prayer-tab {
+    min-width: 132px;
+    flex: 0 0 132px;
+  }
+  .day-workspace .panel {
+    padding: 12px;
+  }
+  .day-workspace .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .day-workspace .slot-actual {
+    min-height: 80px;
+  }
+  .month-task {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px 6px;
+  }
+  dialog#picker,
+  dialog#plannerEditor,
+  dialog#taskActionPicker {
+    padding: 14px;
+  }
+}

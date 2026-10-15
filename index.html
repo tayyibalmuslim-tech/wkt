@@ -15,7 +15,7 @@
         <b>وقتي</b>
       </a>
       <p>مساحة ليوم أكثر اتزانًا</p>
-      <nav>
+      <nav aria-label="التنقل الرئيسي">
         <button data-view="day" class="active">
           <svg
             class="ui-icon"
@@ -125,6 +125,127 @@
         <span>كل عشر دقائق فرصة جديدة</span>
       </div>
     </aside>
+    <nav class="mobile-navigation" aria-label="التنقل على الهاتف">
+      <button data-view="day" class="active">
+        <svg
+          class="ui-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect x="4" y="4" width="16" height="16" rx="3" />
+          <path d="M4 10h16M10 10v10" />
+        </svg>
+        يومي
+      </button>
+      <button data-view="dashboard">
+        <svg
+          class="ui-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="m5 7 2 2 3-4M13 7h6M5 14h14M5 19h14" />
+        </svg>
+        لوحة المهام
+      </button>
+      <button data-view="projects">
+        <svg
+          class="ui-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M3 7V5h7l2 3h9v12H3z" />
+        </svg>
+        المشاريع
+      </button>
+      <details id="navigationMore">
+        <summary>
+          <svg
+            class="ui-icon"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
+          المزيد
+        </summary>
+        <div class="mobile-more-items">
+          <button data-view="actions">
+            <svg
+              class="ui-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <rect x="4" y="4" width="6" height="6" rx="1" />
+              <rect x="14" y="4" width="6" height="6" rx="1" />
+              <rect x="4" y="14" width="6" height="6" rx="1" />
+              <rect x="14" y="14" width="6" height="6" rx="1" />
+            </svg>
+            الأقسام والأفعال
+          </button>
+          <button data-view="repeat">
+            <svg
+              class="ui-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M18 8a7 7 0 1 0 1 8M18 3v5h-5" />
+            </svg>
+            مهامي المتكررة
+          </button>
+          <button data-view="settings">
+            <svg
+              class="ui-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M4 7h16M4 17h16" />
+              <circle cx="9" cy="7" r="3" />
+              <circle cx="15" cy="17" r="3" />
+            </svg>
+            إعدادات الصلاة
+          </button>
+        </div>
+      </details>
+    </nav>
     <main>
       <header>
         <span>يومك، بنية وترتيب</span>

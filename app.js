@@ -163,9 +163,18 @@ function render() {
   normalizeTaskPriorities();
   initializeTaskHistory();
   installQuickTask();
-  document
-    .querySelectorAll('nav button')
-    .forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('nav button').forEach((b) => {
+    const current = b.dataset.view === view;
+    b.classList.toggle('active', current);
+    if (current) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+  const more = $('#navigationMore');
+  if (more)
+    more.classList.toggle(
+      'has-current',
+      ['actions', 'repeat', 'settings', 'account'].includes(view),
+    );
   ({
     day: renderDay,
     dashboard: renderDashboard,
@@ -177,6 +186,11 @@ function render() {
   })[view]();
   ActionCategories.showIntro(state, save);
 }
+function dailySlotMarkup(n, d = day()) {
+  let a = state.actions.find((a) => a.id === d.slots[n % 144]),
+    planned = state.actions.find((a) => a.id === d.planned?.[n % 144]);
+  return `<div class="slot split-slot"><button class="slot-actual" data-slot="${n}" data-kind="actual" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}" aria-label="ما فعلته من ${time(n)} إلى ${time(n + 1)}"><span class="time"><bdi>${time(n)}</bdi> – <bdi>${time(n + 1)}</bdi></span><span class="label">${a ? esc(a.name) : '＋ ما فعلته'}</span>${d.actualTasks?.[n % 144] ? `${d.actualTasks[n % 144].parentName ? `<small class="slot-task-parent">${esc(d.actualTasks[n % 144].parentName)}</small>` : ''}<small class="slot-task-name">${esc(d.actualTasks[n % 144].name)}</small>` : ''}${d.actualNotes?.[n % 144] ? `<small class="slot-note">${esc(d.actualNotes[n % 144])}</small>` : ''}</button><button class="slot-planned" data-slot="${n}" data-kind="planned" style="${planned ? `background:${ActionCategories.color(state, planned)};color:${colorText(ActionCategories.color(state, planned))}` : ''}" aria-label="المطلوب من ${time(n)} إلى ${time(n + 1)}">${planned ? 'المطلوب: ' + esc(planned.name) : '＋ الفعل المطلوب'}${d.plannedNotes?.[n % 144] ? `<small class="slot-note">${esc(d.plannedNotes[n % 144])}</small>` : ''}</button></div>`;
+}
 function renderDay() {
   let d = day(),
     filled = Array.from({ length: 144 }, (_, i) => starts()[3] + i).filter(
@@ -185,21 +199,17 @@ function renderDay() {
         !!d.actualNotes?.[n % 144],
     ).length,
     done = Object.values(d.checks).filter(Boolean).length;
-  app.innerHTML = `<div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="hero"><div><h2>أعطِ كل وقت معنى</h2><p>ابدأ بخانة واحدة، وابنِ يومك على مهل.</p><span class="hint" style="color:#d0dec8">${dayRangeLabel()}</span></div><div class="stats"><div class="stat"><strong>${filled}<small style="font-size:14px"> / 144</small></strong><span>خانة مسجلة فعليًا</span></div><div class="stat"><strong>${144 - filled}</strong><span>خانة لم تُسجل فعليًا</span></div><div class="stat"><strong>${done}<small style="font-size:14px"> / 25</small></strong><span>من قائمة الصلوات</span></div></div></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCount(i) === 5 ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/5</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">☑ مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">＋ إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button><div class="grid">${range(
+  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / 25 من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCount(i) === 5 ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/5</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">☑ مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">＋ إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots">${range(
     prayer,
   )
-    .map((n) => {
-      let a = state.actions.find((a) => a.id === d.slots[n % 144]),
-        planned = state.actions.find((a) => a.id === d.planned?.[n % 144]);
-      return `<div class="slot split-slot"><button class="slot-actual" data-slot="${n}" data-kind="actual" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}" aria-label="ما فعلته من ${time(n)} إلى ${time(n + 1)}"><span class="time"><bdi>${time(n)}</bdi> – <bdi>${time(n + 1)}</bdi></span><span class="label">${a ? esc(a.name) : '＋ ما فعلته'}</span>${d.actualTasks?.[n % 144] ? `${d.actualTasks[n % 144].parentName ? `<small class="slot-task-parent">${esc(d.actualTasks[n % 144].parentName)}</small>` : ''}<small class="slot-task-name">${esc(d.actualTasks[n % 144].name)}</small>` : ''}${d.actualNotes?.[n % 144] ? `<small class="slot-note">${esc(d.actualNotes[n % 144])}</small>` : ''}</button><button class="slot-planned" data-slot="${n}" data-kind="planned" style="${planned ? `background:${ActionCategories.color(state, planned)};color:${colorText(ActionCategories.color(state, planned))}` : ''}" aria-label="المطلوب من ${time(n)} إلى ${time(n + 1)}">${planned ? 'المطلوب: ' + esc(planned.name) : '＋ الفعل المطلوب'}${d.plannedNotes?.[n % 144] ? `<small class="slot-note">${esc(d.plannedNotes[n % 144])}</small>` : ''}</button></div>`;
-    })
+    .map((n) => dailySlotMarkup(n, d))
     .join(
       '',
     )}</div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
     taskGroups(allTasksOn(date))
       .map((t) => compactTaskGroup(t))
       .join('') || '<p class="empty-note">لا توجد مهام لهذا اليوم.</p>'
-  }</div></section>`;
+  }</div></section></div>`;
   $('#bulkSlots').onclick = () => openPicker(range(prayer)[0], 'actual', true);
   $('#date').onchange = (e) => {
     if (e.target.value) {
@@ -232,17 +242,27 @@ function renderDay() {
         openPrayer(+b.dataset.prayerTasks);
       }),
   );
-  document
-    .querySelectorAll('[data-slot]')
-    .forEach(
-      (b) => (b.onclick = () => openPicker(+b.dataset.slot, b.dataset.kind)),
-    );
+  $('#dailySlots').onclick = (e) => {
+    const button = e.target.closest('[data-slot]');
+    if (button) openPicker(+button.dataset.slot, button.dataset.kind);
+  };
   bindTaskCards($('#dailyTaskCards'));
   bindTaskCards($('#allDayTaskCards'));
   $('#addDetailedTask').onclick = () => openPlannerEditor();
 }
 function prayerCount(p) {
   return checks.filter((_, i) => day().checks[p + '-' + i]).length;
+}
+function refreshPrayerSummary() {
+  $('#dayPrayerChecks').textContent = Object.values(day().checks).filter(
+    Boolean,
+  ).length;
+  document.querySelectorAll('.prayer-tab').forEach((tab) => {
+    const count = prayerCount(+tab.dataset.prayer),
+      label = tab.querySelector('.prayer-count');
+    label.textContent = count + '/5';
+    label.classList.toggle('complete', count === 5);
+  });
 }
 function openPrayer(p = prayer) {
   prayerDialogPrayer = p;
@@ -270,8 +290,14 @@ function openPrayer(p = prayer) {
           delete d.checks[key];
         }
         save();
-        render();
+        if (view === 'day' && $('.day-workspace')) refreshPrayerSummary();
+        else render();
         openPrayer(prayerDialogPrayer);
+        modal
+          .querySelector(
+            `[data-check-status="${key}"][data-value="${b.dataset.value}"]`,
+          )
+          ?.focus({ preventScroll: true });
       }),
   );
   modal
@@ -314,7 +340,12 @@ function openPicker(n, kind = 'actual', bulk = false) {
     category: (a) => ActionCategories.category(state, a)?.name || 'بدون قسم',
     read,
     show: () => $('#picker').showModal(),
-    close: () => $('#picker').close(),
+    close: () => {
+      $('#picker').close();
+      app
+        .querySelector(`[data-slot="${n}"][data-kind="${kind}"]`)
+        ?.focus({ preventScroll: true });
+    },
     commit: (from, to, k, a, note, task) => {
       if (state !== captured || date !== key)
         throw Error('تغير اليوم أو الحساب. افتح التسجيل مرة أخرى.');
@@ -339,9 +370,38 @@ function openPicker(n, kind = 'actual', bulk = false) {
       }
       SlotTools.apply(d, from, to, k, a, note, first, false, task);
       save();
-      render();
+      if (view === 'day' && $('#dailySlots')) refreshDailySlots(from, to);
+      else render();
     },
   });
+}
+function refreshDailySlots(from, to) {
+  const scroll = app.scrollTop,
+    pageScroll = document.scrollingElement?.scrollTop || 0;
+  const d = day(),
+    template = document.createElement('template');
+  for (let n = from; n < to; n++) {
+    const current = app.querySelector(`[data-slot="${n}"]`)?.closest('.slot');
+    if (!current) continue;
+    template.innerHTML = dailySlotMarkup(n, d);
+    current.replaceWith(template.content.firstElementChild);
+  }
+  const filled = Array.from({ length: 144 }, (_, i) => i).filter(
+    (i) =>
+      state.actions.some((a) => a.id === d.slots[i]) || !!d.actualNotes?.[i],
+  ).length;
+  $('#dayRecorded').textContent = filled;
+  $('#dayUnrecorded').textContent = 144 - filled;
+  const note = $('.day-workspace .capacity-note');
+  if (note) note.textContent = capacityText(date, prayer);
+  document.querySelectorAll('.prayer-tab').forEach((tab) => {
+    const label = tab.querySelector('.prayer-period > small:last-child');
+    if (label)
+      label.textContent = `${capacity(date, +tab.dataset.prayer).free} خانة متاحة للتخطيط`;
+  });
+  app.scrollTop = scroll;
+  if (document.scrollingElement)
+    document.scrollingElement.scrollTop = pageScroll;
 }
 
 function renderActions() {
@@ -656,11 +716,25 @@ openTaskManager = taskReadScope(openTaskManager);
 renderRepeat = taskReadScope(renderRepeat);
 openProjectTaskLink = taskReadScope(openProjectTaskLink);
 actualTasksForSlot = taskReadScope(actualTasksForSlot);
+refreshDailySlots = taskReadScope(refreshDailySlots);
+document.addEventListener('click', (e) => {
+  const more = $('#navigationMore');
+  if (more?.open && !more.contains(e.target)) more.open = false;
+});
+document.addEventListener('keydown', (e) => {
+  const more = $('#navigationMore');
+  if (e.key === 'Escape' && more?.open) {
+    more.open = false;
+    more.querySelector('summary').focus({ preventScroll: true });
+  }
+});
 $('#downloadBackup').onclick = downloadBackup;
 document.querySelectorAll('nav button').forEach(
   (b) =>
     (b.onclick = () => {
       view = b.dataset.view;
+      const more = $('#navigationMore');
+      if (more) more.open = false;
       render();
     }),
 );
