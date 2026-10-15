@@ -914,6 +914,7 @@ function updateProjectNavigation() {
   });
   select.value = selectedProject;
   select.onchange = () => selectProject(select.value);
+  applyCompletedVisibility();
 }
 function renderProjectDetails() {
   const details = $('#projectDetails'),
