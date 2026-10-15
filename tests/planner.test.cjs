@@ -39,6 +39,26 @@ run('validate(state)');
 // Import/export preserves optional planning data and rejects malformed progress.
 const exported=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(exported)+');validate(state);render()');
 assert.equal(run('JSON.stringify(state)'),exported);
+ // Download works from every tab and produces a restorable, full current-state JSON snapshot.
+ assert.ok($('#downloadBackup'));
+ const oldBlob=w.Blob,oldAnchorClick=w.HTMLAnchorElement.prototype.click;
+ let backupCapture=null,downloadName='';
+ w.Blob=class {constructor(parts,options){backupCapture={parts,options}}};
+ w.URL.createObjectURL=()=> 'blob:test-waqti-backup';
+ w.URL.revokeObjectURL=()=>{};
+ w.HTMLAnchorElement.prototype.click=function(){downloadName=this.download};
+ click('#downloadBackup');
+ assert.equal(JSON.stringify(JSON.parse(backupCapture.parts.join(''))),exported);
+ assert.equal(backupCapture.options.type,'application/json;charset=utf-8');
+ assert.match(downloadName,/^waqti-backup-\d{4}-\d{2}-\d{2}-\d{6}\.json$/);
+ assert.equal($('a[download]'),null);
+ const prevView=run('view');
+ run("view='settings';render()");
+ click('#export');
+ assert.equal(JSON.stringify(JSON.parse(backupCapture.parts.join(''))),exported);
+ run('view='+JSON.stringify(prevView)+';render()');
+ w.Blob=oldBlob;w.HTMLAnchorElement.prototype.click=oldAnchorClick;
+
 assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'bad',name:'bad',expectedSlots:-1}]})"));
 // A manual slot edit relinquishes ownership so task cleanup cannot erase it.
 run("const sd=taskDay(date);sd.taskSlotOwners={1:'manual'};sd.taskSlotValues={1:'old'};sd.taskSlotNotes={1:'old'};SlotTools.apply(sd,1,2,'planned','chosen','note',0);");

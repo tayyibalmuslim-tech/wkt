@@ -5,7 +5,7 @@
 const config={apiKey:'AIzaSyD8jxpVrvicStETloL8tk5s865dmNatIqE',authDomain:'mazen-productivity-bab1c.firebaseapp.com',databaseURL:'https://mazen-productivity-bab1c-default-rtdb.firebaseio.com',projectId:'mazen-productivity-bab1c',storageBucket:'mazen-productivity-bab1c.firebasestorage.app',messagingSenderId:'388570583199',appId:'1:388570583199:web:d62a7ad37c9330e22252aa'};
 let auth,db,user=null,recordRef=null,unsubscribe=null,connectionRef=null,connectionHandler=null;
 let baseRevision=0,dirty=false,ready=false,online=false,writing=false,applying=false,remote=null,timer=null,epoch=0,authReady=false;
-let status='جاري تهيئة الحساب…',error='',mode='login',busy=false,editSequence=0,conflict=false;
+let status='جاري تهيئة الحساب…',error='',mode='login',busy=false,editSequence=0,conflict=false,hasCachedData=false;
 const cacheKey=id=>'waqti-account-'+id;
 function fresh(){return {...structuredClone(defaults),location:{...cairoLocation},method:'Egyptian',offsets:[0,0,0,0,0],hijriOffset:0,sunsetDays:{}}}
 function readGuest(){try{let s=JSON.parse(localStorage.getItem('waqti-v1'));validate(s);return s}catch{return fresh()}}
@@ -32,10 +32,10 @@ async function flush(){if(!user||!ready||!dirty||conflict||!online||writing)retu
  }catch(e){if(ticket===epoch){writing=false;error=message(e);persist();badge();if(view==='account')renderAccount()}return false}
 }
 function changed(){if(applying)return;if(user){dirty=true;editSequence++;persist();report(conflict?'يوجد تعارض؛ اختر نسخة من الحساب والمزامنة':online?'جاري المزامنة…':'محفوظ محليًا؛ في انتظار الاتصال');schedule()}else{persist();report('● محفوظ على هذا الجهاز — دون حساب')}}
-function attach(u){epoch++;clearTimeout(timer);if(unsubscribe)unsubscribe();if(connectionRef&&connectionHandler)connectionRef.off('value',connectionHandler);unsubscribe=null;recordRef=null;connectionRef=null;connectionHandler=null;user=u;baseRevision=0;dirty=false;ready=false;writing=false;online=false;conflict=false;remote=null;error='';authReady=true;editSequence=0;
+function attach(u){hasCachedData=false;epoch++;clearTimeout(timer);if(unsubscribe)unsubscribe();if(connectionRef&&connectionHandler)connectionRef.off('value',connectionHandler);unsubscribe=null;recordRef=null;connectionRef=null;connectionHandler=null;user=u;baseRevision=0;dirty=false;ready=false;writing=false;online=false;conflict=false;remote=null;error='';authReady=true;editSequence=0;
  if(!u){apply(readGuest());$('#app').inert=false;report('● محفوظ على هذا الجهاز — دون حساب');return}
  let cached=null;try{cached=JSON.parse(localStorage.getItem(cacheKey(u.uid)));if(cached){validate(cached.state);if(!Number.isInteger(cached.baseRevision)||cached.baseRevision<0)throw Error();baseRevision=cached.baseRevision;dirty=!!cached.dirty}}catch{cached=null;baseRevision=0;dirty=false}
- apply(cached?.state||fresh());report('جاري تحميل بيانات الحساب…');
+ apply(cached?.state||fresh());hasCachedData=!!cached;report('جاري تحميل بيانات الحساب…');
  const ticket=epoch;recordRef=db.ref('waqti/users/'+u.uid);
  let handler=snap=>{if(ticket===epoch)receive(snap.val())};recordRef.on('value',handler,e=>{if(ticket!==epoch)return;$('#app').inert=false;error=message(e);badge();if(view==='account')renderAccount()});const attached=recordRef;unsubscribe=()=>attached.off('value',handler);
  connectionRef=db.ref('.info/connected');connectionHandler=snap=>{if(ticket!==epoch)return;online=snap.val()===true;if(online){if(ready){if(!dirty&&!conflict)report('● تمت المزامنة');schedule()}}else{report(dirty?'محفوظ محليًا؛ في انتظار الاتصال':'غير متصل — نسخة الحساب على الجهاز')}};connectionRef.on('value',connectionHandler);
@@ -52,7 +52,7 @@ function renderAccount(){
  if(conflict){$('#backupConflict').onclick=backupCurrent;$('#useCloud').onclick=()=>{if(!confirm('استخدام نسخة الحساب بدل تعديلات هذا الجهاز؟'))return;try{const s=decode(remote)||fresh();dirty=false;conflict=false;baseRevision=remote?.revision||0;apply(s);persist();report('● تم استخدام نسخة الحساب')}catch{error='نسخة الحساب غير صالحة';badge()}};$('#useLocal').onclick=()=>{if(!confirm('اعتماد نسخة هذا الجهاز بدل نسخة الحساب؟'))return;baseRevision=remote?.revision||0;conflict=false;dirty=true;persist();report('جاري المزامنة…');schedule()}}
  }
 }
-window.WaqtiSync={changed,renderAccount};$('#accountButton').onclick=()=>{view='account';render()};
+window.WaqtiSync={changed,renderAccount,canExport:()=>authReady&&(!user||ready||hasCachedData)};$('#accountButton').onclick=()=>{view='account';render()};
 try{firebase.initializeApp(config);auth=firebase.auth();auth.languageCode='ar';db=firebase.database();auth.onAuthStateChanged(attach,e=>{error=message(e);badge()});}catch(e){error='تعذر تشغيل Firebase. حدّث الصفحة وحاول مجددًا.';badge()}
 window.addEventListener('online',schedule);window.addEventListener('beforeunload',e=>{if(dirty){persist();e.preventDefault();e.returnValue=''}});badge();
 })();
