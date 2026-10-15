@@ -15,7 +15,7 @@ assert.equal(run('time(0)'),'12:00 ص');
 assert.equal(run('time(1)'),'12:10 ص');
 assert.equal(run('time(143)'),'11:50 م');
 assert.equal(run('time(144)'),'12:00 ص');
-assert.match(w.document.querySelector('.stats').textContent,/144/);
+assert.match(w.document.querySelector('.day-summary').textContent,/144/);
 run('openPicker(starts()[3],"actual",true)');
 assert.equal(w.document.querySelector('#slotFrom').options.length,144);
 run('document.querySelector("#slotTo").value=starts()[3]+12;document.querySelector("#slotTo").onchange()');
