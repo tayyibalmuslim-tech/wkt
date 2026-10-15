@@ -50,7 +50,7 @@ function progressLeaves(roots,entries=progressEntries(),projectId=null){
 }
 function leafCompletion(t){return t.rollupDone||outcome(t)==='done'?100:t.expectedSlots>0?Math.min(100,completedSlots(t)/t.expectedSlots*100):0}
 function averageCompletion(list){return list.length?list.reduce((sum,t)=>sum+leafCompletion(t),0)/list.length:0}
-function taskCompletion(t){return outcome(t)==='done'?100:averageCompletion(progressLeaves([t]))}
+function taskCompletion(t,entries){return outcome(t)==='done'?100:averageCompletion(progressLeaves([t],entries))}
 function projectCompletion(id){const entries=progressEntries();return averageCompletion(progressLeaves(entries.filter(t=>effectiveProjectId(t)===id),entries,id))}
 function percentLabel(value){return Number(value.toFixed(1))+'٪'}
 function taskProgressBar(t){const value=taskCompletion(t);return `<progress class="task-progress-bar" value="${value}" max="100" aria-label="إنجاز ${esc(t.name)}: ${percentLabel(value)}"></progress>`}
@@ -135,7 +135,7 @@ function savePlannedTask(original,next,progress=null){
    if(original.date){const d=taskDay(original.date);if(original.recurrent)(d.excludedRepeat??={})[original.id]=true;else d.tasks=d.tasks.filter(t=>t.id!==original.id);}
    else state.taskInbox=state.taskInbox.filter(t=>t.id!==original.id);
   }
-  let item={...next};delete item.recurrent;
+  let item={showInMonthlyCalendar:true,...next};delete item.recurrent;
   if(original?.recurrent){item.id=uid();item.detachedFrom=original.id;}
   if(item.date){
    delete item.inboxOutcome;
@@ -170,6 +170,7 @@ function deletePlannedTask(t){
 }
 function taskFields(t={},includeDate=true){return `
  ${projectField(t)}
+ <label class="monthly-visibility"><input name="showInMonthlyCalendar" type="checkbox" ${t.showInMonthlyCalendar!==false?'checked':''}> إظهار في التقويم الشهري</label>
  ${includeDate?completionField(t):''}
  <label class="field">الأولوية (1 الأعلى، 5 الأدنى)<select name="priority">${Object.entries(priorityNames).map(([v,n])=>`<option value="${v}" ${String(taskPriority(t))===v?'selected':''}>${n}</option>`).join('')}</select></label>
  <label class="field">الخانات المتوقعة (الخانة ١٥ دقيقة)<input name="expectedSlots" type="number" min="0" max="96" step="1" value="${t.expectedSlots||0}" required></label>
@@ -228,15 +229,15 @@ function openPlannerEditor(t=null,parent=null,projectId=''){
  form.onsubmit=e=>{e.preventDefault();const name=f.taskName.value.trim();if(!name)return;try{
   if(state!==editorState)throw Error('تغيرت البيانات أو الحساب. أغلق النافذة وافتح المهمة مجددًا.');
   const count=+f.expectedSlots.value;if(!Number.isInteger(count)||count<0||count>96)throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و٩٦.');
-  const next={...draft,name,projectId:f.projectId.value,priority:+f.priority.value,expectedSlots:count,actionId:f.actionId.value,date:f.taskDate.value,prayers:selectedTaskPeriods(form),prayer:selectedTaskPeriods(form)[0]??null,startSlot:f.taskDate.value&&f.startSlot.value!==''?+f.startSlot.value:null},progress=f.completedSlots?+f.completedSlots.value:null;
+  const next={...draft,name,showInMonthlyCalendar:f.showInMonthlyCalendar.checked,projectId:f.projectId.value,priority:+f.priority.value,expectedSlots:count,actionId:f.actionId.value,date:f.taskDate.value,prayers:selectedTaskPeriods(form),prayer:selectedTaskPeriods(form)[0]??null,startSlot:f.taskDate.value&&f.startSlot.value!==''?+f.startSlot.value:null},progress=f.completedSlots?+f.completedSlots.value:null;
   if(progress!==null&&(!Number.isInteger(progress)||progress<0||progress>9999))throw Error('الخانات المنجزة يجب أن تكون بين ٠ و٩٩٩٩.');
-  const progressOnly=t?.date&&next.name===t.name&&next.date===t.date&&JSON.stringify(taskPeriods(next))===JSON.stringify(taskPeriods(t))&&next.priority===taskPriority(t)&&next.expectedSlots===(t.expectedSlots||0)&&next.actionId===(t.actionId||'')&&next.startSlot===(t.startSlot??null)&&next.projectId===(t.projectId||'');
+  const progressOnly=t?.date&&next.showInMonthlyCalendar===(t.showInMonthlyCalendar!==false)&&next.name===t.name&&next.date===t.date&&JSON.stringify(taskPeriods(next))===JSON.stringify(taskPeriods(t))&&next.priority===taskPriority(t)&&next.expectedSlots===(t.expectedSlots||0)&&next.actionId===(t.actionId||'')&&next.startSlot===(t.startSlot??null)&&next.projectId===(t.projectId||'');
   if(progressOnly){(taskDay(t.date).taskProgress??={})[t.id]=progress;save()}else savePlannedTask(t,next,progress);
   dialog.close();render();if(back)openPlannerEditor(findTask(back.id,back.date)||back);toast('تم حفظ المهمة');
  }catch(err){$('#plannerError').textContent=err.message}};
  dialog.showModal();
 }
-function quickTask(){let dialog=$('#quickTaskDialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='quickTaskDialog';document.body.append(dialog)}dialog.innerHTML='<h2>التقط المهمة الآن</h2><form id="quickTaskForm"><label class="field">المهمة<input name="taskName" maxlength="150" required autofocus placeholder="اكتب المهمة فقط…"></label><p>ستجدها في قائمة «تحتاج توزيعًا».</p><button class="primary">إضافة</button><button type="button" class="secondary" id="closeQuickTask">إلغاء</button></form>';$('#closeQuickTask').onclick=()=>dialog.close();$('#quickTaskForm').onsubmit=e=>{e.preventDefault();const name=e.target.elements.taskName.value.trim();if(!name)return;(state.taskInbox??=[]).push({id:uid(),name,priority:3,expectedSlots:0});save();dialog.close();render();toast('أضيفت إلى المهام التي تحتاج توزيعًا')};dialog.showModal()}
+function quickTask(){let dialog=$('#quickTaskDialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='quickTaskDialog';document.body.append(dialog)}dialog.innerHTML='<h2>التقط المهمة الآن</h2><form id="quickTaskForm"><label class="field">المهمة<input name="taskName" maxlength="150" required autofocus placeholder="اكتب المهمة فقط…"></label><p>ستجدها في قائمة «تحتاج توزيعًا».</p><button class="primary">إضافة</button><button type="button" class="secondary" id="closeQuickTask">إلغاء</button></form>';$('#closeQuickTask').onclick=()=>dialog.close();$('#quickTaskForm').onsubmit=e=>{e.preventDefault();const name=e.target.elements.taskName.value.trim();if(!name)return;(state.taskInbox??=[]).push({id:uid(),name,priority:3,expectedSlots:0,showInMonthlyCalendar:true});save();dialog.close();render();toast('أضيفت إلى المهام التي تحتاج توزيعًا')};dialog.showModal()}
 function installQuickTask(){if($('#quickTaskButton'))return;const b=document.createElement('button');b.id='quickTaskButton';b.className='quick-task';b.textContent='＋ مهمة سريعة';b.onclick=()=>{if(app.inert){toast('انتظر تحميل بيانات الحساب');return}quickTask()};document.body.append(b)}
 function renderRepeat(edit=null){
  renderRepeatLegacy(edit);
@@ -250,7 +251,7 @@ function renderRepeat(edit=null){
   if(!f.name.value.trim()||!form.querySelector('[name=days]:checked')){submit(e);return}
   initializeTaskHistory();
   const periods=selectedTaskPeriods(form);
-  const fields={projectId:f.projectId.value,prayers:periods,prayer:periods[0]??null,priority:+f.priority.value,expectedSlots:count,actionId:f.actionId.value,startDate:edit?.startDate||activeDay()};
+  const fields={showInMonthlyCalendar:f.showInMonthlyCalendar.checked,projectId:f.projectId.value,prayers:periods,prayer:periods[0]??null,priority:+f.priority.value,expectedSlots:count,actionId:f.actionId.value,startDate:edit?.startDate||activeDay()};
   const before=new Set(state.repeat.map(t=>t.id));submit(e);
   const target=edit?state.repeat.find(t=>t.id===edit.id):state.repeat.find(t=>!before.has(t.id));
   if(target){Object.assign(target,fields);save();render()}
@@ -268,6 +269,7 @@ function validatePlanning(s){
  const checkTask=t=>{
   if(!validTaskPeriods(t)&&!(t&&t.prayer===undefined&&t.prayers===undefined))throw Error('فترات غير صالحة');
   if(!t||typeof t.id!=='string'||typeof t.name!=='string')throw Error('مهمة غير صالحة');
+  if(t.showInMonthlyCalendar!==undefined&&typeof t.showInMonthlyCalendar!=='boolean')throw Error('خيار ظهور التقويم غير صالح');
   if(t.completedSlotCount!==undefined&&(!Number.isInteger(t.completedSlotCount)||t.completedSlotCount<0||t.completedSlotCount>9999))throw Error('خانات منجزة غير صالحة');
   if(t.completionPercent!==undefined&&(!Number.isFinite(t.completionPercent)||t.completionPercent<0||t.completionPercent>100))throw Error('نسبة إنجاز غير صالحة');
   if(t.priority!==undefined&&!([1,2,3,4,5].includes(t.priority)||['high','medium','low'].includes(t.priority)))throw Error('أولوية غير صالحة');

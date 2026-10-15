@@ -74,12 +74,96 @@ function renderDashboard(){
  }
 }
 function openPlannerDay(key){plannerTab='day';plannerQuery='';plannerPriority=plannerStatus='all';goDay(key,false)}
+// Filters affect this calendar only; occurrence identity is always id + logical day.
+const monthFilters={project:'all',category:'all',status:'all',priority:'all',period:'all',query:''};
+let monthFiltersOpen=false,monthMenuCleanup=null;
+function monthlyTasks(key,entries=progressEntries()){
+ const unique=new Map(allTasksOn(key).map(t=>[taskIdentity(t),t]));
+ const periodRank=t=>Math.min(...taskPeriods(t).map(p=>prayerOrder.indexOf(p)),5);
+ return [...unique.values()].filter(t=>{
+  const action=state.actions.find(a=>a.id===t.actionId);
+  return t.showInMonthlyCalendar!==false&&
+   (monthFilters.project==='all'||mainTask(t,entries)?.projectId===monthFilters.project)&&
+   (monthFilters.category==='all'||ActionCategories.category(state,action)?.id===monthFilters.category)&&
+   (monthFilters.status==='all'||outcome(t)===monthFilters.status)&&
+   (monthFilters.priority==='all'||String(taskPriority(t))===monthFilters.priority)&&
+   (monthFilters.period==='all'||taskInPeriod(t,+monthFilters.period))&&
+   (!monthFilters.query.trim()||t.name.toLocaleLowerCase().includes(monthFilters.query.trim().toLocaleLowerCase()));
+ }).sort((a,b)=>periodRank(a)-periodRank(b)||taskPriority(a)-taskPriority(b)||a.name.localeCompare(b.name,'ar'));
+}
+function monthlySummary(tasks){
+ const done=tasks.filter(t=>outcome(t)==='done').length,failed=tasks.filter(t=>outcome(t)==='failed').length;
+ return {total:tasks.length,done,failed,pending:tasks.length-done-failed,percent:done+failed?done/(done+failed)*100:null};
+}
+function closeMonthTaskMenu(){monthMenuCleanup?.();monthMenuCleanup=null}
+function openMonthTaskMenu(anchor){
+ closeMonthTaskMenu();
+ const captured=state,id=anchor.dataset.monthTask,key=anchor.dataset.monthDate,t=findTask(id,key);
+ if(!t)return;
+ const menu=document.createElement('div');menu.id='monthTaskMenu';menu.className='month-task-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','إجراءات المهمة: '+t.name);
+ const status=outcome(t);
+ menu.innerHTML=`<button type="button" data-month-outcome="done" aria-pressed="${status==='done'}">✓ صح</button><button type="button" data-month-outcome="failed" aria-pressed="${status==='failed'}">✕ غلط</button><button type="button" data-month-edit>✎ تعديل</button>`;
+ document.body.append(menu);anchor.setAttribute('aria-expanded','true');
+ const position=()=>{
+  const r=anchor.getBoundingClientRect(),m=menu.getBoundingClientRect(),v=window.visualViewport;
+  const left=v?.offsetLeft||0,top=v?.offsetTop||0,width=v?.width||window.innerWidth,height=v?.height||window.innerHeight;
+  menu.style.left=Math.max(left+8,Math.min(r.right-m.width,left+width-m.width-8))+'px';
+  menu.style.top=Math.max(top+8,Math.min(r.bottom+6+m.height<=top+height-8?r.bottom+6:r.top-m.height-6,top+height-m.height-8))+'px';
+ };
+ const outside=e=>{if(!menu.contains(e.target)&&!anchor.contains(e.target))closeMonthTaskMenu()};
+ const keyboard=e=>{
+  if(e.key==='Escape'){e.preventDefault();closeMonthTaskMenu();anchor.focus()}
+  if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp'].includes(e.key)){
+   e.preventDefault();const buttons=[...menu.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);
+   buttons[(index+(['ArrowRight','ArrowDown'].includes(e.key)?1:2))%3].focus();
+  }
+ };
+ const focus=e=>{if(!menu.contains(e.target)&&e.target!==anchor)closeMonthTaskMenu()};
+ monthMenuCleanup=()=>{menu.remove();anchor.setAttribute('aria-expanded','false');document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',keyboard);document.removeEventListener('focusin',focus);window.removeEventListener('resize',position);window.removeEventListener('scroll',position,true);window.visualViewport?.removeEventListener('resize',position);window.visualViewport?.removeEventListener('scroll',position)};
+ document.addEventListener('pointerdown',outside);document.addEventListener('keydown',keyboard);document.addEventListener('focusin',focus);window.addEventListener('resize',position);window.addEventListener('scroll',position,true);window.visualViewport?.addEventListener('resize',position);window.visualViewport?.addEventListener('scroll',position);
+ menu.querySelectorAll('[data-month-outcome]').forEach(b=>b.onclick=()=>{
+  if(state!==captured){closeMonthTaskMenu();return}
+  const current=findTask(id,key);if(!current){closeMonthTaskMenu();return}
+  setTaskOutcome(taskDay(key),id,b.dataset.monthOutcome);closeMonthTaskMenu();save();render();
+  [...app.querySelectorAll('[data-month-task]')].find(b=>b.dataset.monthTask===id&&b.dataset.monthDate===key)?.focus();
+ });
+ menu.querySelector('[data-month-edit]').onclick=()=>{closeMonthTaskMenu();if(state===captured)openTaskManager(findTask(id,key))};
+ position();menu.querySelector('button').focus();
+}
 function renderTaskMonth(){
- plannerMonth||=date.slice(0,7);const first=plannerMonth+'-01',start=new Date(first+'T12:00:00'),offset=start.getDay(),last=new Date(start.getFullYear(),start.getMonth()+1,0).getDate();
- $('#plannerContent').innerHTML=`<section class="panel"><div class="top"><h2>خطة الشهر</h2><div class="date"><button data-month-shift="-1" aria-label="الشهر السابق">→</button><input id="taskMonth" type="month" value="${plannerMonth}" aria-label="الشهر"><button data-month-shift="1" aria-label="الشهر التالي">←</button></div></div><p class="hint">تقويم ميلادي بحسب تاريخ نهار اليوم الذي يبدأ من المغرب. اضغط يومًا لعرض مهامه في الصلوات الخمس. ملخص الصلاة مستقل عن المهام العادية.</p><div class="task-month">${week.map(n=>`<div class="month-weekday">${n}</div>`).join('')}${Array.from({length:offset},()=>'<div aria-hidden="true"></div>').join('')}${Array.from({length:last},(_,i)=>{const key=plannerMonth+'-'+String(i+1).padStart(2,'0'),s=daySummary(key);return `<button data-calendar-day="${key}" class="month-day ${key===activeDay()?'is-today':''}" aria-label="${key}: ${s.total} مهام، ${s.done} مكتملة، ${s.checks} من مهام الصلوات"><strong>${i+1}</strong><span>${s.total} مهام</span>${key<=activeDay()?`<small>✓ ${s.done} منجزة</small><small>الصلاة ${s.checks}/25</small>`:''}</button>`}).join('')}</div><p class="hint">السجل الموثوق للمهام المتكررة يبدأ من ${state.taskHistoryStart}. ما قبل ذلك يُعرض من البيانات المسجلة المتاحة فقط.</p></section>`;
+ closeMonthTaskMenu();
+ plannerMonth||=date.slice(0,7);const first=plannerMonth+'-01',start=new Date(first+'T12:00:00'),offset=start.getDay(),last=new Date(start.getFullYear(),start.getMonth()+1,0).getDate(),today=activeDay(),entries=progressEntries();
+ const days=Array.from({length:last},(_,i)=>{const key=plannerMonth+'-'+String(i+1).padStart(2,'0');return {key,number:i+1,tasks:monthlyTasks(key,entries)}});
+ const stats=monthlySummary(days.flatMap(d=>d.tasks));
+ const select=(field,label,options)=>`<label class="field">${label}<select data-month-filter="${field}"><option value="all">الكل</option>${options.map(([value,name])=>`<option value="${esc(value)}" ${String(value)===monthFilters[field]?'selected':''}>${esc(name)}</option>`).join('')}</select></label>`;
+ const chip=t=>{
+  const result=outcome(t),label={done:'فعلتها',failed:'لم أفعلها',pending:'لم تُسجل'}[result],parent=t.parentId?mainTask(t,entries):null,progress=percentLabel(taskCompletion(t,entries));
+  return `<button type="button" class="month-task ${result}" data-month-task="${esc(t.id)}" data-month-date="${t.date}" aria-haspopup="dialog" aria-expanded="false" aria-controls="monthTaskMenu" aria-label="${esc(t.name)}${parent?'، ضمن '+esc(parent.name):''}، ${label}، التقدم ${progress}"><span aria-hidden="true">${{done:'✓',failed:'✕',pending:'○'}[result]}</span><span class="month-task-text">${esc(t.name)}${parent?`<small>↳ ${esc(parent.name)}</small>`:''}</span><small class="month-task-progress" title="نسبة التقدم المستقلة عن النتيجة">${progress}</small></button>`;
+ };
+ $('#plannerContent').innerHTML=`<section class="panel monthly-panel"><div class="top"><h2>خطة الشهر</h2><div class="date"><button data-month-shift="-1" aria-label="الشهر السابق">→</button><input id="taskMonth" type="month" value="${plannerMonth}" aria-label="الشهر"><button data-month-shift="1" aria-label="الشهر التالي">←</button></div></div>
+ <p class="hint">تقويم ميلادي بحسب تاريخ نهار اليوم الذي يبدأ من المغرب. اضغط التاريخ لتفاصيل اليوم، أو المهمة لتسجيل نتيجتها وتعديلها. ○ غير مسجلة · ✓ تمت · ✕ لم تتم. النسبة داخل المهمة تعرض تقدم الخانات أو الفروع بصورة مستقلة عن النتيجة.</p>
+ <details id="monthFilters" ${monthFiltersOpen?'open':''}><summary>البحث وتصفية التقويم</summary><div class="month-filters">
+ ${select('project','المشروع',(state.projects||[]).map(p=>[p.id,p.name]))}
+ ${select('category','القسم المرتبط بالفعل',state.categories.map(c=>[c.id,c.name]))}
+ ${select('status','حالة المهمة',[['done','تمت'],['failed','لم تتم'],['pending','غير مسجلة']])}
+ ${select('priority','الأولوية (1 الأعلى)',Object.entries(priorityNames))}
+ ${select('period','فترة الصلاة',prayerOrder.map(p=>[String(p),names[p]]))}
+ <label class="field">بحث باسم المهمة<input data-month-filter="query" type="search" value="${esc(monthFilters.query)}"></label></div></details>
+ <div class="month-summary" role="status" aria-live="polite"><span>المعروضة: <b>${stats.total}</b></span><span>فعلتها: <b>${stats.done}</b></span><span>لم أفعلها: <b>${stats.failed}</b></span><span>غير مسجلة: <b>${stats.pending}</b></span><span>الإنجاز من النتائج المسجلة: <b>${stats.percent===null?'لا نتائج مسجلة':percentLabel(stats.percent)}</b></span></div>
+ <p class="hint">الأعداد تخص المهام الظاهرة بعد التصفية وخيارات الظهور. نسبة النتائج = فعلتها ÷ (فعلتها + لم أفعلها). تقدم المشاريع العام لا يتأثر بالإخفاء أو التصفية. المهام المستقبلية غير المسجلة ليست فائتة.</p>
+ <div class="task-month-scroll" tabindex="0" role="region" aria-label="التقويم الشهري، يمكن تمريره أفقيًا"><div class="task-month">${week.map(n=>`<div class="month-weekday">${n}</div>`).join('')}${Array.from({length:offset},()=>'<div aria-hidden="true"></div>').join('')}${days.map(({key,number,tasks})=>{
+  const s=monthlySummary(tasks),d=state.sunsetDays[key],prayerChecks=prayerOrder.reduce((n,p)=>n+checks.filter((_,i)=>d?.checks?.[p+'-'+i]).length,0);
+  return `<section class="month-day ${key===today?'is-today':''}" aria-label="يوم ${key}"><button type="button" data-calendar-day="${key}" class="month-day-heading" ${key===today?'aria-current="date"':''} aria-label="${key}: ${s.total} مهام ظاهرة، ${s.done} تمت"><strong>${number}</strong><span>${s.done}/${s.total} تمت</span></button>${key<=today?`<small class="month-prayer-checks">الصلاة ${prayerChecks}/25</small>`:''}<div class="month-tasks">${tasks.map(chip).join('')}</div></section>`;
+ }).join('')}</div></div><p class="hint">السجل الموثوق للمهام المتكررة يبدأ من ${esc(state.taskHistoryStart||'تفعيل السجل')}. ما قبل ذلك يُعرض من البيانات المسجلة المتاحة فقط.</p></section>`;
  $('#taskMonth').onchange=e=>{if(e.target.value){plannerMonth=e.target.value;renderTaskMonth()}};
  app.querySelectorAll('[data-month-shift]').forEach(b=>b.onclick=()=>{const next=new Date(first+'T12:00:00');next.setMonth(next.getMonth()+ +b.dataset.monthShift);plannerMonth=localDate(next).slice(0,7);renderTaskMonth()});
+ $('#monthFilters').ontoggle=e=>{if(e.target.isConnected)monthFiltersOpen=e.target.open};
+ app.querySelectorAll('[data-month-filter]').forEach(input=>{
+  const refresh=()=>{const field=input.dataset.monthFilter;monthFilters[field]=input.value;monthFiltersOpen=$('#monthFilters').open;const pos=input.selectionStart;renderTaskMonth();const replacement=app.querySelector(`[data-month-filter="${field}"]`);replacement.focus();if(field==='query'&&pos!==null)replacement.setSelectionRange(pos,pos)};
+  if(input.type==='search')input.oninput=refresh;else input.onchange=refresh;
+ });
  app.querySelectorAll('[data-calendar-day]').forEach(b=>b.onclick=()=>openPlannerDay(b.dataset.calendarDay));
+ app.querySelectorAll('[data-month-task]').forEach(b=>b.onclick=()=>openMonthTaskMenu(b));
 }
 function weekChildLabels(t,key,p){return allTasksOn(key).filter(c=>c.parentId&&taskIdentity(mainTask(c))===taskIdentity(t)&&(p===null?!taskPeriods(c).length:taskInPeriod(c,p))).map(c=>`<small>↳ ${esc(c.name)} · ${percentLabel(taskCompletion(c))}</small>`).join('')}
 function renderTaskWeek(){

@@ -193,4 +193,126 @@ const nestedBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.str
 // Legacy deleted parents stay grouped rather than turning their children into main tasks.
 run("day().tasks=day().tasks.filter(t=>t.id!=='root-family');render()");assert.ok($('#projectDetails > .task-family [data-task-id="child-family"]'));assert.equal($('#projectDetails > [data-task-id="child-family"]'),null);
 
+// Expanded monthly calendar: visibility, result state, filters and task families.
+run("state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[{id:'monthly-project',name:'مشروع الشهر'}];date=activeDay();plannerMonth=date.slice(0,7);view='dashboard';plannerTab='month';Object.assign(monthFilters,{project:'all',category:'all',status:'all',priority:'all',period:'all',query:''});taskDay(date).tasks=[{id:'legacy-month',name:'قديمة',prayers:[3,4],priority:1,expectedSlots:2},{id:'slots-only',name:'خانات كاملة',prayers:[],expectedSlots:2}];taskDay(date).taskProgress={'legacy-month':1,'slots-only':2};render()");
+const monthChip=id=>'[data-month-task="'+id+'"]';
+assert.ok($(monthChip('legacy-month')));assert.equal(w.document.querySelectorAll(monthChip('legacy-month')).length,1);
+assert.equal($(monthChip('slots-only')).classList.contains('pending'),true);
+assert.match($(monthChip('slots-only')).textContent,/100٪/);
+assert.equal(run('monthlySummary(monthlyTasks(date)).done'),0);
+assert.equal($('.month-day').tagName,'SECTION');
+assert.equal($('button button'),null);
+const monthDaySelector='[data-calendar-day="'+run('date')+'"]';
+assert.equal($(monthDaySelector).parentElement.querySelectorAll('.month-task').length,2);
+click(monthChip('legacy-month'));assert.equal($('#monthTaskMenu').querySelectorAll('button').length,3);
+assert.equal($(monthChip('legacy-month')).getAttribute('aria-expanded'),'true');
+assert.equal(run('plannerTab'),'month');
+w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+assert.equal($('#monthTaskMenu'),null);assert.equal(w.document.activeElement,$(monthChip('legacy-month')));
+click(monthChip('legacy-month'));w.document.body.dispatchEvent(new w.Event('pointerdown',{bubbles:true}));assert.equal($('#monthTaskMenu'),null);
+click(monthChip('legacy-month'));click('[data-month-outcome="done"]');
+assert.equal(run("outcome(findTask('legacy-month',date))"),'done');
+assert.equal(JSON.parse(w.localStorage.getItem('waqti-v1')).sunsetDays[run('date')].done['legacy-month'],true);
+assert.equal(run('monthlySummary(monthlyTasks(date)).percent'),100);
+click(monthChip('legacy-month'));click('[data-month-outcome="done"]');assert.equal(run("outcome(findTask('legacy-month',date))"),'pending');
+click(monthChip('legacy-month'));click('[data-month-outcome="failed"]');assert.equal(run('monthlySummary(monthlyTasks(date)).failed'),1);
+click(monthChip('legacy-month'));click('[data-month-outcome="failed"]');assert.equal(run("outcome(findTask('legacy-month',date))"),'pending');
+// Save visibility alone, without silently taking the editor's progress-only shortcut.
+click(monthChip('legacy-month'));click('[data-month-edit]');f=$('#plannerForm').elements;
+assert.equal(f.showInMonthlyCalendar.checked,true);f.showInMonthlyCalendar.checked=false;submit('#plannerForm');
+assert.equal($(monthChip('legacy-month')),null);
+assert.equal(run("completedSlots(findTask('legacy-month',date))"),1);
+run("setTaskOutcome(taskDay(date),'legacy-month','done');openPlannerEditor(findTask('legacy-month',date))");
+f=$('#plannerForm').elements;assert.equal(f.showInMonthlyCalendar.checked,false);f.showInMonthlyCalendar.checked=true;submit('#plannerForm');
+assert.equal($(monthChip('legacy-month')).classList.contains('done'),true);
+assert.equal(run("completedSlots(findTask('legacy-month',date))"),1);
+// Every creation path defaults to visible.
+run('openPlannerEditor()');f=$('#plannerForm').elements;assert.equal(f.showInMonthlyCalendar.checked,true);f.taskName.value='جديدة';submit('#plannerForm');
+assert.equal(run("allTasksOn(date).find(t=>t.name==='جديدة').showInMonthlyCalendar"),true);
+click('#quickTaskButton');$('#quickTaskForm').elements.taskName.value='سريعة ظاهرة';submit('#quickTaskForm');
+assert.equal(run('state.taskInbox.at(-1).showInMonthlyCalendar'),true);
+// Cross-date parent, deep descendants, hidden parent, and four equally weighted leaves.
+run("const otherDate=addDate(date,-1);taskDay(otherDate).tasks.push({id:'month-parent',name:'رئيسية يوم آخر',projectId:'monthly-project',prayers:[],showInMonthlyCalendar:false});taskDay(date).tasks.push({id:'m-sub-a',name:'فرع أول',parentId:'month-parent',parentDate:otherDate,prayers:[2],expectedSlots:2},{id:'m-sub-b',name:'فرع ثان',parentId:'month-parent',parentDate:otherDate,prayers:[2],expectedSlots:2});state.taskInbox.push({id:'month-parent-b',name:'رئيسية أخرى',projectId:'monthly-project'},{id:'m-sub-c',name:'فرع ثالث',parentId:'month-parent-b',parentDate:'',expectedSlots:2},{id:'m-sub-d',name:'فرع رابع',parentId:'month-parent-b',parentDate:'',expectedSlots:2});render()");
+assert.match($(monthChip('m-sub-a')).textContent,/رئيسية يوم آخر/);assert.equal($(monthChip('month-parent')),null);
+assert.equal(run("projectCompletion('monthly-project')"),0);
+click(monthChip('m-sub-a'));click('[data-month-outcome="done"]');assert.equal(run("projectCompletion('monthly-project')"),25);
+assert.equal(run("taskCompletion(findTask('month-parent',addDate(date,-1)))"),50);
+click(monthChip('m-sub-a'));click('[data-month-edit]');assert.equal($('#plannerForm').elements.taskName.value,'رئيسية يوم آخر');
+assert.ok($('#plannerEditor [data-task-id="m-sub-a"]'));click('#closePlanner');
+run("view='projects';selectedProject='monthly-project';render()");
+assert.equal($('#projectDetails > progress').value,25);assert.equal($('#projectDetails > [data-task-id="m-sub-a"]'),null);
+run("view='dashboard';plannerTab='month';render();openPlannerEditor(findTask('m-sub-a',date))");
+f=$('#plannerForm').elements;f.showInMonthlyCalendar.checked=false;submit('#plannerForm');assert.equal(run("projectCompletion('monthly-project')"),25);
+assert.equal($(monthChip('m-sub-a')),null);click('#closePlanner');
+run("openPlannerEditor(findTask('m-sub-a',date))");f=$('#plannerForm').elements;f.showInMonthlyCalendar.checked=true;submit('#plannerForm');click('#closePlanner');
+run("taskDay(date).tasks.push({id:'deep-month',name:'فرع عميق',parentId:'m-sub-b',parentDate:date,prayers:[0]},{id:'orphan-month',name:'فرع يتيم',parentId:'deleted-month',parentName:'أصل محذوف محفوظ',parentDate:'',prayers:[]});render()");
+assert.match($(monthChip('deep-month')).textContent,/رئيسية يوم آخر/);
+assert.match($(monthChip('orphan-month')).textContent,/أصل محذوف محفوظ/);
+click(monthChip('orphan-month'));click('[data-month-edit]');assert.equal($('#orphanTasks').open,true);assert.ok($('#orphanTasks [data-task-id="orphan-month"]'));$('#orphanTasks').close();
+// Filters are view-only, use inherited project and linked action category, and count visible tasks.
+const beforeFilters=run('JSON.stringify(state)');
+const changeMonthFilter=(field,value)=>{const el=$('[data-month-filter="'+field+'"]');el.value=value;el.dispatchEvent(new w.Event(field==='query'?'input':'change'))};
+changeMonthFilter('project','monthly-project');assert.ok($(monthChip('deep-month')));assert.equal($(monthChip('legacy-month')),null);
+assert.equal(run('monthlySummary(monthlyTasks(date)).total'),3);
+changeMonthFilter('status','done');assert.ok($(monthChip('m-sub-a')));assert.equal($(monthChip('m-sub-b')),null);
+changeMonthFilter('status','pending');assert.equal($(monthChip('m-sub-a')),null);
+changeMonthFilter('status','failed');assert.equal(w.document.querySelectorAll('.month-task').length,0);
+changeMonthFilter('status','all');changeMonthFilter('period','2');assert.equal(w.document.querySelectorAll('.month-task').length,2);
+changeMonthFilter('priority','1');assert.equal(w.document.querySelectorAll('.month-task').length,0);
+changeMonthFilter('priority','all');changeMonthFilter('query','ثان');assert.ok($(monthChip('m-sub-b')));assert.equal($(monthChip('m-sub-a')),null);
+changeMonthFilter('query','');changeMonthFilter('project','all');changeMonthFilter('period','all');
+changeMonthFilter('category',run('state.categories[0].id'));assert.equal($(monthChip('slots-only')),null);
+changeMonthFilter('category','all');assert.ok($(monthChip('slots-only')));assert.equal(run('JSON.stringify(state)'),beforeFilters);
+run("taskDay(date).tasks.find(t=>t.id==='legacy-month').actionId=state.actions[0].id;render()");
+changeMonthFilter('category',run('state.actions[0].categoryId'));assert.ok($(monthChip('legacy-month')));changeMonthFilter('category','all');
+// Prayer order starts with Maghrib; priority is secondary, and no-period tasks remain visible.
+run("taskDay(date).tasks=Array.from({length:120},(_,i)=>({id:'many-'+i,name:i===0?'اسم طويل جدًا '.repeat(20):'م'+i,prayers:[3,4],priority:i%5+1}));taskDay(date).tasks.push({id:'asr-month',name:'عصر',prayers:[2],priority:1},{id:'unperiod-month',name:'دون فترة',prayers:[]});render()");
+assert.equal($(monthDaySelector).parentElement.querySelectorAll('.month-task').length,122);
+assert.equal(run("monthlyTasks(date).filter(t=>t.id.startsWith('many-')).length"),120);
+assert.equal(run("monthlyTasks(date)[0].priority"),1);
+assert.equal(run("monthlyTasks(date).at(-1).id"),'unperiod-month');
+assert.equal($('.month-task .month-task-text').textContent,'اسم طويل جدًا '.repeat(20));
+assert.equal($('.month-task').querySelectorAll('button').length,0);
+assert.equal($('.month-day [data-month-outcome]'),null);
+click(monthDaySelector);assert.equal(run('plannerTab'),'day');
+run("plannerTab='month';render()");
+// Series visibility changes preserve old snapshots; one-day edits detach only that occurrence.
+run("state.repeat=[{id:'month-repeat',name:'تكرار ظاهر',prayers:[3],days:[0,1,2,3,4,5,6],startDate:addDate(date,-2),showInMonthlyCalendar:true}];taskDay(addDate(date,-1)).repeatSnapshot=repeatFor(addDate(date,-1));taskDay(addDate(date,-1)).done['month-repeat']=true;view='repeat';renderRepeat(state.repeat[0])");
+f=$('#repeatForm').elements;f.showInMonthlyCalendar.checked=false;submit('#repeatForm');
+assert.equal(run("allTasksOn(addDate(date,-1)).find(t=>t.id==='month-repeat').showInMonthlyCalendar"),true);
+assert.equal(run("outcome(findTask('month-repeat',addDate(date,-1)))"),'done');
+assert.equal(run("allTasksOn(addDate(date,1)).find(t=>t.id==='month-repeat').showInMonthlyCalendar"),false);
+run("view='dashboard';plannerTab='month';openPlannerEditor(findTask('month-repeat',date))");
+f=$('#plannerForm').elements;assert.equal(f.showInMonthlyCalendar.checked,false);f.showInMonthlyCalendar.checked=true;submit('#plannerForm');
+assert.equal(run("taskDay(date).excludedRepeat['month-repeat']"),true);
+assert.equal(run("allTasksOn(date).find(t=>t.detachedFrom==='month-repeat').showInMonthlyCalendar"),true);
+assert.equal(run("state.repeat[0].showInMonthlyCalendar"),false);
+assert.equal(run("allTasksOn(addDate(date,-1)).find(t=>t.id==='month-repeat').showInMonthlyCalendar"),true);
+const monthBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(monthBackup)+');validate(state);save();render()');
+assert.equal(run('JSON.stringify(state)'),monthBackup);
+assert.equal(JSON.parse(w.localStorage.getItem('waqti-v1')).repeat[0].showInMonthlyCalendar,false);
+// All transport locations validate booleans without requiring migration of old tasks.
+for(const bad of ['false',0,null])for(const place of ['inbox','repeat','tasks','snapshot']){
+ const task={id:'bad-visible',name:'bad',prayers:[],days:[0],showInMonthlyCalendar:bad},json=JSON.stringify(task);
+ const replacement=place==='inbox'?'taskInbox:['+json+']':place==='repeat'?'repeat:['+json+']':'sunsetDays:{[date]:{...emptyDay(),'+(place==='tasks'?'tasks':'repeatSnapshot')+':['+json+']}}';
+ assert.throws(()=>run('validatePlanning({...state,'+replacement+'})'));
+}
+// Layout invariants in the shipped CSS; real pixel geometry is tested separately in Chromium.
+const sheet=w.document.createElement('style');sheet.textContent=fs.readFileSync(root+'style.css','utf8');w.document.head.append(sheet);
+assert.equal(w.getComputedStyle($('.month-tasks')).display,'flex');
+assert.equal(w.getComputedStyle($('.month-tasks')).flexWrap,'wrap');
+assert.equal(w.getComputedStyle($('.task-month')).display,'grid');
+assert.equal(w.getComputedStyle($('.task-month')).minWidth,'1120px');
+assert.equal(w.getComputedStyle($('.task-month-scroll')).overflowX,'auto');
+assert.equal(w.getComputedStyle($('.month-task')).whiteSpace,'normal');
+assert.equal(w.getComputedStyle($('.month-task')).overflowWrap,'anywhere');
+assert.equal(w.getComputedStyle($('.month-task')).maxWidth,'100%');
+click('.month-task');assert.equal(w.getComputedStyle($('#monthTaskMenu')).position,'fixed');
+run('closeMonthTaskMenu()');
+// Same validated snapshot is forwarded through the existing Firebase save hook.
+run("window.syncedMonthState=null;window.WaqtiSync={changed:()=>{window.syncedMonthState=JSON.parse(JSON.stringify(state));validate(window.syncedMonthState)}};save()");
+assert.equal(run('window.syncedMonthState.repeat[0].showInMonthlyCalendar'),false);run('delete window.WaqtiSync');
+console.log('PASS: expanded monthly calendar, visibility, filters, outcomes, families, project rollup, recurrence history and backup/sync payload');
+
+
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();
