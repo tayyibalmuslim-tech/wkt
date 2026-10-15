@@ -5,7 +5,7 @@ const w=dom.window;w.structuredClone=structuredClone;w.HTMLDialogElement.prototy
 const errors=[];w.addEventListener('error',e=>errors.push(e.error));
 w.eval(['vendor/adhan.js','calendar.js','categories.js','slots.js','task-engine.js','dashboard.js','projects.js','tafsir-default.js','app.js'].map(f=>fs.readFileSync(root+f,'utf8')).join('\n')+'\nwindow.test={run:code=>eval(code)};');
 const run=w.test.run,$=s=>w.document.querySelector(s),click=s=>$(s).click(),submit=s=>$(s).dispatchEvent(new w.Event('submit',{cancelable:true}));
-run("view='dashboard';render()");assert.equal(w.document.querySelectorAll('.planner-period').length,5);
+run("state.taskInbox=[];state.projects=[];view='dashboard';render()");assert.equal(w.document.querySelectorAll('.planner-period').length,5);
 click('#quickTaskButton');$('#quickTaskForm').elements.taskName.value='مهمة سريعة';submit('#quickTaskForm');assert.equal(run('state.taskInbox.length'),1);
 click('[data-planner-tab="inbox"]');
 assert.equal($('#plannerResults [data-outcome="done"]').disabled,false);
@@ -370,5 +370,40 @@ orderInput('order-b').value='4';orderInput('order-b').dispatchEvent(new w.Keyboa
 orderInput('order-new').value='1';orderInput('order-new').dispatchEvent(new w.Event('change'));assert.equal(orderedIds(),'order-new,order-b,order-c,order-a');
 assert.equal(orderInput('order-a').value,'4');
 console.log('PASS: project task order, family grouping, independent projects, persistence and validation');
+
+// Unscheduled and missed task lists separate projects from independent tasks.
+run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'group-p',name:'المشروع الأول'},{id:'group-q',name:'المشروع الثاني'}];state.taskInbox=[{id:'gp',name:'أصل المشروع الأول',priority:3,projectId:'group-p'},{id:'gc',name:'فرع موروث',priority:3,parentId:'gp',parentDate:''},{id:'gq',name:'مهمة المشروع الثاني',priority:3,projectId:'group-q'},{id:'free',name:'مهمة مستقلة',priority:3}];plannerQuery='';plannerPriority=plannerStatus='all';view='dashboard';plannerTab='inbox';render()");
+const projectSection=()=>$('#plannerResults [data-planner-section="projects"]'),unassignedSection=()=>$('#plannerResults [data-planner-section="unassigned"]');
+assert.equal(w.document.querySelectorAll('[data-planner-project]').length,2);
+assert.ok(projectSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
+assert.ok(unassignedSection().querySelector('[data-task-id="free"]'));
+assert.equal(unassignedSection().querySelector('[data-task-id="gc"]'),null);
+assert.equal(projectSection().querySelector('[data-task-id="gq"]'),null);
+const groupData=run('JSON.stringify(state.taskInbox)');
+click('[data-planner-project="group-q"]');
+assert.equal(run('JSON.stringify(state.taskInbox)'),groupData);
+assert.ok(projectSection().querySelector('[data-task-id="gq"]'));
+assert.equal(projectSection().querySelector('[data-task-id="gp"]'),null);
+click('[data-planner-section="projects"] [data-outcome="done"]');
+assert.equal($('[data-planner-project="group-q"]').getAttribute('aria-pressed'),'true');
+assert.equal(run("outcome(state.taskInbox.find(t=>t.id==='gq'))"),'done');
+assert.equal(run("outcome(state.taskInbox.find(t=>t.id==='free'))"),'pending');
+$('#plannerSearch').value='فرع موروث';$('#plannerSearch').dispatchEvent(new w.Event('input'));
+assert.equal($('[data-planner-project="group-p"]').getAttribute('aria-pressed'),'true');
+assert.ok(projectSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
+assert.equal(unassignedSection().querySelector('[data-task-id]'),null);
+$('#plannerSearch').value='لا يوجد بهذا الاسم';$('#plannerSearch').dispatchEvent(new w.Event('input'));
+assert.equal(w.document.querySelectorAll('[data-planner-project]').length,0);
+assert.ok(projectSection().querySelector('.empty-note'));assert.ok(unassignedSection().querySelector('.empty-note'));
+run("plannerQuery='';const old=taskDay(addDate(activeDay(),-1));old.tasks=[{id:'past-p',name:'فائتة مشروع',priority:3,prayer:0,projectId:'group-p'},{id:'past-free',name:'فائتة مستقلة',priority:3,prayer:0}];plannerTab='missed';render()");
+assert.ok(projectSection().querySelector('[data-task-id="past-p"]'));
+assert.ok(unassignedSection().querySelector('[data-task-id="past-free"]'));
+click('[data-planner-section="projects"] [data-outcome="done"]');
+assert.equal(projectSection().querySelector('[data-task-id="past-p"]'),null);
+assert.ok(unassignedSection().querySelector('[data-task-id="past-free"]'));
+run("plannerTab='inbox';render();state.projects=state.projects.filter(p=>p.id!=='group-p');render()");
+assert.ok(unassignedSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
+assert.equal($('[data-planner-project="group-q"]').getAttribute('aria-pressed'),'true');
+console.log('PASS: project tabs and independent sections in inbox/missed, inherited families, filters, outcomes and missing projects');
 
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();

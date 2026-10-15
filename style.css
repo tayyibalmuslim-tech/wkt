@@ -105,3 +105,7 @@ dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;mar
 .daily-task-title .task-inline-description{margin-inline-start:3px}
 .month-task .task-inline-description,.week-task .task-inline-description{display:inline;font-size:10px;opacity:.85}
 .project-import-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;white-space:nowrap}
+
+.planner-task-section + .planner-task-section{border-top:1px solid var(--line);margin-top:24px;padding-top:16px}
+.planner-task-section > h2{font-size:18px;margin:14px 0}
+.planner-task-section .planner-tabs{flex-wrap:wrap}
