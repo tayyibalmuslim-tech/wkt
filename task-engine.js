@@ -143,8 +143,8 @@ function parentName(t){if(!t.parentId)return '';if(t.parentName)return t.parentN
 function periodSlots(key,p){const previous=date;try{date=key;return range(p)}finally{date=previous}}
 function capacity(key,p,ignoreId=''){
  const d=state.sunsetDays[key]||emptyDay(),slots=periodSlots(key,p);
- const occupied=slots.filter(n=>(d.planned?.[n%96]||d.plannedNotes?.[n%96])&&d.taskSlotOwners?.[n%96]!==ignoreId).length;
- const actual=slots.filter(n=>d.slots?.[n%96]||d.actualNotes?.[n%96]).length;
+ const occupied=slots.filter(n=>(d.planned?.[n%144]||d.plannedNotes?.[n%144])&&d.taskSlotOwners?.[n%144]!==ignoreId).length;
+ const actual=slots.filter(n=>d.slots?.[n%144]||d.actualNotes?.[n%144]).length;
  const estimates=allTasksOn(key).filter(t=>taskInPeriod(t,p)&&t.id!==ignoreId).reduce((n,t)=>n+(t.expectedSlots||0),0);
  return {total:slots.length,occupied,free:slots.length-occupied,actual,unrecorded:slots.length-actual,estimates};
 }
@@ -166,9 +166,9 @@ function scheduleTask(t,start){
  if(!Number.isInteger(count)||count<1)throw Error('حدد عدد الخانات المتوقع أولًا.');
  const index=slots.indexOf(start);if(index<0||index+count>slots.length)throw Error('المدة تتجاوز نهاية فترة الصلاة.');
  const d=taskDay(t.date),selected=slots.slice(index,index+count);
- if(selected.some(n=>(d.planned?.[n%96]||d.plannedNotes?.[n%96])&&d.taskSlotOwners?.[n%96]!==t.id))throw Error('بعض الخانات مشغولة بالفعل؛ اختر بداية أخرى أو أفرغها من صفحة يومي.');
+ if(selected.some(n=>(d.planned?.[n%144]||d.plannedNotes?.[n%144])&&d.taskSlotOwners?.[n%144]!==t.id))throw Error('بعض الخانات مشغولة بالفعل؛ اختر بداية أخرى أو أفرغها من صفحة يومي.');
  for(const field of ['planned','plannedNotes','taskSlotOwners','taskSlotValues','taskSlotNotes'])d[field]??={};
- for(const n of selected){const slot=n%96;d.planned[slot]=t.actionId;d.plannedNotes[slot]='مهمة: '+t.name;d.taskSlotOwners[slot]=t.id;d.taskSlotValues[slot]=t.actionId;d.taskSlotNotes[slot]=d.plannedNotes[slot];}
+ for(const n of selected){const slot=n%144;d.planned[slot]=t.actionId;d.plannedNotes[slot]='مهمة: '+t.name;d.taskSlotOwners[slot]=t.id;d.taskSlotValues[slot]=t.actionId;d.taskSlotNotes[slot]=d.plannedNotes[slot];}
 }
 function savePlannedTask(original,next,progress=null){
  if(next.completionPercent!==undefined&&(!Number.isFinite(next.completionPercent)||next.completionPercent<0||next.completionPercent>100))throw Error('نسبة الإنجاز يجب أن تكون بين ٠ و١٠٠.');
@@ -221,7 +221,7 @@ function taskFields(t={},includeDate=true){return `
  <label class="monthly-visibility"><input name="showInMonthlyCalendar" type="checkbox" ${t.showInMonthlyCalendar!==false?'checked':''}> إظهار في التقويم الشهري</label>
  ${includeDate?completionField(t):''}
  <label class="field">الأولوية (1 الأعلى، 5 الأدنى)<select name="priority">${Object.entries(priorityNames).map(([v,n])=>`<option value="${v}" ${String(taskPriority(t))===v?'selected':''}>${n}</option>`).join('')}</select></label>
- <label class="field">الخانات المتوقعة (الخانة ١٥ دقيقة)<input name="expectedSlots" type="number" min="0" max="96" step="1" value="${t.expectedSlots||0}" required></label>
+ <label class="field">الخانات المتوقعة (الخانة ١٠ دقائق)<input name="expectedSlots" type="number" min="0" max="144" step="1" value="${t.expectedSlots||0}" required></label>
  <div class="field task-action-field"><input type="hidden" name="actionId" value="${esc(t.actionId||'')}"><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span class="task-action-caption">الفعل المرتبط</span><span class="task-action-selected" data-task-action-label>بدون ربط — اختر فعلًا</span><span class="task-action-arrow" aria-hidden="true">▾</span></button></div>
  ${includeDate?`<label class="field">اليوم (اتركه فارغًا لصندوق الوارد)<input name="taskDate" type="date" value="${t.date||''}"></label>${periodPicker(t)}`:''}`}
 function attachTaskActionPicker(form){
@@ -276,7 +276,7 @@ function openPlannerEditor(t=null,parent=null,projectId=''){
  if(t){$('#editorAddChild').onclick=()=>{dialog.close();openPlannerEditor(null,t)};$('#editorDeleteTask').onclick=()=>{if(deletePlannedTask(t)){dialog.close();if(back)openPlannerEditor(back)}};}
  form.onsubmit=e=>{e.preventDefault();const name=f.taskName.value.trim();if(!name)return;try{
   if(state!==editorState)throw Error('تغيرت البيانات أو الحساب. أغلق النافذة وافتح المهمة مجددًا.');
-  const count=+f.expectedSlots.value;if(!Number.isInteger(count)||count<0||count>96)throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و٩٦.');
+  const count=+f.expectedSlots.value;if(!Number.isInteger(count)||count<0||count>144)throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و١٤٤.');
   const selectedProjects=selectedProjectIds(form,draft);
   const next={...draft,name,description:f.taskDescription.value.trim(),showInMonthlyCalendar:f.showInMonthlyCalendar.checked,projectIds:selectedProjects,projectId:selectedProjects[0]||'',priority:+f.priority.value,expectedSlots:count,actionId:f.actionId.value,date:f.taskDate.value,prayers:selectedTaskPeriods(form),prayer:selectedTaskPeriods(form)[0]??null,startSlot:f.taskDate.value&&f.startSlot.value!==''?+f.startSlot.value:null},progress=f.completedSlots?+f.completedSlots.value:null;
   if(progress!==null&&(!Number.isInteger(progress)||progress<0||progress>9999))throw Error('الخانات المنجزة يجب أن تكون بين ٠ و٩٩٩٩.');
@@ -296,7 +296,7 @@ function renderRepeat(edit=null){
  const submit=form.onsubmit;
  form.onsubmit=e=>{
   const f=form.elements,count=+f.expectedSlots.value;
-  if(!Number.isInteger(count)||count<0||count>96){e.preventDefault();toast('الخانات المتوقعة بين ٠ و٩٦');return}
+  if(!Number.isInteger(count)||count<0||count>144){e.preventDefault();toast('الخانات المتوقعة بين ٠ و١٤٤');return}
   if(!f.name.value.trim()||!form.querySelector('[name=days]:checked')){submit(e);return}
   initializeTaskHistory();
   const periods=selectedTaskPeriods(form);
@@ -325,9 +325,9 @@ function validatePlanning(s){
   if(t.completionPercent!==undefined&&(!Number.isFinite(t.completionPercent)||t.completionPercent<0||t.completionPercent>100))throw Error('نسبة إنجاز غير صالحة');
   if(t.priority!==undefined&&!([1,2,3,4,5].includes(t.priority)||['high','medium','low'].includes(t.priority)))throw Error('أولوية غير صالحة');
   if(t.inboxOutcome!==undefined&&!['done','failed'].includes(t.inboxOutcome))throw Error('حالة مهمة غير موزعة غير صالحة');
-  if(t.expectedSlots!==undefined&&(!Number.isInteger(t.expectedSlots)||t.expectedSlots<0||t.expectedSlots>96))throw Error('عدد خانات غير صالح');
+  if(t.expectedSlots!==undefined&&(!Number.isInteger(t.expectedSlots)||t.expectedSlots<0||t.expectedSlots>144))throw Error('عدد خانات غير صالح');
   if(t.date&&!validDate(t.date)||t.startDate&&!validDate(t.startDate)||t.parentDate&&!validDate(t.parentDate))throw Error('تاريخ مهمة غير صالح');
-  if(t.startSlot!=null&&(!Number.isInteger(t.startSlot)||t.startSlot<0||t.startSlot>192))throw Error('وقت غير صالح');
+  if(t.startSlot!=null&&(!Number.isInteger(t.startSlot)||t.startSlot<0||t.startSlot>288))throw Error('وقت غير صالح');
   for(const key of ['actionId','parentId','parentName','projectId'])if(t[key]!==undefined&&typeof t[key]!=='string')throw Error('بيانات مهمة غير صالحة');
   if(t.projectIds!==undefined&&(!Array.isArray(t.projectIds)||t.projectIds.length>100||t.projectIds.some(id=>typeof id!=='string'||!id)||new Set(t.projectIds).size!==t.projectIds.length))throw Error('روابط المشاريع غير صالحة');
  };
@@ -338,7 +338,7 @@ function validatePlanning(s){
   if(d?.repeatSnapshot!==undefined){if(!Array.isArray(d.repeatSnapshot))throw Error('سجل غير صالح');for(const t of d.repeatSnapshot){checkTask(t);if(!validTaskPeriods(t))throw Error('فترة غير صالحة')}}
   if(d?.actualTasks!==undefined){
    if(!d.actualTasks||typeof d.actualTasks!=='object'||Array.isArray(d.actualTasks))throw Error('سجل مهام الخانات غير صالح');
-   for(const [slot,t] of Object.entries(d.actualTasks))if(t?.parentName!==undefined&&typeof t.parentName!=='string'||!/^(?:[0-9]|[1-8][0-9]|9[0-5])$/.test(slot)||!t||typeof t.id!=='string'||typeof t.name!=='string'||typeof t.actionId!=='string'||d.slots?.[slot]!==t.actionId)throw Error('مهمة خانة غير صالحة');
+   for(const [slot,t] of Object.entries(d.actualTasks))if(t?.parentName!==undefined&&typeof t.parentName!=='string'||(!/^(0|[1-9]\d*)$/.test(slot)||+slot>=(s.slotMinutes===10?144:96))||!t||typeof t.id!=='string'||typeof t.name!=='string'||typeof t.actionId!=='string'||d.slots?.[slot]!==t.actionId)throw Error('مهمة خانة غير صالحة');
   }
   if(d?.taskProgress&&Object.values(d.taskProgress).some(n=>!Number.isInteger(n)||n<0||n>9999))throw Error('تقدم غير صالح');
  }

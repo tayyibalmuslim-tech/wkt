@@ -12,7 +12,7 @@ function taskCard(t,path=new Set()){
  <p class="task-meta">${t.date?`${t.date} · ${taskPeriodLabel(t)} · `:'تحتاج توزيعًا · '}${t.recurrent?'↻ متكررة · ':''}${{pending:'لم تُسجل نتيجتها',done:'فعلتها',failed:'لم أفعلها'}[status]}${action?' · الفعل: '+esc(action.name):t.actionId?' · الفعل المرتبط محذوف':''}</p>
  ${projectName(t)?`<p class="task-meta">المشروع: ${esc(projectName(t))}</p>`:''}
  ${t.parentId?`<p class="task-parent">↳ ${esc(parentName(t))}</p>`:''}
- <p class="task-completion">الإنجاز: <strong>${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}</p><div class="task-effort">${t.date?`<label>الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>`:'<span>التقدير</span>'}<strong> / ${expected} خانة مستهدفة</strong><span class="hint">${expected*15} دقيقة مخططة${count>expected?' · تجاوزت المستهدف':''}</span></div>
+ <p class="task-completion">الإنجاز: <strong>${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}</p><div class="task-effort">${t.date?`<label>الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>`:'<span>التقدير</span>'}<strong> / ${expected} خانة مستهدفة</strong><span class="hint">${expected*SlotTools.minutes} دقيقة مخططة${count>expected?' · تجاوزت المستهدف':''}</span></div>
 
  <div class="task-controls"><button data-outcome="done" class="secondary ${status==='done'?'selected-outcome':''}" aria-pressed="${status==='done'}">✓ فعلتها</button><button data-outcome="failed" class="secondary ${status==='failed'?'selected-outcome':''}" aria-pressed="${status==='failed'}">✕ لم أفعلها</button><button data-task-edit class="secondary">${t.date?'تعديل / توزيع':'توزيع المهمة'}</button><button data-task-child class="secondary">＋ فرعية</button><button data-task-delete class="danger">حذف</button></div> ${children.length?`<details class="task-children"><summary>${children.length} مهام فرعية · ${doneChildren} مكتملة</summary>${children.map(c=>taskCard(c,path)).join('')}</details>`:''} </article>`;
 }
@@ -21,7 +21,7 @@ function compactTaskCard(t){
  const action=state.actions.find(a=>a.id===t.actionId),children=childTasks(t);
  const info=[`<span class="priority p${taskPriority(t)}">${taskPriority(t)}</span>`];
  info.push(`<span>${taskPeriodLabel(t)}</span><span class="task-completion">${percentLabel(taskCompletion(t))}${taskProgressBar(t)}</span>`);
- if(expected>0)info.push(`<label class="daily-task-progress" title="الخانات المنجزة من ${expected} خانة مستهدفة · ${expected*15} دقيقة مخططة"><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span dir="ltr">/ ${expected}</span><span>خانة</span></label>`);
+ if(expected>0)info.push(`<label class="daily-task-progress" title="الخانات المنجزة من ${expected} خانة مستهدفة · ${expected*SlotTools.minutes} دقيقة مخططة"><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span dir="ltr">/ ${expected}</span><span>خانة</span></label>`);
  if(projectName(t))info.push(`<span>▣ ${esc(projectName(t))}</span>`);
  if(action)info.push(`<span>${esc(action.name)}</span>`);
  if(t.recurrent)info.push('<span>↻ متكررة</span>');

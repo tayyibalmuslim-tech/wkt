@@ -31,14 +31,16 @@ function gregorianLabel(){return calendarFormatter('ar-EG',{timeZone:state.locat
 function dayRangeLabel(){return `من مغرب ${addDate(date,-1)} (${displayTime(prayerTimes()[3])}) إلى مغرب ${date} (${displayTime(clockAt(solar(date).maghrib))})`}
 function emptyDay(){return {slots:{},checks:{},tasks:[],done:{}}}
 function setupCalendar(){state.location??={...cairoLocation};state.method??='Egyptian';state.offsets??=[0,0,0,0,0];state.hijriOffset??=0;
+ const migrated=SlotTools.migrate(state);
  if(!state.sunsetDays){state.sunsetDays={};let target=k=>state.sunsetDays[k]??=emptyDay();
  for(let [oldDate,d] of Object.entries(state.days||{})){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(oldDate))continue;
   for(let [key,value] of Object.entries(d.checks||{})){let p=+key.split('-')[0];target(p===3||p===4?addDate(oldDate,1):oldDate).checks[key]=value}
   for(let t of d.tasks||[]){let dest=target(t.prayer===3||t.prayer===4?addDate(oldDate,1):oldDate);dest.tasks.push(t);if(d.done?.[t.id])dest.done[t.id]=true}
   for(let t of state.repeat||[]){if(d.done?.[t.id])target(t.prayer===3||t.prayer===4?addDate(oldDate,1):oldDate).done[t.id]=true}
-  for(let [key,value] of Object.entries(d.slots||{})){let n=+key,civil=addDate(oldDate,Math.floor(n/96)),wall=((n%96)+96)%96,dest=wall*15>=minute(clockAt(solar(civil).maghrib))?addDate(civil,1):civil;target(dest).slots[wall]=value}
+  for(let [key,value] of Object.entries(d.slots||{})){let n=+key,civil=addDate(oldDate,Math.floor(n/144)),wall=((n%144)+144)%144,dest=wall*SlotTools.minutes>=minute(clockAt(solar(civil).maghrib))?addDate(civil,1):civil;target(dest).slots[wall]=value}
  }save();}
+ if(migrated)save();
 }
 function goDay(d,live=false){date=d;plannerMonth=d.slice(0,7);plannerWeek=addDate(d,-new Date(d+'T12:00:00').getDay());followToday=live;if(live)prayer=currentPrayer();render()}
 function tickCalendar(){let nowDay=activeDay(),civil=zonedDate();if(nowDay!==lastActiveDay){let wasLive=followToday;lastActiveDay=nowDay;if(wasLive){date=nowDay;prayer=3;$('#prayerDialog').close();$('#picker').close();render();toast('بدأ يوم هجري جديد مع المغرب')}}if(civil!==lastCivilDay){lastCivilDay=civil;let label=$('#civilToday');if(label)label.textContent=gregorianLabel()} }

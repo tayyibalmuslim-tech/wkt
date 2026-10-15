@@ -72,7 +72,7 @@ function bulkUpdateProjectTasks(snapshot,projectId,patch){
  if(fields.some(key=>!allowed.includes(key)))throw Error('حقل غير مدعوم.');
  if('priority' in patch&&(!Number.isInteger(patch.priority)||patch.priority<1||patch.priority>5))throw Error('الأهمية يجب أن تكون من 1 إلى 5.');
  if('showInMonthlyCalendar' in patch&&typeof patch.showInMonthlyCalendar!=='boolean')throw Error('اختر إظهار المهام في التقويم أو إخفاءها.');
- if('expectedSlots' in patch&&(!Number.isInteger(patch.expectedSlots)||patch.expectedSlots<0||patch.expectedSlots>96))throw Error('الخانات المتوقعة يجب أن تكون بين 0 و96.');
+ if('expectedSlots' in patch&&(!Number.isInteger(patch.expectedSlots)||patch.expectedSlots<0||patch.expectedSlots>144))throw Error('الخانات المتوقعة يجب أن تكون بين 0 و144.');
  if('actionId' in patch&&(typeof patch.actionId!=='string'||patch.actionId&&!snapshot.actions.some(a=>a.id===patch.actionId)))throw Error('اختر فعلًا موجودًا أو بدون ربط.');
  const next=structuredClone(snapshot),records=projectTaskRecords(next,projectId);
  if(!records.length)throw Error('لا توجد مهام في هذا المشروع.');
@@ -99,7 +99,7 @@ function openProjectBulkEditor(project){
  dialog.innerHTML=`<div class="dialog-head"><h2 id="projectBulkTitle">تعديل جميع مهام ${esc(project.name)}</h2><button type="button" data-close-bulk aria-label="إغلاق">×</button></div><p class="hint">اختر الحقول التي تريد تطبيقها. يشمل التعديل المهام الرئيسية والفرعية، الموزعة وغير الموزعة، والسلاسل المتكررة ونسخ الأيام المحفوظة.</p><form id="projectBulkForm">
  ${row('priority','الأهمية',`<label class="field">الأهمية (1 الأعلى، 5 الأدنى)<select name="priority">${Object.entries(priorityNames).map(([v,n])=>`<option value="${v}" ${v==='3'?'selected':''}>${n}</option>`).join('')}</select></label>`)}
  ${row('showInMonthlyCalendar','الظهور في التقويم',`<label class="field">التقويم الشهري<select name="showInMonthlyCalendar"><option value="true">إظهار جميع مهام المشروع</option><option value="false">إخفاء جميع مهام المشروع</option></select></label>`)}
- ${row('expectedSlots','الخانات المتوقعة','<label class="field">الخانات المتوقعة لكل مهمة<input name="expectedSlots" type="number" min="0" max="96" step="1" required value="0"></label>')}
+ ${row('expectedSlots','الخانات المتوقعة','<label class="field">الخانات المتوقعة لكل مهمة<input name="expectedSlots" type="number" min="0" max="144" step="1" required value="0"></label>')}
  ${row('actionId','الفعل المرتبط','<input type="hidden" name="actionId" value=""><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span data-task-action-label>بدون ربط — اختر فعلًا</span></button>')}
  <p class="hint">عند تغيير الخانات أو الفعل تُحدّث الحجوزات المخططة. اختيار صفر خانات أو «بدون ربط» يلغي الحجز. إذا تعارضت الحجوزات فلن يُطبق أي تعديل.</p><p id="projectBulkError" role="alert"></p><button type="submit" class="primary">تطبيق على جميع مهام المشروع</button></form>`;
  dialog.querySelector('[data-close-bulk]').onclick=()=>dialog.close();
@@ -219,7 +219,7 @@ function importProjectPackage(data){
   if(!t||typeof t.id!=='string'||!t.id||t.id.length>120||ids.has(t.id)||typeof t.name!=='string'||!t.name.trim()||t.name.length>150||t.description!==undefined&&(typeof t.description!=='string'||t.description.length>500))throw Error('يوجد اسم مهمة أو وصف أو معرف غير صالح في الملف.');
   if(t.parentId!==undefined&&(typeof t.parentId!=='string'||!ids.has(t.parentId)))throw Error('المهام الفرعية يجب أن تأتي بعد مهامها الرئيسية.');
   if(t.priority!==undefined&&(!Number.isInteger(t.priority)||t.priority<1||t.priority>5))throw Error('أولوية غير صالحة.');
-  if(t.expectedSlots!==undefined&&(!Number.isInteger(t.expectedSlots)||t.expectedSlots<0||t.expectedSlots>96))throw Error('عدد خانات غير صالح.');
+  if(t.expectedSlots!==undefined&&(!Number.isInteger(t.expectedSlots)||t.expectedSlots<0||t.expectedSlots>144))throw Error('عدد خانات غير صالح.');
   if(t.showInMonthlyCalendar!==undefined&&typeof t.showInMonthlyCalendar!=='boolean')throw Error('خيار التقويم غير صالح.');
   const newId=uid(),parent=t.parentId?ids.get(t.parentId):null;
   const item={id:newId,name:t.name.trim(),description:t.description||'',projectIds:[projectId],projectId,priority:t.priority??3,expectedSlots:t.expectedSlots??0,completedSlotCount:0,showInMonthlyCalendar:t.showInMonthlyCalendar!==false,prayers:[]};
