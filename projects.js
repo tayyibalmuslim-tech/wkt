@@ -8,6 +8,7 @@ function validateProjects(s){
  const ids=new Set();
  for(const p of s.projects){
   if(!p||typeof p.id!=='string'||!p.id||ids.has(p.id)||typeof p.name!=='string'||!p.name.trim()||p.name.length>100||p.description!==undefined&&(typeof p.description!=='string'||p.description.length>1000))throw Error('مشروع غير صالح');
+  if(p.taskOrder!==undefined&&(!Array.isArray(p.taskOrder)||p.taskOrder.some(key=>typeof key!=='string')||new Set(p.taskOrder).size!==p.taskOrder.length))throw Error('ترتيب مهام المشروع غير صالح');
   ids.add(p.id);
  }
 }
@@ -15,6 +16,33 @@ function projectTasks(id){
  const entries=taskEntries();
  for(const t of allTasksOn(date))if(!entries.some(x=>x.id===t.id&&x.date===t.date))entries.push(t);
  return sortedTasks(entries.filter(t=>effectiveProjectId(t)===id));
+}
+// Order belongs to the project; it never changes task priority, dates or parent links.
+function orderedProjectTasks(id){
+ const list=taskGroups(projectTasks(id)),order=state.projects?.find(p=>p.id===id)?.taskOrder||[],ranks=new Map(order.map((key,i)=>[key,i]));
+ return list.sort((a,b)=>(ranks.get(taskIdentity(a))??Infinity)-(ranks.get(taskIdentity(b))??Infinity));
+}
+function moveProjectTask(projectId,key,direction){
+ const project=state.projects?.find(p=>p.id===projectId);if(!project||![-1,1].includes(direction))return;
+ const keys=orderedProjectTasks(projectId).map(taskIdentity),index=keys.indexOf(key),next=index+direction;
+ if(index<0||next<0||next>=keys.length)return;
+ [keys[index],keys[next]]=[keys[next],keys[index]];
+ // Keep saved ranks for recurring occurrences outside the currently selected day.
+ const visible=new Set(keys);project.taskOrder=[...keys,...(project.taskOrder||[]).filter(k=>!visible.has(k))];
+ save();render();
+ const control=[...document.querySelectorAll('[data-project-order-key]')].find(b=>b.dataset.projectOrderKey===key&&+b.dataset.projectOrderMove===direction);
+ if(control&&!control.disabled)control.focus();
+ else [...document.querySelectorAll('[data-project-order-key]')].find(b=>b.dataset.projectOrderKey===key&&!b.disabled)?.focus();
+}
+function bindProjectTaskOrder(details,project,list){
+ const cards=[...details.children].filter(el=>el.matches('.planner-task,.task-family'));
+ cards.forEach((card,index)=>{
+  const t=list[index];if(!t)return;
+  const controls=document.createElement('span');controls.className='project-task-order';controls.setAttribute('role','group');controls.setAttribute('aria-label','ترتيب '+t.name);
+  controls.innerHTML=`<button type="button" class="secondary" data-project-order-move="-1" aria-label="تحريك ${esc(t.name)} لأعلى" title="تحريك لأعلى" ${index===0?'disabled':''}>↑</button><button type="button" class="secondary" data-project-order-move="1" aria-label="تحريك ${esc(t.name)} لأسفل" title="تحريك لأسفل" ${index===list.length-1?'disabled':''}>↓</button>`;
+  controls.querySelectorAll('button').forEach(b=>{b.dataset.projectOrderKey=taskIdentity(t);b.onclick=()=>moveProjectTask(project.id,b.dataset.projectOrderKey,+b.dataset.projectOrderMove)});
+  (card.querySelector('.planner-task-heading')||card.querySelector('h3')).append(controls);
+ });
 }
 function openProjectEditor(project=null){
  let dialog=$('#projectEditor');if(!dialog){dialog=document.createElement('dialog');dialog.id='projectEditor';document.body.append(dialog)}
@@ -62,8 +90,8 @@ function renderProjects(){
  app.querySelectorAll('[data-project]').forEach(b=>b.onclick=()=>{selectedProject=b.dataset.project;render()});
  const details=$('#projectDetails');
  if(!project){details.innerHTML='<p class="empty-note">اختر مشروعًا لعرض مهامه أو أنشئ مشروعًا جديدًا.</p>';return}
- const list=taskGroups(projectTasks(project.id)),done=list.filter(t=>taskCompletion(t)===100).length;
- details.innerHTML=`<div class="panel-title"><h2>${esc(project.name)}</h2><button class="secondary" id="editProject">تعديل المشروع</button></div>${project.description?`<p class="project-description">${esc(project.description)}</p>`:''}<p>${done} مكتملة · ${list.filter(t=>outcome(t)==='failed').length} لم تُفعل · ${list.filter(t=>outcome(t)==='pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong>${percentLabel(projectCompletion(project.id))}</strong></p><progress value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="danger" id="deleteProject">حذف المشروع</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p>${taskGroups(list).map(t=>taskCard(t)).join('')||'<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
+ const list=orderedProjectTasks(project.id),done=list.filter(t=>taskCompletion(t)===100).length;
+ details.innerHTML=`<div class="panel-title"><h2>${esc(project.name)}</h2><button class="secondary" id="editProject">تعديل المشروع</button></div>${project.description?`<p class="project-description">${esc(project.description)}</p>`:''}<p>${done} مكتملة · ${list.filter(t=>outcome(t)==='failed').length} لم تُفعل · ${list.filter(t=>outcome(t)==='pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong>${percentLabel(projectCompletion(project.id))}</strong></p><progress value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="danger" id="deleteProject">حذف المشروع</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). استخدم ↑ و↓ لترتيب المهام الرئيسية مع فروعها. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p>${list.map(t=>taskCard(t)).join('')||'<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
  $('#editProject').onclick=()=>openProjectEditor(project);$('#deleteProject').onclick=()=>deleteProject(project);
- $('#newProjectTask').onclick=()=>openPlannerEditor(null,null,project.id);$('#linkProjectTask').onclick=()=>openProjectTaskLink(project);bindTaskCards(details);
+ $('#newProjectTask').onclick=()=>openPlannerEditor(null,null,project.id);$('#linkProjectTask').onclick=()=>openProjectTaskLink(project);bindTaskCards(details);bindProjectTaskOrder(details,project,list);
 }
