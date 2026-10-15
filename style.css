@@ -48,3 +48,6 @@ dialog#picker{padding:16px}.slot-editor .dialog-head{gap:8px;min-height:30px;mar
 #projectDetails{min-width:0}
 #projectDetails>progress{width:100%;margin-bottom:16px}
 @media(max-width:800px){.project-layout{grid-template-columns:1fr}}
+
+.task-progress-bar{display:inline-block;width:100px;height:8px;vertical-align:middle;margin-inline-start:8px;accent-color:#4c7655}
+.daily-task .task-progress-bar{width:64px;height:6px;margin-inline-start:5px}

@@ -144,4 +144,29 @@ click('#deleteProject');assert.equal(run('state.projects.length'),0);assert.equa
 assert.equal(run("state.repeat.find(t=>t.name==='تكرار مشروع').projectId"),undefined);assert.equal(run("taskEntries().some(t=>t.projectId==="+JSON.stringify(projectId)+")"),false);
 run('delete state.projects;validate(state);render()');
 
+// Slot-derived completion and four equally weighted final subtasks.
+run("state.projects=[{id:'weighted',name:'مشروع النسب'}];state.taskInbox=[{id:'pa',name:'رئيسية أ',projectId:'weighted'},{id:'pb',name:'رئيسية ب',projectId:'weighted'},{id:'a1',name:'فرعية أ١',parentId:'pa',parentDate:'',projectId:'weighted',expectedSlots:4},{id:'a2',name:'فرعية أ٢',parentId:'pa',parentDate:'',projectId:'weighted',expectedSlots:4},{id:'b1',name:'فرعية ب١',parentId:'pb',parentDate:'',projectId:'weighted',expectedSlots:4},{id:'b2',name:'فرعية ب٢',parentId:'pb',parentDate:'',projectId:'weighted',expectedSlots:4}];view='projects';selectedProject='weighted';render()");
+assert.equal(run("projectCompletion('weighted')"),0);
+click('[data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),25);assert.equal(run("taskCompletion(findTask('pa',''))"),50);
+assert.equal($('#projectDetails>progress').value,25);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
+click('[data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),0);
+click('[data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.completedSlots.value='2';submit('#plannerForm');assert.equal(run("projectCompletion('weighted')"),12.5);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
+// Done overrides unfinished children without mutating them; undo restores computed progress.
+click('[data-task-id="pa"] [data-outcome="done"]');assert.equal(run("taskCompletion(findTask('pa',''))"),100);assert.equal(run("projectCompletion('weighted')"),50);assert.equal(run("completedSlots(findTask('a1',''))"),2);
+click('[data-task-id="pa"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),12.5);
+click('[data-task-id="a1"] [data-outcome="failed"]');assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
+// Moving out of and back into inbox preserves completed slots and percentage.
+click('[data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value=run('date');submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',date))"),2);assert.equal(run("projectCompletion('weighted')"),12.5);
+click('[data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value='';submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',''))"),2);
+// Overruns cap at 100; no estimate is zero until marked done.
+run("findTask('a1','').completedSlotCount=8;render()");assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
+run("findTask('a1','').expectedSlots=0;render()");assert.equal($('[data-task-id="a1"] .task-progress-bar').value,0);
+click('[data-task-id="a1"] [data-outcome="done"]');assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
+run("view='day';render()");assert.ok($('#allDayTaskCards .task-progress-bar'));assert.equal($('#allDayTaskCards .daily-task').querySelectorAll('button').length,3);
+// Descendants without explicit project links are counted, and cyclic input stays finite.
+run("delete findTask('a1','').projectId");assert.equal(run("projectCompletion('weighted')"),25);
+run("findTask('a1','').parentId='a2';findTask('a2','').parentId='a1'");assert.ok(Number.isFinite(run("projectCompletion('weighted')")));
+assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'bad',name:'bad',completedSlotCount:-1}]})"));
+const percentBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(percentBackup)+');validate(state);render()');assert.equal(run("findTask('a1','').completedSlotCount"),8);
+
 assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();
