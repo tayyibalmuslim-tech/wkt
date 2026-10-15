@@ -16,10 +16,10 @@ click('#plannerResults [data-outcome="failed"]');assert.equal(run("outcome(state
 run("plannerStatus='done';render()");assert.equal($('#plannerResults [data-task-id]'),null);
 run("plannerStatus='failed';render()");assert.ok($('#plannerResults [data-task-id]'));
 run("plannerStatus='all';render()");
-click('[data-task-edit]');let f=$('#plannerForm').elements;f.taskDate.value=run('date');$('#plannerForm').querySelectorAll('[name=taskPeriods]').forEach(b=>b.checked=b.value==='0');f.taskDate.dispatchEvent(new w.Event('change'));f.priority.value='1';f.expectedSlots.value='2';f.actionId.value=run('state.actions[0].id');f.startSlot.value=run('String(periodSlots(date,0)[0])');submit('#plannerForm');assert.equal(run('state.taskInbox.length'),0);assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');assert.equal(run('allTasksOn(date)[0].expectedSlots'),2);assert.equal(run('Object.keys(day().planned).length'),2);
-click('[data-planner-tab="day"]');assert.equal(w.document.querySelectorAll('#app [data-task-id]').length,1);let progress=$('[data-progress]');progress.value='1';progress.dispatchEvent(new w.Event('change'));assert.equal(run('completedSlots(allTasksOn(date)[0])'),1);click('[data-outcome="done"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'done');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'pending');
+click('[data-task-edit]');let f=$('#plannerForm').elements;f.taskDate.value=run('date');$('#plannerForm').querySelectorAll('[name=taskPeriods]').forEach(b=>b.checked=b.value==='0');f.taskDate.dispatchEvent(new w.Event('change',{bubbles:true}));f.priority.value='1';f.expectedSlots.value='2';f.actionId.value=run('state.actions[0].id');f.startSlot.value=run('String(periodSlots(date,0)[0])');submit('#plannerForm');assert.equal(run('state.taskInbox.length'),0);assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');assert.equal(run('allTasksOn(date)[0].expectedSlots'),2);assert.equal(run('Object.keys(day().planned).length'),2);
+click('[data-planner-tab="day"]');assert.equal(w.document.querySelectorAll('#app [data-task-id]').length,1);let progress=$('[data-progress]');progress.value='1';progress.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(run('completedSlots(allTasksOn(date)[0])'),1);click('[data-outcome="done"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'done');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'pending');
 click('[data-task-child]');f=$('#plannerForm').elements;f.taskName.value='فرعية غدًا';f.taskDate.value=run('addDate(date,1)');$('#plannerForm').querySelectorAll('[name=taskPeriods]').forEach(b=>b.checked=b.value==='4');f.expectedSlots.value='3';submit('#plannerForm');assert.equal(run("allTasksOn(addDate(date,1))[0].parentId"),run('allTasksOn(date)[0].id'));
-click('[data-planner-tab="future"]');assert.match($('#plannerResults').textContent,/فرعية غدًا/);assert.equal(w.document.querySelectorAll('#plannerResults > [data-task-id]').length,1);assert.ok($('#plannerResults .task-children [data-task-id]'));
+click('[data-planner-tab="future"]');assert.equal($('#plannerResults .task-children [data-task-id]'),null);click('#plannerResults [data-task-toggle]');assert.match($('#plannerResults').textContent,/فرعية غدًا/);assert.equal(w.document.querySelectorAll('#plannerResults > [data-task-id]').length,1);assert.ok($('#plannerResults .task-children [data-task-id]'));
 run("state.repeat.push({id:'r',name:'متكررة أصلية',prayer:0,days:[0,1,2,3,4,5,6],priority:'low',expectedSlots:1,startDate:date});state.taskHistoryThrough=addDate(date,-2);state.taskHistoryStart=addDate(date,-1);state.repeat[0].startDate=addDate(date,-1);initializeTaskHistory();render()");
 assert.equal(run("allTasksOn(addDate(date,-1)).find(t=>t.id==='r').name"),'متكررة أصلية');
 run("view='repeat';renderRepeat(state.repeat[0])");f=$('#repeatForm').elements;f.name.value='متكررة جديدة';f.priority.value='1';f.expectedSlots.value='4';submit('#repeatForm');assert.equal(run('state.repeat[0].expectedSlots'),4);assert.equal(run("allTasksOn(addDate(date,-1)).find(t=>t.id==='r').name"),'متكررة أصلية');
@@ -32,7 +32,7 @@ const snapshot=run('JSON.stringify(state)');assert.throws(()=>run("savePlannedTa
 // End of period must not spill into the next prayer.
 assert.throws(()=>run("savePlannedTask(null,{id:'overflow',name:'تجاوز',date,prayer:0,expectedSlots:96,actionId:state.actions[0].id,startSlot:periodSlots(date,0)[0]})"));assert.equal(run('JSON.stringify(state)'),snapshot);
 // Main view integrates cards, progress and capacity without altering slot controls.
-run("view='day';prayer=0;render()");assert.equal($('#dailyTaskCards').querySelectorAll('input,select,textarea').length,1);assert.equal($('#dailyTaskCards [data-progress]').value,'1');$('#dailyTaskCards [data-progress]').value='2';$('#dailyTaskCards [data-progress]').dispatchEvent(new w.Event('change'));assert.equal(run('completedSlots(allTasksOn(date)[0])'),2);assert.equal($('#dailyTaskCards .daily-task').querySelectorAll('button').length,3);click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.completedSlots.value,'2');$('#plannerForm').elements.completedSlots.value='3';submit('#plannerForm');assert.equal(run('completedSlots(allTasksOn(date)[0])'),3);assert.equal($('#dailyTaskCards [data-progress]').value,'3');assert.ok($('[data-slot]'));assert.match($('.capacity-note').textContent,/مشغولة/);
+run("view='day';prayer=0;render()");assert.equal($('#dailyTaskCards').querySelectorAll('input,select,textarea').length,1);assert.equal($('#dailyTaskCards [data-progress]').value,'1');$('#dailyTaskCards [data-progress]').value='2';$('#dailyTaskCards [data-progress]').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(run('completedSlots(allTasksOn(date)[0])'),2);assert.equal($('#dailyTaskCards .task-row-primary').querySelectorAll('button').length,3);click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.completedSlots.value,'2');$('#plannerForm').elements.completedSlots.value='3';submit('#plannerForm');assert.equal(run('completedSlots(allTasksOn(date)[0])'),3);assert.equal($('#dailyTaskCards [data-progress]').value,'3');assert.ok($('[data-slot]'));assert.match($('.capacity-note').textContent,/مشغولة/);
 // Delete removes task-owned planned slots; preserves later manual changes.
 run("day().planned[periodSlots(date,0)[0]%96]='manual-edit'");click('#dailyTaskCards [data-task-edit]');click('#editorDeleteTask');assert.equal($('#plannerEditor').open,false);assert.equal(run('Object.keys(day().planned).length'),1);assert.equal(run('Object.values(day().planned)[0]'),'manual-edit');
 run('validate(state)');
@@ -73,14 +73,14 @@ assert.equal(run('taskPeriods(findTask('+JSON.stringify(multiId)+',date)).length
 assert.equal($('#allDayTaskCards').querySelectorAll('[data-task-id="'+multiId+'"]').length,1);
 click('#dailyTaskCards [data-task-id="'+multiId+'"] [data-outcome="done"]');
 run('prayer=4;render()');assert.equal($('#dailyTaskCards [data-task-id="'+multiId+'"] [data-outcome="done"]').getAttribute('aria-pressed'),'true');
-let multiProgress=$('#dailyTaskCards [data-task-id="'+multiId+'"] [data-progress]');multiProgress.value='2';multiProgress.dispatchEvent(new w.Event('change'));
+let multiProgress=$('#dailyTaskCards [data-task-id="'+multiId+'"] [data-progress]');multiProgress.value='2';multiProgress.dispatchEvent(new w.Event('change',{bubbles:true}));
 assert.equal($('#allDayTaskCards [data-task-id="'+multiId+'"] [data-progress]').value,'2');
 click('#allDayTaskCards [data-task-id="'+multiId+'"] [data-task-edit]');
 assert.equal($('#plannerForm').querySelectorAll('[name=taskPeriods]:checked').length,2);
 click('#plannerForm [data-no-period]');assert.equal($('#plannerForm').elements.startSlot.disabled,true);submit('#plannerForm');
 assert.equal($('#dailyTaskCards [data-task-id="'+multiId+'"]'),null);assert.ok($('#allDayTaskCards [data-task-id="'+multiId+'"]'));
 run("view='dashboard';plannerTab='day';render()");assert.match($('#plannerResults').lastElementChild.textContent,/بدون فترة محددة/);
-run("plannerTab='week';render()");assert.ok($('[data-week-task="'+multiId+'"]'));
+run("plannerTab='week';render()");assert.ok($('.week-period [data-task-id="'+multiId+'"]'));
 run('validate(state)');
 assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'invalid-periods',name:'bad',prayers:[0,0]}]})"));
 assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'invalid-periods',name:'bad',prayers:[5]}]})"));
@@ -167,6 +167,7 @@ run('delete state.projects;validate(state);render()');
 // Slot-derived completion and four equally weighted final subtasks.
 run("state.projects=[{id:'weighted',name:'مشروع النسب'}];state.taskInbox=[{id:'pa',name:'رئيسية أ',projectId:'weighted'},{id:'pb',name:'رئيسية ب',projectId:'weighted'},{id:'a1',name:'فرعية أ١',parentId:'pa',parentDate:'',projectId:'weighted',expectedSlots:4},{id:'a2',name:'فرعية أ٢',parentId:'pa',parentDate:'',projectId:'weighted',expectedSlots:4},{id:'b1',name:'فرعية ب١',parentId:'pb',parentDate:'',projectId:'weighted',expectedSlots:4},{id:'b2',name:'فرعية ب٢',parentId:'pb',parentDate:'',projectId:'weighted',expectedSlots:4}];view='projects';selectedProject='weighted';render()");
 assert.equal(run("projectCompletion('weighted')"),0);
+click('#projectDetails [data-task-id="pa"] [data-task-toggle]');
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),25);assert.equal(run("taskCompletion(findTask('pa',''))"),50);
 assert.equal($('#projectDetails>progress').value,25);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),0);
@@ -180,9 +181,9 @@ click('#projectDetails [data-task-id="a1"] [data-task-edit]');click('#plannerEdi
 click('#projectDetails [data-task-id="a1"] [data-task-edit]');click('#plannerEditor [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value='';submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',''))"),2);
 // Overruns cap at 100; no estimate is zero until marked done.
 run("findTask('a1','').completedSlotCount=8;render()");assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
-run("findTask('a1','').expectedSlots=0;render()");assert.equal($('[data-task-id="a1"] .task-progress-bar').value,0);
+run("findTask('a1','').expectedSlots=0;render()");assert.equal($('#projectDetails [data-task-id="a1"] > .task-row-heading .task-progress-bar'),null);assert.equal(run("taskCompletion(findTask('a1',''))"),0);
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
-run("view='day';render()");assert.ok($('#allDayTaskCards .task-progress-bar'));assert.equal($('#allDayTaskCards .daily-task > .daily-task-controls').querySelectorAll('button').length,3);
+run("view='day';render()");assert.ok($('#allDayTaskCards .task-row'));assert.equal($('#allDayTaskCards .task-row-primary').querySelectorAll('button').length,3);
 // Descendants without explicit project links are counted, and cyclic input stays finite.
 run("delete findTask('a1','').projectId");assert.equal(run("projectCompletion('weighted')"),25);
 run("findTask('a1','').parentId='a2';findTask('a2','').parentId='a1'");assert.ok(Number.isFinite(run("projectCompletion('weighted')")));
@@ -192,7 +193,7 @@ const percentBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.st
 // Subtasks are grouped under their true parent across dates and projects.
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'family',name:'مشروع العائلة'},{id:'other',name:'مشروع آخر'}];state.taskInbox=[{id:'root-family',name:'المهمة الرئيسية',projectId:'family',prayers:[]}];taskDay(date).tasks.push({id:'child-family',name:'الفرعية في العصر',parentId:'root-family',parentDate:'',parentName:'المهمة الرئيسية',date,prayers:[2],prayer:2,expectedSlots:2,actionId:state.actions[0].id,projectId:'other'});view='projects';selectedProject='family';render()");
 assert.equal($('#projectDetails').querySelectorAll(':scope > [data-task-id]').length,1);
-assert.ok($('#projectDetails > [data-task-id="root-family"] .task-children [data-task-id="child-family"]'));
+click('#projectDetails > [data-task-id="root-family"] [data-task-toggle]');assert.ok($('#projectDetails > [data-task-id="root-family"] .task-children [data-task-id="child-family"]'));
 assert.equal(run("projectName(findTask('child-family',date))"),'مشروع العائلة');
 run("selectedProject='other';render()");assert.equal($('#projectDetails [data-task-id]'),null);
 run("view='day';prayer=2;render()");
@@ -205,13 +206,13 @@ const childSlot=run('range(2)[0]'),childSlotIndex=childSlot%96;
 click('.slot-actual[data-slot="'+childSlot+'"]');assert.match($('#slotTasks [data-task-choice="child-family"]').textContent,/المهمة الرئيسية/);click('[data-task-choice="child-family"]');
 assert.equal(run('day().actualTasks['+childSlotIndex+'].parentName'),'المهمة الرئيسية');
 assert.equal($('.slot-actual[data-slot="'+childSlot+'"] .slot-task-parent').textContent,'المهمة الرئيسية');assert.equal($('.slot-actual[data-slot="'+childSlot+'"] .slot-task-name').textContent,'فرعية معدلة');
-run("view='dashboard';plannerTab='week';plannerWeek=date;render()");assert.equal($('[data-week-task="child-family"]'),null);assert.match($('[data-week-task="root-family"]').textContent,/فرعية معدلة/);click('[data-week-task="root-family"]');assert.equal($('#plannerForm').elements.taskName.value,'المهمة الرئيسية');click('#closePlanner');
+run("view='dashboard';plannerTab='week';plannerWeek=date;render()");assert.equal($('.week-period > [data-task-id="child-family"]'),null);assert.match($('.week-period > [data-task-id="root-family"]').textContent,/فرعية معدلة/);click('.week-period > [data-task-id="root-family"] [data-task-edit]');assert.equal($('#plannerForm').elements.taskName.value,'المهمة الرئيسية');click('#closePlanner');
 // Moving the parent preserves exact occurrence identity and the child remains nested.
 run("const root=findTask('root-family','');savePlannedTask(root,{...root,date,prayers:[]},0);view='projects';selectedProject='family';render()");assert.equal(run("findTask('child-family',date).parentDate"),run('date'));assert.equal($('#projectDetails').querySelectorAll(':scope > [data-task-id]').length,1);
 assert.equal(run("childTasks({id:'root-family',date:''}).length"),0);
 const nestedBackup=run('JSON.stringify(state)');run('state=JSON.parse('+JSON.stringify(nestedBackup)+');validate(state);render()');assert.equal(run('day().actualTasks['+childSlotIndex+'].parentName'),'المهمة الرئيسية');
 // Legacy deleted parents stay grouped rather than turning their children into main tasks.
-run("day().tasks=day().tasks.filter(t=>t.id!=='root-family');render()");assert.ok($('#projectDetails > .task-family [data-task-id="child-family"]'));assert.equal($('#projectDetails > [data-task-id="child-family"]'),null);
+run("day().tasks=day().tasks.filter(t=>t.id!=='root-family');render()");if(!$('#projectDetails > .task-family [data-task-id="child-family"]'))click('#projectDetails > .task-family [data-task-toggle]');assert.ok($('#projectDetails > .task-family [data-task-id="child-family"]'));assert.equal($('#projectDetails > [data-task-id="child-family"]'),null);
 
 // Expanded monthly calendar: visibility, result state, filters and task families.
 run("state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[{id:'monthly-project',name:'مشروع الشهر'}];date=activeDay();plannerMonth=date.slice(0,7);view='dashboard';plannerTab='month';Object.assign(monthFilters,{project:'all',category:'all',status:'all',priority:'all',period:'all',query:''});taskDay(date).tasks=[{id:'legacy-month',name:'قديمة',prayers:[3,4],priority:1,expectedSlots:2},{id:'slots-only',name:'خانات كاملة',prayers:[],expectedSlots:2}];taskDay(date).taskProgress={'legacy-month':1,'slots-only':2};render()");
@@ -338,6 +339,7 @@ console.log('PASS: expanded monthly calendar, visibility, filters, outcomes, fam
 
 // Project ordering moves whole families, persists independently of task priority and progress.
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'order-p',name:'ترتيب المشروع'},{id:'order-other',name:'مشروع مستقل'}];state.taskInbox=[{id:'order-a',name:'الأولى',priority:1,projectId:'order-p'},{id:'order-b',name:'الثانية',priority:2,projectId:'order-p'},{id:'order-c',name:'الثالثة',priority:3,projectId:'order-p'},{id:'order-child',name:'فرع الأولى',parentId:'order-a',parentDate:'',inboxOutcome:'done'},{id:'order-x',name:'مهمة المشروع الآخر',projectId:'order-other'}];view='projects';selectedProject='order-p';render()");
+click('#projectDetails [data-task-id="order-a"] [data-task-toggle]');
 const orderedIds=()=>[...$('#projectDetails').children].filter(c=>c.matches('[data-task-id]')).map(c=>c.dataset.taskId).join();
 assert.equal(orderedIds(),'order-a,order-b,order-c');
 assert.equal($('#projectDetails [data-task-id="order-a"] [data-project-order-key]').value,'1');
@@ -345,7 +347,7 @@ assert.equal($('#projectDetails [data-task-id="order-c"] [data-project-order-key
 assert.equal($('#projectDetails [data-task-id="order-child"] [data-project-order-key]'),null);
 const beforeOrderingTasks=run('JSON.stringify(state.taskInbox)'),beforeOrderingProgress=run("projectCompletion('order-p')");
 const orderInput=(id)=>$('#projectDetails [data-task-id="'+id+'"] [data-project-order-key]');
-orderInput('order-b').value='1';orderInput('order-b').dispatchEvent(new w.Event('change'));
+orderInput('order-b').value='1';orderInput('order-b').dispatchEvent(new w.Event('change',{bubbles:true}));
 assert.equal(orderedIds(),'order-b,order-a,order-c');
 assert.ok($('#projectDetails > [data-task-id="order-a"] [data-task-id="order-child"]'));
 assert.equal(run('JSON.stringify(state.taskInbox)'),beforeOrderingTasks);
@@ -365,9 +367,9 @@ for(const taskOrder of [null,{},[3],['same','same']])assert.throws(()=>run('vali
 run("selectedProject='order-p';render();const first=orderedProjectTasks('order-p')[0];moveProjectTask('order-p',taskIdentity(first),0)");
 assert.equal(orderedIds(),'order-b,order-c,order-a,order-new');
 // Invalid positions restore the shown rank and never alter the saved order.
-for(const value of ['', '0','5','1.5']){orderInput('order-b').value=value;orderInput('order-b').dispatchEvent(new w.Event('change'));assert.equal(orderInput('order-b').value,'1');assert.equal(orderedIds(),'order-b,order-c,order-a,order-new')}
+for(const value of ['', '0','5','1.5']){orderInput('order-b').value=value;orderInput('order-b').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(orderInput('order-b').value,'1');assert.equal(orderedIds(),'order-b,order-c,order-a,order-new')}
 orderInput('order-b').value='4';orderInput('order-b').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',cancelable:true}));assert.equal(orderInput('order-b').value,'1');
-orderInput('order-new').value='1';orderInput('order-new').dispatchEvent(new w.Event('change'));assert.equal(orderedIds(),'order-new,order-b,order-c,order-a');
+orderInput('order-new').value='1';orderInput('order-new').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(orderedIds(),'order-new,order-b,order-c,order-a');
 assert.equal(orderInput('order-a').value,'4');
 console.log('PASS: project task order, family grouping, independent projects, persistence and validation');
 
@@ -375,7 +377,7 @@ console.log('PASS: project task order, family grouping, independent projects, pe
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'group-p',name:'المشروع الأول'},{id:'group-q',name:'المشروع الثاني'}];state.taskInbox=[{id:'gp',name:'أصل المشروع الأول',priority:3,projectId:'group-p'},{id:'gc',name:'فرع موروث',priority:3,parentId:'gp',parentDate:''},{id:'gq',name:'مهمة المشروع الثاني',priority:3,projectId:'group-q'},{id:'free',name:'مهمة مستقلة',priority:3}];plannerQuery='';plannerPriority=plannerStatus='all';view='dashboard';plannerTab='inbox';render()");
 const projectSection=()=>$('#plannerResults [data-planner-section="projects"]'),unassignedSection=()=>$('#plannerResults [data-planner-section="unassigned"]');
 assert.equal(w.document.querySelectorAll('[data-planner-project]').length,2);
-assert.ok(projectSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
+if(!projectSection().querySelector('[data-task-id="gc"]'))click('[data-planner-section="projects"] [data-task-id="gp"] [data-task-toggle]');assert.ok(projectSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
 assert.ok(unassignedSection().querySelector('[data-task-id="free"]'));
 assert.equal(unassignedSection().querySelector('[data-task-id="gc"]'),null);
 assert.equal(projectSection().querySelector('[data-task-id="gq"]'),null);
@@ -390,7 +392,7 @@ assert.equal(run("outcome(state.taskInbox.find(t=>t.id==='gq'))"),'done');
 assert.equal(run("outcome(state.taskInbox.find(t=>t.id==='free'))"),'pending');
 $('#plannerSearch').value='فرع موروث';$('#plannerSearch').dispatchEvent(new w.Event('input'));
 assert.equal($('[data-planner-project="group-p"]').getAttribute('aria-pressed'),'true');
-assert.ok(projectSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
+if(!projectSection().querySelector('[data-task-id="gc"]'))click('[data-planner-section="projects"] [data-task-id="gp"] [data-task-toggle]');assert.ok(projectSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
 assert.equal(unassignedSection().querySelector('[data-task-id]'),null);
 $('#plannerSearch').value='لا يوجد بهذا الاسم';$('#plannerSearch').dispatchEvent(new w.Event('input'));
 assert.equal(w.document.querySelectorAll('[data-planner-project]').length,0);
@@ -428,7 +430,7 @@ assert.equal(run("Object.keys(taskDay(activeDay()).taskSlotOwners).length"),6);
 assert.equal(run("Object.values(taskDay(activeDay()).planned).every(id=>id===state.actions[1].id)"),true);
 click('#bulkProjectTasks');assert.equal($('#projectBulkEditor').open,true);
 submit('#projectBulkForm');assert.match($('#projectBulkError').textContent,/اختر حقلًا/);
-let bulkCheck=$('#projectBulkForm [data-bulk-field="priority"]');bulkCheck.checked=true;bulkCheck.dispatchEvent(new w.Event('change'));
+let bulkCheck=$('#projectBulkForm [data-bulk-field="priority"]');bulkCheck.checked=true;bulkCheck.dispatchEvent(new w.Event('change',{bubbles:true}));
 assert.equal($('#projectBulkForm [data-bulk-value="priority"]').disabled,false);
 assert.equal($('#projectBulkForm [data-bulk-value="expectedSlots"]').disabled,true);
 $('#projectBulkForm').elements.priority.value='5';submit('#projectBulkForm');

@@ -1,8 +1,36 @@
+/* Design tokens: identity is warm brown; green/red describe outcomes only. */
 :root {
-  --green: #183e35;
-  --muted: #7e8880;
-  --bg: #f6f7f2;
-  --line: #e3e7df;
+  --color-bg: #f7f4ef;
+  --color-surface: #fffdf9;
+  --color-border: #e5dfd5;
+  --color-text: #302a25;
+  --color-secondary: #70665d;
+  --color-brand: #765033;
+  --color-brand-soft: #f0e7db;
+  --color-done: #216542;
+  --color-done-soft: #edf6ef;
+  --color-failed: #a33b36;
+  --color-failed-soft: #fdf0ee;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 8px #302a2508;
+  --shadow-md: 0 6px 24px #302a2514;
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-lg: 18px;
+  --font-xl: 26px;
+  --motion-fast: 120ms;
+  --muted: var(--color-secondary);
+  --bg: var(--color-bg);
+  --line: var(--color-border);
 }
 * {
   box-sizing: border-box;
@@ -10,8 +38,14 @@
 body {
   margin: 0;
   background: var(--bg);
-  color: #253c33;
-  font-family: Tahoma, Arial, sans-serif;
+  color: var(--color-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Tahoma,
+    Arial,
+    sans-serif;
   font-size: 14px;
 }
 button,
@@ -36,7 +70,7 @@ aside {
   border-left: 1px solid var(--line);
 }
 .brand {
-  color: var(--green);
+  color: var(--color-brand);
   font-size: 36px;
   text-decoration: none;
   display: block;
@@ -59,7 +93,7 @@ nav button {
   border-radius: 10px;
 }
 nav .active {
-  background: var(--green);
+  background: var(--color-brand);
   color: white;
 }
 .aside-foot {
@@ -84,7 +118,7 @@ header {
   padding-bottom: 30px;
 }
 .save {
-  color: #65806c;
+  color: var(--color-brand);
 }
 h1 {
   font-size: 30px;
@@ -122,7 +156,7 @@ select {
   border-radius: 8px;
   background: white;
   padding: 11px;
-  color: var(--green);
+  color: var(--color-brand);
   max-width: 100%;
 }
 input[type='color'] {
@@ -131,12 +165,12 @@ input[type='color'] {
   height: 42px;
 }
 input[type='checkbox'] {
-  accent-color: var(--green);
+  accent-color: var(--color-brand);
   width: 17px;
   height: 17px;
 }
 .hero {
-  background: var(--green);
+  background: var(--color-brand);
   color: white;
   border-radius: 16px;
   padding: 25px 30px;
@@ -185,9 +219,9 @@ input[type='checkbox'] {
   color: var(--muted);
 }
 .tab.selected {
-  border-color: var(--green);
-  background: #eaf0e5;
-  box-shadow: inset 0 -3px var(--green);
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  box-shadow: inset 0 -3px var(--color-brand);
 }
 .columns {
   display: grid;
@@ -226,7 +260,7 @@ input[type='checkbox'] {
 }
 .slot {
   border: 1px dashed #d9dfd2;
-  background: #fafbf8;
+  background: var(--color-surface);
   border-radius: 9px;
   min-height: 91px;
   padding: 12px 4px;
@@ -293,7 +327,7 @@ input[type='checkbox'] {
   min-width: 0;
 }
 .primary {
-  background: var(--green);
+  background: var(--color-brand);
   color: white;
   border-radius: 8px;
   padding: 11px 17px;
@@ -406,7 +440,7 @@ dialog::backdrop {
   position: fixed;
   bottom: 25px;
   left: 25px;
-  background: #183e35;
+  background: var(--color-brand);
   color: white;
   padding: 14px 22px;
   border-radius: 10px;
@@ -545,10 +579,10 @@ dialog::backdrop {
   background: #f0f3eb;
   font-size: 12px;
   font-weight: bold;
-  color: #526749;
+  color: var(--color-secondary);
 }
 .prayer-count.complete {
-  background: #183e35;
+  background: var(--color-brand);
   color: white;
 }
 .period-tasks .add {
@@ -562,7 +596,7 @@ dialog::backdrop {
 }
 #prayerProgress {
   display: inline-block;
-  background: #eaf0e5;
+  background: var(--color-brand-soft);
   padding: 4px 12px;
   border-radius: 20px;
   margin-right: 8px;
@@ -602,7 +636,7 @@ dialog::backdrop {
   margin: 5px;
 }
 .sync-message {
-  color: var(--green);
+  color: var(--color-brand);
   overflow-wrap: anywhere;
 }
 button:disabled {
@@ -636,7 +670,7 @@ button:disabled {
   min-height: 88px;
   width: 100%;
   padding: 12px 4px;
-  background: #fafbf8;
+  background: var(--color-surface);
 }
 .slot-planned {
   width: 100%;
@@ -649,7 +683,7 @@ button:disabled {
 }
 .slot-actual:focus-visible,
 .slot-planned:focus-visible {
-  outline: 3px solid #41664a;
+  outline: 3px solid var(--color-brand);
   outline-offset: -3px;
 }
 .task-controls {
@@ -797,7 +831,7 @@ dialog#picker {
 .slot-group-description {
   display: block;
   font-size: 11px;
-  color: #687363;
+  color: var(--color-secondary);
   line-height: 1.6;
   margin-bottom: 7px;
 }
@@ -819,7 +853,7 @@ dialog#picker {
   position: relative;
 }
 .slot-editor .slot-action-choice[aria-pressed='true'] {
-  outline: 3px solid #183e35;
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
   font-weight: 700;
 }
@@ -829,13 +863,13 @@ dialog#picker {
   font-size: 11px;
 }
 .slot-action-choice:focus-visible {
-  outline: 3px solid #183e35;
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
 }
 .slot-editor .slot-action-empty {
   justify-self: start;
   background: #f1f4ee;
-  color: #253c33;
+  color: var(--color-text);
   min-height: 36px;
   padding: 7px 14px;
 }
@@ -932,7 +966,7 @@ dialog#picker {
 }
 .dashboard-stat {
   text-align: right;
-  color: var(--green);
+  color: var(--color-brand);
 }
 .dashboard-stat strong {
   display: block;
@@ -940,15 +974,15 @@ dialog#picker {
   margin-top: 12px;
 }
 .dashboard-stat[aria-pressed='true'] {
-  border-color: var(--green);
-  background: #eaf0e5;
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 .task-progress {
   display: block;
   width: 100%;
   height: 9px;
   margin-top: 12px;
-  accent-color: #bcd3a5;
+  accent-color: var(--color-brand);
 }
 .dashboard-name {
   flex: 1;
@@ -974,7 +1008,7 @@ dialog#picker {
   border-bottom: 1px solid var(--line);
 }
 .dashboard-stat:focus-visible {
-  outline: 3px solid #65806c;
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
 }
 @media (max-width: 750px) {
@@ -998,9 +1032,9 @@ dialog#picker {
   margin-bottom: 20px;
 }
 .planner-tabs .chosen {
-  background: var(--green);
+  background: var(--color-brand);
   color: #fff;
-  border-color: var(--green);
+  border-color: var(--color-brand);
 }
 .planner-period {
   padding: 20px 0;
@@ -1008,9 +1042,9 @@ dialog#picker {
 }
 .capacity-note {
   padding: 12px 15px;
-  background: #edf3e9;
+  background: var(--color-brand-soft);
   border-radius: 8px;
-  color: #395741;
+  color: var(--color-brand);
   font-size: 12px;
   line-height: 1.9;
 }
@@ -1064,7 +1098,7 @@ dialog#picker {
   overflow-wrap: anywhere;
 }
 .task-parent {
-  color: #365d50;
+  color: var(--color-brand);
 }
 .task-effort {
   display: flex;
@@ -1081,7 +1115,7 @@ dialog#picker {
 .planner-task progress {
   width: 100%;
   height: 7px;
-  accent-color: var(--green);
+  accent-color: var(--color-brand);
   margin-bottom: 12px;
 }
 .planner-task .task-controls {
@@ -1123,7 +1157,7 @@ dialog#picker {
   position: fixed;
   bottom: 22px;
   left: 22px;
-  background: var(--green);
+  background: var(--color-brand);
   color: #fff;
   border: 2px solid #fff;
   border-radius: 30px;
@@ -1147,7 +1181,7 @@ dialog#picker {
 .month-day {
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fafbf8;
+  background: var(--color-surface);
   min-height: 112px;
   padding: 10px 5px;
   display: flex;
@@ -1163,12 +1197,12 @@ dialog#picker {
   font-size: 11px;
 }
 .month-day.is-today {
-  border: 2px solid var(--green);
-  background: #eaf0e5;
+  border: 2px solid var(--color-brand);
+  background: var(--color-brand-soft);
 }
 .month-day:focus-visible,
 .week-task:focus-visible {
-  outline: 3px solid #65806c;
+  outline: 3px solid var(--color-brand);
   outline-offset: 1px;
 }
 .task-week {
@@ -1179,7 +1213,7 @@ dialog#picker {
   padding-bottom: 14px;
 }
 .week-day {
-  background: #fafbf8;
+  background: var(--color-surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   overflow: hidden;
@@ -1188,7 +1222,7 @@ dialog#picker {
   display: block;
   width: 100%;
   padding: 14px;
-  background: #eaf0e5;
+  background: var(--color-brand-soft);
 }
 .week-heading small,
 .week-period > small,
@@ -1196,7 +1230,7 @@ dialog#picker {
   display: block;
   font-size: 10px;
   margin-top: 7px;
-  color: #687763;
+  color: var(--color-secondary);
 }
 .week-period {
   padding: 12px;
@@ -1243,7 +1277,7 @@ summary {
   cursor: pointer;
 }
 button:focus-visible {
-  outline: 2px solid #65806c;
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 @media (max-width: 650px) {
@@ -1316,7 +1350,7 @@ button:focus-visible {
   flex-wrap: wrap;
   gap: 4px 10px;
   margin-top: 3px;
-  color: #748071;
+  color: var(--color-secondary);
   font-size: 10px;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -1389,7 +1423,7 @@ button:focus-visible {
 }
 .task-action-caption {
   font-size: 12px;
-  color: #526749;
+  color: var(--color-secondary);
   white-space: nowrap;
 }
 .task-action-selected {
@@ -1400,7 +1434,7 @@ button:focus-visible {
 }
 .task-action-arrow {
   font-size: 18px;
-  color: #526749;
+  color: var(--color-secondary);
 }
 #taskActionPicker {
   width: 660px;
@@ -1430,7 +1464,7 @@ button:focus-visible {
   line-height: 1.4;
 }
 #taskActionPicker .slot-action-choice[aria-pressed='true'] {
-  outline: 3px solid #183e35;
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
   font-weight: 700;
 }
@@ -1465,9 +1499,9 @@ button:focus-visible {
 }
 .prayer-tasks-button {
   width: 100%;
-  background: #f1f5ee;
+  background: var(--color-bg);
   border-top: 1px solid var(--line);
-  color: var(--green);
+  color: var(--color-brand);
   padding: 9px 5px;
   font-size: 12px;
   font-weight: 700;
@@ -1475,20 +1509,20 @@ button:focus-visible {
 }
 .prayer-tasks-button:hover,
 .prayer-tasks-button:focus-visible {
-  background: #dfeadb;
+  background: var(--color-brand-soft);
 }
 .prayer-period:hover {
-  background: #f5f8f1;
+  background: var(--color-bg);
 }
 .prayer-tab.selected .prayer-period {
-  background: #eaf0e5;
+  background: var(--color-brand-soft);
 }
 .prayer-tab.selected .prayer-tasks-button {
-  background: #e0ebe0;
+  background: var(--color-brand-soft);
 }
 .prayer-period:focus-visible,
 .prayer-tasks-button:focus-visible {
-  outline: 3px solid #41664a;
+  outline: 3px solid var(--color-brand);
   outline-offset: -3px;
 }
 @media (max-width: 650px) {
@@ -1508,7 +1542,7 @@ button:focus-visible {
   gap: 3px;
   white-space: nowrap;
   font-size: 10px;
-  color: #526749;
+  color: var(--color-secondary);
 }
 .daily-task-progress input {
   width: 38px;
@@ -1519,7 +1553,7 @@ button:focus-visible {
   border-radius: 5px;
   font-size: 11px;
   text-align: center;
-  color: var(--green);
+  color: var(--color-brand);
   font-variant-numeric: tabular-nums;
   appearance: textfield;
   -moz-appearance: textfield;
@@ -1530,7 +1564,7 @@ button:focus-visible {
   margin: 0;
 }
 .daily-task-progress input:focus-visible {
-  outline: 2px solid var(--green);
+  outline: 2px solid var(--color-brand);
   outline-offset: 1px;
 }
 @media (max-width: 650px) {
@@ -1633,8 +1667,8 @@ button:focus-visible {
   margin-top: 6px;
 }
 .project-list .chosen {
-  border-color: var(--green, #426b50);
-  background: #e8f0e5;
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 .project-description {
   white-space: pre-wrap;
@@ -1666,7 +1700,7 @@ button:focus-visible {
   height: 8px;
   vertical-align: middle;
   margin-inline-start: 8px;
-  accent-color: #4c7655;
+  accent-color: var(--color-brand);
 }
 .daily-task .task-progress-bar {
   width: 64px;
@@ -1683,7 +1717,7 @@ button:focus-visible {
 }
 .task-children {
   margin-top: 12px;
-  border-inline-start: 3px solid #b3c7a9;
+  border-inline-start: 3px solid var(--color-border);
 }
 .task-children .planner-task {
   padding: 12px;
@@ -1759,7 +1793,7 @@ button:focus-visible {
   font-size: 11px;
 }
 .month-prayer-checks {
-  color: #596b5b;
+  color: var(--color-secondary);
   padding-inline: 4px;
 }
 .month-tasks {
@@ -1781,7 +1815,7 @@ button:focus-visible {
   border: 1px solid #cfd8ce;
   border-radius: 4px;
   background: #fff;
-  color: #405144;
+  color: var(--color-text);
   text-align: right;
   font-size: 10px;
   line-height: 1.45;
@@ -1813,7 +1847,7 @@ button:focus-visible {
   opacity: 0.85;
 }
 .month-task[aria-expanded='true'] {
-  outline: 2px solid var(--green);
+  outline: 2px solid var(--color-brand);
   outline-offset: 1px;
 }
 .month-filters {
@@ -1868,7 +1902,7 @@ button:focus-visible {
   color: #8d2923;
 }
 .month-task-menu [aria-pressed='true'] {
-  background: #eaf0e5;
+  background: var(--color-brand-soft);
   box-shadow: inset 0 0 0 1px currentColor;
 }
 @media (max-width: 650px) {
@@ -2003,4 +2037,513 @@ button:focus-visible {
 }
 #projectBulkError {
   color: #8d2923;
+}
+
+/* Shared compact task rows. A selected row reveals its controls in normal flow. */
+[hidden] {
+  display: none !important;
+}
+body {
+  color: var(--color-text);
+  font-size: var(--font-base);
+  font-variant-numeric: tabular-nums;
+}
+h1 {
+  font-size: var(--font-xl);
+  line-height: 1.5;
+}
+h2 {
+  font-size: var(--font-lg);
+  line-height: 1.6;
+}
+small,
+.hint {
+  font-size: var(--font-xs);
+}
+p {
+  color: var(--color-secondary);
+}
+.panel {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+button,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+button,
+a,
+summary {
+  touch-action: manipulation;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+.hero {
+  background: var(--color-brand-soft);
+  color: var(--color-text);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+.hero h2,
+.hero strong,
+.hero p,
+.hero .stat span,
+.hero .hint {
+  color: var(--color-text) !important;
+}
+.hero h2,
+.hero p {
+  margin: 0;
+}
+.hero .stat {
+  padding: var(--space-2) var(--space-4);
+}
+.hero .stat strong {
+  font-size: 24px;
+}
+.hero .stats {
+  gap: var(--space-3);
+}
+header {
+  padding-bottom: var(--space-4);
+}
+nav {
+  gap: var(--space-1);
+}
+nav button {
+  padding: var(--space-3);
+}
+.save {
+  color: var(--color-secondary);
+}
+.task-row.planner-task,
+.task-row.daily-task {
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+  transition: background-color var(--motion-fast);
+}
+.task-row-heading.planner-task-heading {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+}
+.task-row-select {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-1);
+  text-align: start;
+  border-radius: var(--radius-sm);
+}
+.task-row-select:hover,
+.task-row-toggle:hover {
+  background: var(--color-brand-soft);
+}
+.task-row-select:focus-visible {
+  outline-offset: -2px;
+}
+.ui-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  vertical-align: middle;
+}
+.task-row-toggle,
+.task-row-spacer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-secondary);
+}
+.task-row-toggle[aria-expanded='true'] .ui-icon {
+  transform: rotate(-90deg);
+}
+.task-row-status {
+  display: inline-flex;
+  color: var(--color-secondary);
+  flex-shrink: 0;
+}
+.task-row-copy {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.task-row-copy .daily-task-name {
+  flex: 0 1 auto;
+  min-width: 30px;
+  font-size: var(--font-base);
+  font-weight: 550;
+  color: var(--color-text);
+}
+.task-row-copy .task-inline-description {
+  flex: 0 2 auto;
+  min-width: 0;
+  max-width: none;
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.task-row-copy .daily-task-name,
+.task-row-copy .task-inline-description,
+.task-row-copy .row-parent {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-row-copy .row-parent {
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+.task-row-metrics {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-secondary);
+  font-size: var(--font-xs);
+}
+.task-row-metrics > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+.task-row-metrics .ui-icon {
+  width: 14px;
+  height: 14px;
+  flex-basis: 14px;
+}
+.task-row-metrics .row-completion .task-progress-bar {
+  width: 36px;
+  height: 3px;
+  margin: 0;
+  accent-color: var(--color-brand);
+}
+.task-row-count {
+  color: var(--color-secondary);
+  font-size: var(--font-xs);
+  background: var(--color-brand-soft);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.task-row.done > .task-row-heading .task-row-status {
+  color: var(--color-done);
+}
+.task-row.failed > .task-row-heading .task-row-status {
+  color: var(--color-failed);
+}
+.task-row.done > .task-row-heading .daily-task-name {
+  color: var(--color-done);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.task-row.failed > .task-row-heading .daily-task-name {
+  color: var(--color-failed);
+}
+.task-row.is-selected {
+  background: var(--color-brand-soft);
+}
+.task-row-actions.daily-task-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+  margin: 0;
+}
+.task-row-full,
+.task-row-context {
+  flex-basis: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.task-row-full {
+  color: var(--color-text);
+  font-size: var(--font-base);
+}
+.task-row-context {
+  font-size: var(--font-xs);
+}
+.task-row-primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.task-row-primary button,
+.task-row-secondary button,
+.task-row-secondary summary {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-sm);
+}
+.task-row-primary [data-outcome='done'] {
+  color: var(--color-done);
+}
+.task-row-primary [data-outcome='failed'] {
+  color: var(--color-failed);
+}
+.task-row-primary [data-outcome='done'][aria-pressed='true'] {
+  background: var(--color-done-soft);
+  box-shadow: inset 0 0 0 1px var(--color-done);
+}
+.task-row-primary [data-outcome='failed'][aria-pressed='true'] {
+  background: var(--color-failed-soft);
+  box-shadow: inset 0 0 0 1px var(--color-failed);
+}
+.task-row-secondary {
+  margin: 0;
+}
+.task-row-secondary summary {
+  cursor: pointer;
+  list-style: none;
+}
+.task-row-secondary summary::-webkit-details-marker {
+  display: none;
+}
+.task-row-secondary > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+.task-row-secondary [data-task-delete] {
+  color: var(--color-secondary);
+}
+.row-slot-editor,
+.task-row .project-task-order {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-xs);
+  margin: 0;
+}
+.row-slot-editor input,
+.task-row .project-task-order input {
+  width: 64px;
+  min-height: 40px;
+  padding: var(--space-1);
+}
+.task-row > .task-children {
+  display: block;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.task-row .task-children .task-row {
+  border-inline-start: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-brand-soft) 22%, transparent);
+}
+.task-row .task-children .task-row-heading {
+  padding-inline-start: min(calc(var(--task-indent) * 12px), 36px);
+}
+.task-children .task-row-select {
+  min-height: 40px;
+  padding-block: 6px;
+}
+.task-children .task-row-copy .daily-task-name {
+  font-size: var(--font-sm);
+}
+.task-row .task-children .task-children {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.project-options {
+  margin-block: var(--space-2);
+}
+.project-options > summary {
+  cursor: pointer;
+  padding-block: var(--space-2);
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.project-options .planner-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+}
+.project-completion {
+  margin-block: var(--space-2);
+}
+.priority,
+.priority.p1,
+.priority.p2,
+.priority.p3,
+.priority.p4,
+.priority.p5 {
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+.priority-dot,
+.priority-dot.p1,
+.priority-dot.p2,
+.priority-dot.p3,
+.priority-dot.p4,
+.priority-dot.p5 {
+  background: var(--color-brand);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 650px) {
+  .task-row-heading.planner-task-heading {
+    min-height: 48px;
+  }
+  .task-row-select {
+    min-height: 48px;
+    gap: 6px;
+  }
+  .task-row-toggle,
+  .task-row-spacer {
+    width: 40px;
+    flex-basis: 40px;
+    min-height: 44px;
+  }
+  .task-row-copy {
+    flex-wrap: wrap;
+    gap: 0 6px;
+  }
+  .task-row-copy .daily-task-name {
+    flex-basis: 100%;
+  }
+  .task-row-copy .task-inline-description {
+    flex-basis: 100%;
+    font-size: var(--font-xs);
+  }
+  .task-row-metrics {
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 90px;
+  }
+  .task-row-metrics .row-completion small {
+    display: none;
+  }
+  .task-row-metrics .row-completion .task-progress-bar {
+    width: 28px;
+  }
+  .task-row-actions.daily-task-controls {
+    gap: var(--space-1);
+    padding-inline: var(--space-2);
+  }
+  .task-row-primary button {
+    padding-inline: var(--space-2);
+  }
+  .task-row .task-children .task-row-heading {
+    padding-inline-start: min(calc(var(--task-indent) * 6px), 18px);
+  }
+  .task-children .task-row-select {
+    min-height: 44px;
+  }
+  button,
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  summary {
+    min-height: 40px;
+  }
+  .hero {
+    padding: var(--space-3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Outcome colors never double as priority or identity colors. */
+.danger,
+#plannerError,
+#projectError,
+#plannerForm [role='alert'],
+#projectBulkError {
+  color: var(--color-brand);
+}
+.task-row-primary [data-outcome='failed'] {
+  color: var(--color-failed);
+}
+.task-row-status {
+  line-height: 1;
+}
+
+/* Keep headings and project summaries small enough to leave room for the list. */
+.top {
+  margin-bottom: var(--space-4);
+}
+.top > div > p {
+  margin-block: var(--space-1);
+  line-height: 1.6;
+}
+#projectDetails > .panel-title {
+  margin-bottom: var(--space-2);
+}
+#projectDetails > p {
+  margin-block: var(--space-1);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+#projectDetails > progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-block: var(--space-2);
+  accent-color: var(--color-brand);
+}
+nav .ui-icon {
+  margin-inline-end: var(--space-2);
 }

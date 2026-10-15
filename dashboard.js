@@ -11,147 +11,388 @@ function dashboardTasks() {
 function taskStatus(t) {
   return outcome(t);
 }
-function taskCard(t, path = new Set()) {
+// UI-only state; never included in the saved snapshot.
+const expandedTaskRows = new Set();
+let plannerListRefresh = null,
+  taskRowSerial = 0;
+function taskIcon(name) {
+  const paths = {
+    check: '<path d="m5 12 4 4L19 6"/>',
+    cross: '<path d="m6 6 12 12M18 6 6 18"/>',
+    circle: '<circle cx="12" cy="12" r="8"/>',
+    chevron: '<path d="m14 7-5 5 5 5"/>',
+    edit: '<path d="m15 5 4 4M4 20l4-1L20 7l-4-4L4 15z"/>',
+    more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+    flag: '<path d="M5 21V4h13l-3 4 3 4H5"/>',
+    clock: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
+    slots:
+      '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 12h16M12 4v16"/>',
+    repeat:
+      '<path d="M18 8a7 7 0 0 0-12-2L3 9m0-5v5h5m-2 7a7 7 0 0 0 12 2l3-3m0 5v-5h-5"/>',
+  };
+  return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name] || paths.circle}</svg>`;
+}
+function taskRowMetrics(t, children = childTasks(t)) {
+  const expected = t.expectedSlots || 0,
+    count = completedSlots(t);
+  const completion = taskCompletion(t);
+  return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}" aria-label="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ" aria-label="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}<bdi>${time(t.startSlot)}</bdi></span>` : ''}${expected ? `<span title="الخانات المنجزة / المتوقعة · ${expected * 15} دقيقة مخططة" aria-label="${count} من ${expected} خانة">${taskIcon('slots')}<bdi>${count}/${expected}</bdi></span>` : ''}${t.recurrent ? `<span title="متكررة" aria-label="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || expected || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
+}
+function taskRow(t, mode = 'planner', depth = 0, path = new Set()) {
+  const rowId = 'task-row-' + ++taskRowSerial;
   const key = taskIdentity(t);
   if (path.has(key)) return '';
   path = new Set(path);
   path.add(key);
-  if (t.virtual)
-    return `<section class="task-family"><h3>${esc(t.name)}</h3><p class="hint">المهمة الرئيسية حُذفت؛ فروعها محفوظة هنا.</p>${childTasks(
-      t,
-    )
-      .map((c) => taskCard(c, path))
-      .join('')}</section>`;
-  const status = outcome(t),
-    count = t.date ? completedSlots(t) : 0,
-    expected = t.expectedSlots || 0;
-  const children = childTasks(t),
-    action = state.actions.find((a) => a.id === t.actionId);
-  const doneChildren = children.filter((x) => outcome(x) === 'done').length;
-  return `<article class="planner-task ${status}" data-task-id="${esc(t.id)}" data-task-date="${t.date || ''}"><div class="planner-task-heading"><strong>${esc(t.name)}</strong>${taskDescription(t)}<span class="priority p${taskPriority(t)}">${taskPriority(t)}</span></div>
- <p class="task-meta">${t.date ? `${t.date} · ${taskPeriodLabel(t)} · ` : 'تحتاج توزيعًا · '}${t.recurrent ? '↻ متكررة · ' : ''}${{ pending: 'لم تُسجل نتيجتها', done: 'فعلتها', failed: 'لم أفعلها' }[status]}${action ? ' · الفعل: ' + esc(action.name) : t.actionId ? ' · الفعل المرتبط محذوف' : ''}</p>
- ${projectName(t) ? `<p class="task-meta">المشروع: ${esc(projectName(t))}</p>` : ''}
- ${t.parentId ? `<p class="task-parent">↳ ${esc(parentName(t))}</p>` : ''}
- <p class="task-completion">الإنجاز: <strong>${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}</p><div class="task-effort">${t.date ? `<label>الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>` : '<span>التقدير</span>'}<strong> / ${expected} خانة مستهدفة</strong><span class="hint">${expected * 15} دقيقة مخططة${count > expected ? ' · تجاوزت المستهدف' : ''}</span></div>
-
- <div class="task-controls"><button data-outcome="done" class="secondary ${status === 'done' ? 'selected-outcome' : ''}" aria-pressed="${status === 'done'}">✓ فعلتها</button><button data-outcome="failed" class="secondary ${status === 'failed' ? 'selected-outcome' : ''}" aria-pressed="${status === 'failed'}">✕ لم أفعلها</button><button data-task-edit class="secondary">${t.date ? 'تعديل / توزيع' : 'توزيع المهمة'}</button><button data-task-child class="secondary">＋ فرعية</button><button data-task-delete class="danger">حذف</button></div> ${children.length ? `<details class="task-children"><summary>${children.length} مهام فرعية · ${doneChildren} مكتملة</summary>${children.map((c) => taskCard(c, path)).join('')}</details>` : ''} </article>`;
+  const children = ['period', 'series'].includes(mode)
+    ? []
+    : childTasks(t).filter((c) => !path.has(taskIdentity(c)));
+  const status = t.virtual ? 'pending' : outcome(t);
+  const expanded = children.length > 0 && expandedTaskRows.has(key);
+  const fullText = t.name + (t.description ? ' — ' + t.description : '');
+  const context =
+    mode === 'series'
+      ? taskPeriodLabel(t) +
+        ' · ' +
+        (t.days.length === 7 ? 'كل يوم' : t.days.map((i) => week[i]).join('، '))
+      : t.virtual
+        ? 'المهمة الرئيسية حُذفت؛ فروعها محفوظة هنا.'
+        : [
+            t.date || 'تحتاج توزيعًا',
+            taskPeriodLabel(t),
+            projectName(t),
+            state.actions.find((a) => a.id === t.actionId)?.name ||
+              (t.actionId ? 'الفعل المرتبط محذوف' : ''),
+          ]
+            .filter(Boolean)
+            .join(' · ');
+  return `<article class="task-row ${mode === 'planner' ? 'planner-task' : 'daily-task'} ${t.virtual ? 'task-family' : ''} ${status}" data-task-id="${esc(t.id)}" data-task-date="${esc(t.date || '')}" data-row-mode="${mode}" data-row-depth="${depth}" ${t.virtual ? 'data-virtual="true"' : ''} style="--task-indent:${Math.min(depth, 3)}">
+    <div class="task-row-heading planner-task-heading">
+      ${children.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
+      <button type="button" class="task-row-select" data-task-select aria-controls="${rowId}-actions" aria-expanded="false" title="${esc(fullText)}">
+        <span class="task-row-status" role="img" aria-label="${mode === 'series' ? 'سلسلة متكررة' : { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[status]}">${taskIcon(mode === 'series' ? 'repeat' : status === 'done' ? 'check' : status === 'failed' ? 'cross' : 'circle')}</span>
+        <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
+        <span class="task-row-metrics">${mode === 'series' ? ` ${t.expectedSlots ? `<span>${taskIcon('slots')}${t.expectedSlots}</span>` : ''}` : t.virtual ? '' : taskRowMetrics(t, children)}</span>
+        ${children.length ? `<span class="task-row-count" title="الفروع المسجلة فعلتها / جميع الفروع">${children.filter((c) => outcome(c) === 'done').length}/${children.length}</span>` : ''}
+      </button>
+    </div>
+    <div id="${rowId}-actions" class="task-row-actions daily-task-controls" hidden>
+      <p class="task-row-full">${esc(fullText)}</p><p class="task-row-context">${esc(context)}</p>
+      ${mode === 'series' ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}">${taskIcon('edit')} تعديل السلسلة</button></div><details class="task-row-secondary"><summary aria-label="المزيد">${taskIcon('more')}</summary><div><button type="button" data-del="${esc(t.id)}">حذف السلسلة</button></div></details>` : t.virtual ? '<button type="button" class="secondary" data-task-edit>إدارة الفروع المحفوظة</button>' : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}">${taskIcon('check')} فعلتها</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}">${taskIcon('cross')} لم أفعلها</button><button type="button" data-task-edit>${taskIcon('edit')} تعديل</button></div><details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}">${taskIcon('more')}<span class="sr-only">المزيد</span></summary><div><button type="button" data-task-child>＋ إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>${t.expectedSlots || t.date ? `<label class="row-slot-editor">الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>` : ''}</div></details>`}
+    </div>
+    ${children.length ? `<div id="${rowId}-children" class="task-children" ${expanded ? '' : 'hidden'}>${expanded ? children.map((c) => taskRow(c, mode, depth + 1, path)).join('') : ''}</div>` : ''}
+  </article>`;
+}
+function taskCard(t) {
+  return taskRow(t);
 }
 function compactTaskCard(t) {
-  const status = outcome(t),
-    count = completedSlots(t),
-    expected = t.expectedSlots || 0;
-  const action = state.actions.find((a) => a.id === t.actionId),
-    children = childTasks(t);
-  const info = [
-    `<span class="priority p${taskPriority(t)}">${taskPriority(t)}</span>`,
-  ];
-  info.push(
-    `<span>${taskPeriodLabel(t)}</span><span class="task-completion">${percentLabel(taskCompletion(t))}${taskProgressBar(t)}</span>`,
-  );
-  if (expected > 0)
-    info.push(
-      `<label class="daily-task-progress" title="الخانات المنجزة من ${expected} خانة مستهدفة · ${expected * 15} دقيقة مخططة"><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span dir="ltr">/ ${expected}</span><span>خانة</span></label>`,
-    );
-  if (projectName(t)) info.push(`<span>▣ ${esc(projectName(t))}</span>`);
-  if (action) info.push(`<span>${esc(action.name)}</span>`);
-  if (t.recurrent) info.push('<span>↻ متكررة</span>');
-  if (t.parentId) info.push(`<span>↳ ${esc(parentName(t))}</span>`);
-  if (children.length)
-    info.push(
-      `<span>${children.filter((c) => outcome(c) === 'done').length}/${children.length} فرعية مكتملة</span>`,
-    );
-  if (t.startSlot != null) info.push(`<span>◷ ${time(t.startSlot)}</span>`);
-  return `<article class="daily-task ${status}" data-task-id="${esc(t.id)}" data-task-date="${t.date}"><div class="daily-task-content"><div class="daily-task-title"><strong class="daily-task-name">${esc(t.name)}</strong>${taskDescription(t)}</div><div class="daily-task-info">${info.join('')}</div></div><div class="daily-task-controls"><button data-outcome="done" class="status-button ${status === 'done' ? 'yes' : ''}" aria-label="فعلتها: ${esc(t.name)}" title="فعلتها" aria-pressed="${status === 'done'}">✓</button><button data-outcome="failed" class="status-button ${status === 'failed' ? 'no' : ''}" aria-label="لم أفعلها: ${esc(t.name)}" title="لم أفعلها" aria-pressed="${status === 'failed'}">✕</button><button data-task-edit class="secondary" aria-label="تعديل: ${esc(t.name)}">تعديل</button></div></article>`;
+  return taskRow(t, 'period');
 }
-function compactTaskGroup(t, path = new Set()) {
-  const key = taskIdentity(t);
-  if (path.has(key)) return '';
-  path = new Set(path);
-  path.add(key);
-  const children = childTasks(t),
-    card = t.virtual
-      ? `<section class="task-family"><h3>${esc(t.name)}</h3>${children.map((c) => compactTaskGroup(c, path)).join('')}</section>`
-      : compactTaskCard(t);
-  if (t.virtual) return card;
-  return children.length
-    ? card.replace(
-        '</article>',
-        `<details class="task-children"><summary>${children.length} مهام فرعية</summary>${children.map((c) => compactTaskGroup(c, path)).join('')}</details></article>`,
+function compactTaskGroup(t) {
+  return taskRow(t, 'daily');
+}
+function rowOwn(card, selector) {
+  return [...card.querySelectorAll(selector)].filter(
+    (el) => el.closest('.task-row') === card,
+  );
+}
+function rowTask(card) {
+  if (card.dataset.rowMode === 'series')
+    return state.repeat.find((t) => t.id === card.dataset.taskId);
+  return card.dataset.virtual
+    ? {
+        id: card.dataset.taskId,
+        date: card.dataset.taskDate,
+        virtual: true,
+        name: card.querySelector('.daily-task-name').textContent,
+      }
+    : findTask(card.dataset.taskId, card.dataset.taskDate);
+}
+function selectTaskRow(card, selected = true) {
+  const root = card.closest('[data-task-list]') || card.parentElement;
+  if (selected)
+    root.querySelectorAll('.task-row.is-selected').forEach((other) => {
+      if (other !== card) selectTaskRow(other, false);
+    });
+  rowOwn(card, '.task-row-actions')[0].hidden = !selected;
+  rowOwn(card, '[data-task-select]')[0].setAttribute(
+    'aria-expanded',
+    String(selected),
+  );
+  card.classList.toggle('is-selected', selected);
+}
+function toggleTaskRow(card) {
+  const t = rowTask(card),
+    button = rowOwn(card, '[data-task-toggle]')[0];
+  if (!t || !button) return;
+  const key = taskIdentity(t),
+    container = rowOwn(card, '.task-children')[0];
+  const opening = button.getAttribute('aria-expanded') !== 'true';
+  button.setAttribute('aria-expanded', String(opening));
+  button.setAttribute(
+    'aria-label',
+    (opening ? 'طي' : 'فتح') + ' فروع ' + t.name,
+  );
+  if (opening) {
+    expandedTaskRows.add(key);
+    const path = new Set();
+    let ancestor = card;
+    while (ancestor) {
+      path.add(
+        taskIdentity({
+          id: ancestor.dataset.taskId,
+          date: ancestor.dataset.taskDate,
+        }),
+      );
+      ancestor = ancestor.parentElement.closest('.task-row');
+    }
+    container.innerHTML = childTasks(t)
+      .map((c) =>
+        taskRow(
+          c,
+          card.dataset.rowMode,
+          Number(card.dataset.rowDepth) + 1,
+          path,
+        ),
       )
-    : card;
+      .join('');
+  } else {
+    expandedTaskRows.delete(key);
+    container.replaceChildren();
+  }
+  container.hidden = !opening;
+}
+function refreshTaskRowValues(changed = null) {
+  const affected = new Set();
+  let ancestor = changed;
+  while (ancestor && !affected.has(taskIdentity(ancestor))) {
+    affected.add(taskIdentity(ancestor));
+    const parent = parentTask(ancestor);
+    if (!parent && ancestor.parentId)
+      affected.add(
+        taskIdentity({ id: ancestor.parentId, date: ancestor.parentDate }),
+      );
+    ancestor = parent;
+  }
+  document.querySelectorAll('.task-row').forEach((card) => {
+    if (card.dataset.rowMode === 'series') return;
+    const t = rowTask(card);
+    if (!t || (changed && !affected.has(taskIdentity(t)))) return;
+    const children = childTasks(t),
+      status = t.virtual ? 'pending' : outcome(t);
+    card.classList.remove('done', 'failed', 'pending');
+    card.classList.add(status);
+    const statusNode = rowOwn(card, '.task-row-status')[0];
+    statusNode.innerHTML = taskIcon(
+      status === 'done' ? 'check' : status === 'failed' ? 'cross' : 'circle',
+    );
+    statusNode.setAttribute(
+      'aria-label',
+      { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[status],
+    );
+    rowOwn(card, '.task-row-metrics')[0].innerHTML = t.virtual
+      ? ''
+      : taskRowMetrics(t, children);
+    const counter = rowOwn(card, '.task-row-count')[0];
+    if (counter)
+      counter.textContent = `${children.filter((c) => outcome(c) === 'done').length}/${children.length}`;
+    rowOwn(card, '[data-outcome]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(status === b.dataset.outcome)),
+    );
+    rowOwn(card, '[data-progress]').forEach((input) => {
+      if (document.activeElement !== input) input.value = completedSlots(t);
+    });
+  });
+  document
+    .querySelectorAll('[data-completion-id], [data-completion-label]')
+    .forEach((node) => {
+      const id = node.dataset.completionId ?? node.dataset.completionLabel;
+      if (
+        changed &&
+        !affected.has(taskIdentity({ id, date: node.dataset.completionDate }))
+      )
+        return;
+      const t = findTask(id, node.dataset.completionDate);
+      if (!t) return;
+      const value = taskCompletion(t);
+      if (node.tagName === 'PROGRESS') {
+        node.value = value;
+        node.setAttribute(
+          'aria-label',
+          `إنجاز ${t.name}: ${percentLabel(value)}`,
+        );
+      } else node.textContent = percentLabel(value);
+    });
+  document.querySelectorAll('[data-project-summary]').forEach((node) => {
+    const id = node.dataset.projectSummary,
+      list = taskGroups(projectTasks(id)),
+      done = list.filter((t) => taskCompletion(t) === 100).length;
+    if (node.tagName === 'PROGRESS') node.value = projectCompletion(id);
+    else if (node.dataset.summaryKind === 'outcomes')
+      node.textContent = `${done} مكتملة · ${list.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${list.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل`;
+    else if (node.dataset.summaryKind === 'percent')
+      node.textContent = percentLabel(projectCompletion(id));
+    else
+      node.textContent = `${percentLabel(projectCompletion(id))} إنجاز · ${done} / ${list.length} مهام مكتملة`;
+  });
+  const all = allTasksOn(date),
+    groups = taskGroups(all);
+  if ($('#dashboardDone'))
+    $('#dashboardDone').textContent =
+      `${groups.filter((t) => taskCompletion(t) === 100).length}/${groups.length}`;
+  if ($('#dashboardPending'))
+    $('#dashboardPending').textContent = all.filter(
+      (t) => outcome(t) === 'pending',
+    ).length;
+  const missed = taskEntries().filter(
+    (t) => t.date && t.date < activeDay() && outcome(t) === 'pending',
+  );
+  const missedTab = app.querySelector('[data-planner-tab="missed"]');
+  if (missedTab)
+    missedTab.textContent = `الفائتة (${taskGroups(missed).length})`;
+}
+function refreshFilteredTaskRows() {
+  const selected = [...app.querySelectorAll('.task-row.is-selected')].map(
+    (card) => ({
+      key: taskIdentity(rowTask(card)),
+      mode: card.dataset.rowMode,
+      more: rowOwn(card, '.task-row-secondary')[0]?.open || false,
+    }),
+  );
+  const active = document.activeElement,
+    activeCard = active.closest?.('.task-row');
+  const focus = activeCard
+    ? {
+        key: taskIdentity(rowTask(activeCard)),
+        mode: activeCard.dataset.rowMode,
+        selector: active.matches('[data-outcome]')
+          ? `[data-outcome="${active.dataset.outcome}"]`
+          : active.matches('[data-progress]')
+            ? '[data-progress]'
+            : '[data-task-select]',
+      }
+    : null;
+  plannerListRefresh();
+  app.querySelectorAll('.task-row').forEach((card) => {
+    const key = taskIdentity(rowTask(card)),
+      mode = card.dataset.rowMode;
+    const previous = selected.find(
+      (item) => item.key === key && item.mode === mode,
+    );
+    if (previous) {
+      selectTaskRow(card, true);
+      const more = rowOwn(card, '.task-row-secondary')[0];
+      if (more) more.open = previous.more;
+    }
+    if (focus && focus.key === key && focus.mode === mode)
+      rowOwn(card, focus.selector)[0]?.focus({ preventScroll: true });
+  });
+  if (focus && document.activeElement === document.body)
+    ($('#plannerResults [data-task-select]') || $('#plannerStatus'))?.focus({
+      preventScroll: true,
+    });
+}
+function taskRowChanged(t) {
+  // Saving invalidates the read scope. Update only mounted rows and live summaries.
+  taskReadScope(() => {
+    if (
+      view === 'dashboard' &&
+      plannerListRefresh &&
+      (plannerStatus !== 'all' || plannerTab === 'missed')
+    )
+      refreshFilteredTaskRows();
+    refreshTaskRowValues(t);
+  })();
+  toast(
+    outcome(t) === 'done'
+      ? 'سُجلت: فعلتها'
+      : outcome(t) === 'failed'
+        ? 'سُجلت: لم أفعلها'
+        : 'أُلغيت نتيجة المهمة',
+  );
 }
 function bindTaskCards(root = app, insideManager = false) {
-  root.querySelectorAll('[data-task-id]').forEach((card) => {
-    const own = (selector) =>
-      [...card.querySelectorAll(selector)].filter(
-        (el) => el.closest('[data-task-id]') === card,
-      );
-    const get = () => findTask(card.dataset.taskId, card.dataset.taskDate);
-    own('[data-outcome]').forEach(
-      (b) =>
-        (b.onclick = () => {
-          const t = get();
-          if (!t) return;
-          if (t.date) setTaskOutcome(taskDay(t.date), t.id, b.dataset.outcome);
-          else setInboxOutcome(t, b.dataset.outcome);
-          save();
-          render();
-          if (insideManager) openTaskManager(t);
-        }),
-    );
-    const progress = own('[data-progress]')[0];
-    if (progress) {
-      progress.onkeydown = (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          progress.blur();
-        }
-      };
-      progress.onchange = () => {
-        const t = get(),
-          n = +progress.value;
-        if (!t) return;
-        if (
-          !Number.isInteger(n) ||
-          n < 0 ||
-          n > 9999 ||
-          progress.value === ''
-        ) {
-          progress.value = completedSlots(t);
-          toast('أدخل عددًا صحيحًا بين ٠ و٩٩٩٩');
-          return;
-        }
-        if (t.date) (taskDay(t.date).taskProgress ??= {})[t.id] = n;
-        else t.completedSlotCount = n;
-        save();
-        render();
-        if (insideManager) openTaskManager(t);
-      };
+  root.dataset.taskList = '';
+  root.onclick = taskReadScope((e) => {
+    const card = e.target.closest('.task-row');
+    if (!card || !root.contains(card)) return;
+    const target = e.target.closest('button');
+    if (!target || target.closest('.task-row') !== card) return;
+    const t = rowTask(card);
+    if (!t) return;
+    if (target.matches('[data-task-toggle]')) {
+      toggleTaskRow(card);
+      return;
     }
-    own('[data-task-edit]')[0].onclick = () => {
-      const t = get();
-      if (insideManager || !t.parentId) openPlannerEditor(t);
-      else openTaskManager(t);
-    };
-    if (own('[data-task-child]')[0])
-      own('[data-task-child]')[0].onclick = () => {
-        const t = get();
-        if (t.parentId && !insideManager) openTaskManager(t);
-        else openPlannerEditor(null, t);
-      };
-    if (own('[data-task-delete]')[0])
-      own('[data-task-delete]')[0].onclick = () => {
-        const t = get();
-        if (t) {
-          if (t.parentId && !insideManager) openTaskManager(t);
-          else {
-            const parent = parentTask(t);
-            if (deletePlannedTask(t) && insideManager && parent)
-              openPlannerEditor(parent);
-          }
-        }
-      };
+    if (target.matches('[data-task-select]')) {
+      selectTaskRow(card, !card.classList.contains('is-selected'));
+      return;
+    }
+    if (target.dataset.outcome) {
+      if (t.date) setTaskOutcome(taskDay(t.date), t.id, target.dataset.outcome);
+      else setInboxOutcome(t, target.dataset.outcome);
+      save();
+      taskRowChanged(t);
+      return;
+    }
+    if (target.matches('[data-task-edit]')) {
+      if (t.virtual || (t.parentId && !insideManager)) openTaskManager(t);
+      else openPlannerEditor(t);
+    } else if (target.matches('[data-task-child]')) {
+      if (t.parentId && !insideManager) openTaskManager(t);
+      else openPlannerEditor(null, t);
+    } else if (target.matches('[data-task-delete]')) {
+      if (t.parentId && !insideManager) openTaskManager(t);
+      else {
+        const parent = parentTask(t);
+        if (deletePlannedTask(t) && insideManager && parent)
+          openPlannerEditor(parent);
+      }
+    }
   });
+  root.onchange = taskReadScope((e) => {
+    const input = e.target.closest('[data-progress]');
+    if (!input) return;
+    const card = input.closest('.task-row'),
+      t = rowTask(card),
+      n = +input.value;
+    if (!t) return;
+    if (!Number.isInteger(n) || n < 0 || n > 9999 || input.value === '') {
+      input.value = completedSlots(t);
+      toast('أدخل عددًا صحيحًا بين ٠ و٩٩٩٩');
+      return;
+    }
+    if (t.date) (taskDay(t.date).taskProgress ??= {})[t.id] = n;
+    else t.completedSlotCount = n;
+    save();
+    taskRowChanged(t);
+  });
+  root.onkeydown = (e) => {
+    const card = e.target.closest('.task-row');
+    if (!card) return;
+    if (e.key === 'Escape') {
+      selectTaskRow(card, false);
+      rowOwn(card, '[data-task-select]')[0].focus();
+    }
+    if (e.key === 'Enter' && e.target.matches('[data-progress]')) {
+      e.preventDefault();
+      e.target.blur();
+    }
+    if (
+      e.target.matches('[data-task-select]') &&
+      ['ArrowLeft', 'ArrowRight'].includes(e.key)
+    ) {
+      const button = rowOwn(card, '[data-task-toggle]')[0];
+      if (
+        button &&
+        button.getAttribute('aria-expanded') !== String(e.key === 'ArrowLeft')
+      ) {
+        e.preventDefault();
+        taskReadScope(() => toggleTaskRow(card))();
+      }
+    }
+  };
 }
 function sortedTasks(list) {
   return [...list].sort(
@@ -210,6 +451,7 @@ function groupedPlannerTasks(list) {
  <section class="planner-task-section" data-planner-section="unassigned"><h2>مهام بدون مشروع (${taskGroups(unassigned).length})</h2>${cards(unassigned) || '<p class="empty-note">لا توجد مهام بدون مشروع تطابق التصفية.</p>'}</section>`;
 }
 function renderDashboard() {
+  plannerListRefresh = null;
   const all = allTasksOn(date),
     done = taskGroups(all).filter((t) => taskCompletion(t) === 100).length,
     pending = all.filter((t) => outcome(t) === 'pending').length;
@@ -221,7 +463,7 @@ function renderDashboard() {
     future = entries.filter((t) => t.date > today && !t.recurrent),
     inbox = state.taskInbox || [];
   app.innerHTML = `<div class="top"><div><h1>لوحة المهام</h1><p>خطط حول صلاتك، وقس تقدمك بخانات الوقت.</p></div>${dateControls()}</div>
- <div class="hero"><div><h2>${hijriLabel(date)}</h2><p>${dayRangeLabel()}</p></div><div class="stats"><div class="stat"><strong>${done}/${taskGroups(all).length}</strong><span>مهام مكتملة</span></div><div class="stat"><strong>${pending}</strong><span>بانتظار التسجيل</span></div><div class="stat"><strong>${daySummary(date).checks}/25</strong><span>من مهام الصلوات</span></div></div></div>
+ <div class="hero"><div><h2>${hijriLabel(date)}</h2><p>${dayRangeLabel()}</p></div><div class="stats"><div class="stat"><strong id="dashboardDone">${done}/${taskGroups(all).length}</strong><span>مهام مكتملة</span></div><div class="stat"><strong id="dashboardPending">${pending}</strong><span>بانتظار التسجيل</span></div><div class="stat"><strong>${daySummary(date).checks}/25</strong><span>من مهام الصلوات</span></div></div></div>
  <div class="planner-toolbar"><button id="newPlannedTask" class="primary">＋ إضافة مهمة وتوزيعها</button><button id="plannerRepeats" class="secondary">↻ المهام المتكررة</button></div>
  <div class="planner-tabs" role="group" aria-label="عروض المهام">${[
    ['day', 'اليوم'],
@@ -284,7 +526,7 @@ function renderDashboard() {
         plannerTab === 'day'
           ? all
           : plannerTab === 'missed'
-            ? missed
+            ? missed.filter((t) => outcome(t) === 'pending')
             : plannerTab === 'future'
               ? future
               : inbox.map((t) => ({ ...t, date: '' })),
@@ -350,6 +592,7 @@ function renderDashboard() {
       plannerStatus = e.target.value;
       refresh();
     };
+    plannerListRefresh = refresh;
     refresh();
   }
 }
@@ -512,7 +755,10 @@ function openMonthTaskMenu(anchor) {
         setTaskOutcome(taskDay(key), id, b.dataset.monthOutcome);
         closeMonthTaskMenu();
         save();
-        render();
+        taskReadScope(() => {
+          refreshMonthTaskValues();
+          refreshTaskRowValues(current);
+        })();
         [...app.querySelectorAll('[data-month-task]')]
           .find(
             (b) => b.dataset.monthTask === id && b.dataset.monthDate === key,
@@ -526,6 +772,58 @@ function openMonthTaskMenu(anchor) {
   };
   position();
   menu.querySelector('button').focus();
+}
+function monthTaskChip(t, entries = progressEntries()) {
+  const result = outcome(t),
+    label = { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[
+      result
+    ],
+    parent = t.parentId ? mainTask(t, entries) : null,
+    progress = percentLabel(taskCompletion(t, entries));
+  return `<button type="button" class="month-task ${result}" data-month-task="${esc(t.id)}" data-month-date="${t.date}" title="${esc(t.name)}${t.description ? ' — ' + esc(t.description) : ''}${parent ? ' — ضمن ' + esc(parent.name) : ''} — ${label} — التقدم ${progress}" aria-haspopup="dialog" aria-expanded="false" aria-controls="monthTaskMenu" aria-label="${esc(t.name)}${parent ? '، ضمن ' + esc(parent.name) : ''}، ${label}، التقدم ${progress}"><span aria-hidden="true">${{ done: '✓', failed: '✕', pending: '○' }[result]}</span><span class="month-task-text">${esc(t.name)}${taskDescription(t)}${parent ? `<small>↳ ${esc(parent.name)}</small>` : ''}</span></button>`;
+}
+function refreshMonthTaskValues() {
+  const entries = progressEntries(),
+    visible = [],
+    byDate = new Map();
+  app.querySelectorAll('[data-calendar-day]').forEach((heading) => {
+    const key = heading.dataset.calendarDay,
+      tasks = monthlyTasks(key, entries),
+      summary = monthlySummary(tasks);
+    byDate.set(key, new Set(tasks.map(taskIdentity)));
+    visible.push(...tasks);
+    heading.querySelector('span').textContent =
+      `${summary.done}/${summary.total} تمت`;
+    heading.setAttribute(
+      'aria-label',
+      `${key}: ${summary.total} مهام ظاهرة، ${summary.done} تمت`,
+    );
+  });
+  app.querySelectorAll('[data-month-task]').forEach((chip) => {
+    const t = findTask(chip.dataset.monthTask, chip.dataset.monthDate);
+    if (!t || !byDate.get(t.date)?.has(taskIdentity(t))) {
+      chip.remove();
+      return;
+    }
+    const template = document.createElement('template');
+    template.innerHTML = monthTaskChip(t, entries);
+    const fresh = template.content.firstElementChild;
+    ['class', 'title', 'aria-label'].forEach((name) =>
+      chip.setAttribute(name, fresh.getAttribute(name)),
+    );
+    chip.firstElementChild.textContent = fresh.firstElementChild.textContent;
+  });
+  const stats = monthlySummary(visible);
+  const values = [
+    stats.total,
+    stats.done,
+    stats.failed,
+    stats.pending,
+    stats.percent === null ? 'لا نتائج مسجلة' : percentLabel(stats.percent),
+  ];
+  app
+    .querySelectorAll('.month-summary b')
+    .forEach((node, i) => (node.textContent = values[i]));
 }
 function renderTaskMonth() {
   closeMonthTaskMenu();
@@ -543,15 +841,7 @@ function renderTaskMonth() {
   const stats = monthlySummary(days.flatMap((d) => d.tasks));
   const select = (field, label, options) =>
     `<label class="field">${label}<select data-month-filter="${field}"><option value="all">الكل</option>${options.map(([value, name]) => `<option value="${esc(value)}" ${String(value) === monthFilters[field] ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>`;
-  const chip = (t) => {
-    const result = outcome(t),
-      label = { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[
-        result
-      ],
-      parent = t.parentId ? mainTask(t, entries) : null,
-      progress = percentLabel(taskCompletion(t, entries));
-    return `<button type="button" class="month-task ${result}" data-month-task="${esc(t.id)}" data-month-date="${t.date}" title="${esc(t.name)}${t.description ? ' — ' + esc(t.description) : ''}${parent ? ' — ضمن ' + esc(parent.name) : ''} — ${label} — التقدم ${progress}" aria-haspopup="dialog" aria-expanded="false" aria-controls="monthTaskMenu" aria-label="${esc(t.name)}${parent ? '، ضمن ' + esc(parent.name) : ''}، ${label}، التقدم ${progress}"><span aria-hidden="true">${{ done: '✓', failed: '✕', pending: '○' }[result]}</span><span class="month-task-text">${esc(t.name)}${taskDescription(t)}${parent ? `<small>↳ ${esc(parent.name)}</small>` : ''}</span></button>`;
-  };
+  const chip = (t) => monthTaskChip(t, entries);
   $('#plannerContent').innerHTML =
     `<section class="panel monthly-panel"><div class="top"><h2>خطة الشهر</h2><div class="date"><button data-month-shift="-1" aria-label="الشهر السابق">→</button><input id="taskMonth" type="month" value="${plannerMonth}" aria-label="الشهر"><button data-month-shift="1" aria-label="الشهر التالي">←</button></div></div>
  <p class="hint">تقويم ميلادي بحسب تاريخ نهار اليوم الذي يبدأ من المغرب. اضغط التاريخ لتفاصيل اليوم، أو المهمة لتسجيل نتيجتها وتعديلها. ○ غير مسجلة · ✓ تمت · ✕ لم تتم. تفاصيل التقدم متاحة عند تمرير المؤشر أو فتح تعديل المهمة.</p>
@@ -633,20 +923,6 @@ function renderTaskMonth() {
     .querySelectorAll('[data-month-task]')
     .forEach((b) => (b.onclick = () => openMonthTaskMenu(b)));
 }
-function weekChildLabels(t, key, p) {
-  return allTasksOn(key)
-    .filter(
-      (c) =>
-        c.parentId &&
-        taskIdentity(mainTask(c)) === taskIdentity(t) &&
-        (p === null ? !taskPeriods(c).length : taskInPeriod(c, p)),
-    )
-    .map(
-      (c) =>
-        `<small>↳ ${esc(c.name)}${c.description ? ' — ' + esc(c.description) : ''} · ${percentLabel(taskCompletion(c))}</small>`,
-    )
-    .join('');
-}
 function renderTaskWeek() {
   plannerWeek ||= addDate(date, -new Date(date + 'T12:00:00').getDay());
   const dates = Array.from({ length: 7 }, (_, i) => addDate(plannerWeek, i));
@@ -660,17 +936,14 @@ function renderTaskWeek() {
                   allTasksOn(key).filter((t) => taskInPeriod(t, p)),
                 ),
                 c = capacity(key, p);
-              return `<div class="week-period"><b>${names[p]}</b><small>${c.free} متاحة / ${c.total} · تقدير ${c.estimates}</small>${list.map((t) => `<button data-week-task="${esc(t.id)}" data-week-date="${t.date || ''}" class="week-task"><i class="priority-dot p${taskPriority(t)}"></i>${esc(t.name)}${taskDescription(t)}${weekChildLabels(t, key, p)}<small>${completedSlots(t)}/${t.expectedSlots || 0} خانة${t.recurrent ? ' ↻' : ''}</small></button>`).join('')}<button class="week-add" data-week-add="${key}" data-period="${p}" aria-label="إضافة مهمة يوم ${key} فترة ${names[p]}">＋</button></div>`;
+              return `<div class="week-period"><b>${names[p]}</b><small>${c.free} متاحة / ${c.total} · تقدير ${c.estimates}</small>${list.map((t) => taskCard(t)).join('')}<button class="week-add" data-week-add="${key}" data-period="${p}" aria-label="إضافة مهمة يوم ${key} فترة ${names[p]}">＋</button></div>`;
             })
             .join('')}${
             allTasksOn(key).some((t) => !taskPeriods(t).length)
               ? `<div class="week-period"><b>بدون فترة محددة</b>${taskGroups(
                   allTasksOn(key).filter((t) => !taskPeriods(t).length),
                 )
-                  .map(
-                    (t) =>
-                      `<button data-week-task="${esc(t.id)}" data-week-date="${t.date || ''}" class="week-task">${esc(t.name)}${taskDescription(t)}${weekChildLabels(t, key, null)}</button>`,
-                  )
+                  .map((t) => taskCard(t))
                   .join('')}</div>`
               : ''
           }</section>`,
@@ -686,13 +959,7 @@ function renderTaskWeek() {
   app
     .querySelectorAll('[data-calendar-day]')
     .forEach((b) => (b.onclick = () => openPlannerDay(b.dataset.calendarDay)));
-  app
-    .querySelectorAll('[data-week-task]')
-    .forEach(
-      (b) =>
-        (b.onclick = () =>
-          openTaskManager(findTask(b.dataset.weekTask, b.dataset.weekDate))),
-    );
+  bindTaskCards();
   app.querySelectorAll('[data-week-add]').forEach(
     (b) =>
       (b.onclick = () => {

@@ -114,7 +114,8 @@ function bindProjectTaskOrder(details, project, list) {
       }
     };
     (
-      card.querySelector('.planner-task-heading') || card.querySelector('h3')
+      card.querySelector('.task-row-secondary > div') ||
+      card.querySelector('.task-row-actions')
     ).append(controls);
   });
 }
@@ -589,7 +590,7 @@ function renderProjects() {
       .map((p) => {
         const list = taskGroups(projectTasks(p.id)),
           done = list.filter((t) => taskCompletion(t) === 100).length;
-        return `<button class="secondary ${p.id === selectedProject ? 'chosen' : ''}" data-project="${esc(p.id)}" aria-pressed="${p.id === selectedProject}"><strong>${esc(p.name)}</strong><small>${percentLabel(projectCompletion(p.id))} إنجاز · ${done} / ${list.length} مهام مكتملة</small></button>`;
+        return `<button class="secondary ${p.id === selectedProject ? 'chosen' : ''}" data-project="${esc(p.id)}" aria-pressed="${p.id === selectedProject}"><strong>${esc(p.name)}</strong><small data-project-summary="${esc(p.id)}">${percentLabel(projectCompletion(p.id))} إنجاز · ${done} / ${list.length} مهام مكتملة</small></button>`;
       })
       .join('') || '<p class="empty-note">أضف أول مشروع، ثم اربط به مهامك.</p>'
   }</div></section><section class="panel" id="projectDetails"></section></div>`;
@@ -631,7 +632,7 @@ function renderProjects() {
   }
   const list = orderedProjectTasks(project.id),
     done = list.filter((t) => taskCompletion(t) === 100).length;
-  details.innerHTML = `<div class="panel-title"><h2>${esc(project.name)}</h2><button class="secondary" id="editProject">تعديل المشروع</button></div>${project.description ? `<p class="project-description">${esc(project.description)}</p>` : ''}<p>${done} مكتملة · ${list.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${list.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong>${percentLabel(projectCompletion(project.id))}</strong></p><progress value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="secondary" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button class="secondary" id="deleteProject">حذف المشروع فقط (الاحتفاظ بالمهام)</button><button class="danger" id="deleteProjectWithTasks">حذف المشروع وجميع مهامه</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). اكتب رقم الموضع في خانة الترتيب لنقل المهمة الرئيسية مع فروعها؛ تبدأ الأرقام من 1. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p>${list.map((t) => taskCard(t)).join('') || '<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
+  details.innerHTML = `<div class="panel-title"><h2>${esc(project.name)}</h2><div class="planner-toolbar"><button class="primary" id="newProjectTask">＋ مهمة للمشروع</button><button class="secondary" id="editProject">تعديل المشروع</button></div></div>${project.description ? `<p class="project-description">${esc(project.description)}</p>` : ''}<p data-project-summary="${esc(project.id)}" data-summary-kind="outcomes">${done} مكتملة · ${list.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${list.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل</p><p class="project-completion">إنجاز المشروع: <strong data-project-summary="${esc(project.id)}" data-summary-kind="percent">${percentLabel(projectCompletion(project.id))}</strong></p><progress data-project-summary="${esc(project.id)}" value="${projectCompletion(project.id)}" max="100" aria-label="إنجاز مهام المشروع"></progress><details class="project-options"><summary>إدارة المشروع وتفاصيل التقدم</summary><p class="hint">كل مهمة نهائية لها وزن متساوٍ؛ المهمة ذات الفروع تُحسب من فروعها دون احتسابها مرتين.</p><div class="planner-toolbar"><button class="secondary" id="linkProjectTask">ربط مهمة موجودة</button><button class="secondary" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button class="secondary" id="deleteProject">حذف المشروع فقط (الاحتفاظ بالمهام)</button><button class="danger" id="deleteProjectWithTasks">حذف المشروع وجميع مهامه</button></div><p class="hint">تُعرض المهام الموزعة وغير الموزعة والنسخ المسجلة من المهام المتكررة، مع نسخ اليوم المختار (${date}). اكتب رقم الموضع في خانة الترتيب لنقل المهمة الرئيسية مع فروعها؛ تبدأ الأرقام من 1. يُحفظ الترتيب لهذا المشروع. يمكن تغيير المشروع أو إلغاء الربط من تعديل المهمة.</p></details>${list.map((t) => taskCard(t)).join('') || '<p class="empty-note">لا توجد مهام مرتبطة بهذا المشروع بعد.</p>'}`;
   $('#editProject').onclick = () => openProjectEditor(project);
   $('#bulkProjectTasks').onclick = () => openProjectBulkEditor(project);
   $('#deleteProject').onclick = () => deleteProject(project);

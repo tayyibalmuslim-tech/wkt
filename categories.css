@@ -29,7 +29,7 @@
   border-radius: 8px;
   max-width: 100%;
   background: white;
-  color: #253c33;
+  color: var(--color-text);
 }
 .ac-root input[type='color'] {
   width: 64px;
@@ -42,11 +42,11 @@
   border-radius: 8px;
   padding: 10px;
   background: white;
-  color: #253c33;
+  color: var(--color-text);
   cursor: pointer;
 }
 .ac-root .ac-primary {
-  background: #183e35;
+  background: var(--color-brand);
   color: white;
 }
 .ac-list {
@@ -79,7 +79,7 @@
 .ac-note,
 .ac-row small {
   font-size: 12px;
-  color: #687363;
+  color: var(--color-secondary);
 }
 .ac-row button {
   font-size: 12px;
@@ -108,7 +108,7 @@
   display: block;
   font-size: 12px;
   line-height: 1.7;
-  color: #687363;
+  color: var(--color-secondary);
   margin-top: 4px;
   font-weight: normal;
 }
@@ -121,7 +121,7 @@
   min-width: 220px;
   max-width: 100%;
   background: white;
-  color: #253c33;
+  color: var(--color-text);
 }
 .ac-welcome {
   width: min(620px, 92vw);
@@ -131,7 +131,7 @@
   border-radius: 18px;
   padding: 24px;
   background: #fff;
-  color: #253c33;
+  color: var(--color-text);
   font-family: inherit;
 }
 .ac-welcome::backdrop {
@@ -139,7 +139,7 @@
 }
 .ac-welcome p {
   line-height: 1.8;
-  color: #687363;
+  color: var(--color-secondary);
 }
 .ac-welcome-list {
   display: grid;
@@ -161,12 +161,12 @@
 }
 .ac-welcome-list small {
   display: block;
-  color: #687363;
+  color: var(--color-secondary);
   font-size: 12px;
   line-height: 1.7;
 }
 .ac-welcome button {
-  background: #183e35;
+  background: var(--color-brand);
   color: white;
   padding: 12px 20px;
   border: 0;
@@ -179,5 +179,5 @@
   display: block;
 }
 .ac-description-field small {
-  color: #687363;
+  color: var(--color-secondary);
 }

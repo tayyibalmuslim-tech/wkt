@@ -149,6 +149,7 @@ function colorText(c) {
     : '#ffffff';
 }
 function render() {
+  app.onclick = app.onchange = app.onkeydown = null;
   document.body.classList.toggle(
     'monthly-view',
     view === 'dashboard' && plannerTab === 'month',
@@ -358,7 +359,7 @@ function renderActions() {
   );
 }
 function renderRepeatLegacy(edit = null) {
-  app.innerHTML = `<h1>مهامي المتكررة</h1><p>التعديل هنا يحدّث مهام اليوم والأيام القادمة، والنسخ التي عدّلتها داخل الصلاة تبقى مستقلة. أيام التكرار تبدأ من المغرب: مهام الجمعة تبدأ من مغرب الخميس وتستمر حتى مغرب الجمعة.</p><section class="panel"><h2>${edit ? 'تعديل المهمة' : 'مهمة تتكرر معك'}</h2><form id="repeatForm"><div class="form"><label class="field">المهمة<input name="name" required maxlength="150" value="${esc(edit?.name || '')}" placeholder="مثلًا: مراجعة أنكي"></label><label class="field">الوصف (اختياري)<input name="taskDescription" maxlength="500" value="${esc(edit?.description || '')}"></label><label class="field">الصلاة<select name="prayer">${names.map((n, i) => `<option value="${i}" ${edit?.prayer === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div><p>أيام التكرار</p><div class="days">${week.map((n, i) => `<label><input name="days" type="checkbox" value="${i}" ${!edit || edit.days.includes(i) ? 'checked' : ''}>${n}</label>`).join('')}</div><button class="primary">${edit ? 'حفظ التعديل' : 'إضافة المهمة المتكررة'}</button>${edit ? '<button type="button" id="cancel" class="secondary">إلغاء</button>' : ''}</form></section><section class="panel">${state.repeat.map((t) => `<div class="list-row"><span>↻</span><div class="grow"><strong>${esc(t.name)}</strong><small>${taskPeriodLabel(t)} · ${t.days.length === 7 ? 'كل يوم' : t.days.map((i) => week[i]).join('، ')}</small></div><button data-edit="${t.id}">تعديل</button><button class="danger" data-del="${t.id}">حذف</button></div>`).join('') || '<p>لا توجد مهام متكررة بعد.</p>'}</section>`;
+  app.innerHTML = `<h1>مهامي المتكررة</h1><p>التعديل هنا يحدّث مهام اليوم والأيام القادمة، والنسخ التي عدّلتها داخل الصلاة تبقى مستقلة. أيام التكرار تبدأ من المغرب: مهام الجمعة تبدأ من مغرب الخميس وتستمر حتى مغرب الجمعة.</p><section class="panel"><h2>${edit ? 'تعديل المهمة' : 'مهمة تتكرر معك'}</h2><form id="repeatForm"><div class="form"><label class="field">المهمة<input name="name" required maxlength="150" value="${esc(edit?.name || '')}" placeholder="مثلًا: مراجعة أنكي"></label><label class="field">الوصف (اختياري)<input name="taskDescription" maxlength="500" value="${esc(edit?.description || '')}"></label><label class="field">الصلاة<select name="prayer">${names.map((n, i) => `<option value="${i}" ${edit?.prayer === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div><p>أيام التكرار</p><div class="days">${week.map((n, i) => `<label><input name="days" type="checkbox" value="${i}" ${!edit || edit.days.includes(i) ? 'checked' : ''}>${n}</label>`).join('')}</div><button class="primary">${edit ? 'حفظ التعديل' : 'إضافة المهمة المتكررة'}</button>${edit ? '<button type="button" id="cancel" class="secondary">إلغاء</button>' : ''}</form></section><section class="panel">${state.repeat.map((t) => taskRow(t, 'series')).join('') || '<p>لا توجد مهام متكررة بعد.</p>'}</section>`;
   $('#repeatForm').onsubmit = (e) => {
     e.preventDefault();
     let days = [...e.target.querySelectorAll('[name=days]:checked')].map(

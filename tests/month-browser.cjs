@@ -49,6 +49,7 @@ const server=http.createServer((req,res)=>{
    const low=await menu.boundingBox();assert.ok(low.y>=0&&low.y+low.height<=viewport.height);
    await page.keyboard.press('Escape');
   }
+  await require('./task-rows-browser.cjs')(browser,'http://127.0.0.1:'+server.address().port);
   assert.deepEqual(errors,[]);
   console.log('PASS: Chromium desktop/mobile, horizontal wrapping, expanded rows, long text, menu positioning and toggling');
  }finally{await browser?.close();await new Promise(resolve=>server.close(resolve))}

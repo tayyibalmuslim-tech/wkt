@@ -254,10 +254,10 @@ function percentLabel(value) {
 }
 function taskProgressBar(t) {
   const value = taskCompletion(t);
-  return `<progress class="task-progress-bar" value="${value}" max="100" aria-label="إنجاز ${esc(t.name)}: ${percentLabel(value)}"></progress>`;
+  return `<progress class="task-progress-bar" data-completion-id="${esc(t.id || '')}" data-completion-date="${esc(t.date || '')}" value="${value}" max="100" aria-label="إنجاز ${esc(t.name)}: ${percentLabel(value)}"></progress>`;
 }
 function completionField(t) {
-  return `<div class="field">نسبة الإنجاز: <strong>${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}<p class="hint">تُحسب من المهام الفرعية النهائية، أو من الخانات المنجزة ÷ المتوقعة عند عدم وجود فروع. علامة صح تجعل الإنجاز ١٠٠٪، وإلغاؤها يعيد النسبة المحسوبة.</p></div>`;
+  return `<div class="field">نسبة الإنجاز: <strong data-completion-label="${esc(t.id || '')}" data-completion-date="${esc(t.date || '')}">${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}<p class="hint">تُحسب من المهام الفرعية النهائية، أو من الخانات المنجزة ÷ المتوقعة عند عدم وجود فروع. علامة صح تجعل الإنجاز ١٠٠٪، وإلغاؤها يعيد النسبة المحسوبة.</p></div>`;
 }
 function taskPeriods(t) {
   return Array.isArray(t.prayers)
@@ -931,6 +931,7 @@ function renderRepeat(edit = null) {
   note.textContent =
     'تعديل السلسلة يغيّر اليوم والأيام القادمة فقط. سجلات الأيام السابقة محفوظة منذ تفعيل سجل المهام.';
   form.before(note);
+  bindTaskCards();
 }
 function validatePlanning(s) {
   if (!s || typeof s !== 'object') throw Error('بيانات غير صالحة');
