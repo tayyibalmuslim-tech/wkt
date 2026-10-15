@@ -8,6 +8,7 @@ function taskCard(t){
  const doneChildren=children.filter(x=>x.date&&outcome(x)==='done').length;
  return `<article class="planner-task ${status}" data-task-id="${esc(t.id)}" data-task-date="${t.date||''}"><div class="planner-task-heading"><strong>${esc(t.name)}</strong><span class="priority p${taskPriority(t)}">${taskPriority(t)}</span></div>
  <p class="task-meta">${t.date?`${t.date} · ${taskPeriodLabel(t)} · `:'تحتاج توزيعًا · '}${t.recurrent?'↻ متكررة · ':''}${{pending:'لم تُسجل نتيجتها',done:'فعلتها',failed:'لم أفعلها'}[status]}${action?' · الفعل: '+esc(action.name):t.actionId?' · الفعل المرتبط محذوف':''}</p>
+ ${projectName(t)?`<p class="task-meta">المشروع: ${esc(projectName(t))}</p>`:''}
  ${t.parentId?`<p class="task-parent">↳ ${esc(parentName(t))}</p>`:''}
  <div class="task-effort">${t.date?`<label>الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>`:'<span>التقدير</span>'}<strong> / ${expected} خانة مستهدفة</strong><span class="hint">${expected*15} دقيقة مخططة${count>expected?' · تجاوزت المستهدف':''}</span></div>
  ${expected?`<progress value="${Math.min(count,expected)}" max="${expected}" aria-label="تقدم الخانات"></progress>`:''}
@@ -20,6 +21,7 @@ function compactTaskCard(t){
  const info=[`<span class="priority p${taskPriority(t)}">${taskPriority(t)}</span>`];
  info.push(`<span>${taskPeriodLabel(t)}</span>`);
  if(expected>0)info.push(`<label class="daily-task-progress" title="الخانات المنجزة من ${expected} خانة مستهدفة · ${expected*15} دقيقة مخططة"><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span dir="ltr">/ ${expected}</span><span>خانة</span></label>`);
+ if(projectName(t))info.push(`<span>▣ ${esc(projectName(t))}</span>`);
  if(action)info.push(`<span>${esc(action.name)}</span>`);
  if(t.recurrent)info.push('<span>↻ متكررة</span>');
  if(t.parentId)info.push(`<span>↳ ${esc(parentName(t))}</span>`);
