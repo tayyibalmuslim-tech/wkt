@@ -299,7 +299,7 @@ function taskProgressBar(t) {
   return `<progress class="task-progress-bar" data-completion-id="${esc(t.id || '')}" data-completion-date="${esc(t.date || '')}" value="${value}" max="100" aria-label="إنجاز ${esc(t.name)}: ${percentLabel(value)}"></progress>`;
 }
 function completionField(t) {
-  return `<div class="field">نسبة الإنجاز: <strong data-completion-label="${esc(t.id || '')}" data-completion-date="${esc(t.date || '')}">${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}<p class="hint">تُحسب من المهام الفرعية النهائية، أو من الخانات المنجزة ÷ المتوقعة عند عدم وجود فروع. علامة صح تجعل الإنجاز ١٠٠٪، وإلغاؤها يعيد النسبة المحسوبة.</p></div>`;
+  return `<div class="field editor-completion">نسبة الإنجاز: <strong data-completion-label="${esc(t.id || '')}" data-completion-date="${esc(t.date || '')}">${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}<details class="editor-field-help"><summary>كيف تُحسب النسبة؟</summary><p class="hint">تُحسب من المهام الفرعية النهائية، أو من الخانات المنجزة ÷ المتوقعة عند عدم وجود فروع. علامة صح تجعل الإنجاز ١٠٠٪، وإلغاؤها يعيد النسبة المحسوبة.</p></details></div>`;
 }
 function taskPeriods(t) {
   return Array.isArray(t.prayers)
@@ -640,20 +640,16 @@ function deletePlannedTask(t) {
   render();
   return true;
 }
+function priorityButtons(value = 3) {
+  return `<fieldset class="task-priority-field"><legend>الأولوية <small>(1 الأعلى، 5 الأدنى)</small></legend><div class="task-priority-options" role="radiogroup" aria-label="الأولوية">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="priority" value="${n}" ${n === +value ? 'checked' : ''} aria-label="الأولوية ${n}"><span>${n}</span></label>`).join('')}</div></fieldset>`;
+}
 function taskFields(t = {}, includeDate = true) {
   const hasChildren = !!t.id && childTasks(t).length > 0;
   return `
  ${projectField(t)}
  <label class="monthly-visibility"><input name="showInMonthlyCalendar" type="checkbox" ${t.showInMonthlyCalendar !== false ? 'checked' : ''}> إظهار في التقويم الشهري</label>
  ${includeDate ? completionField(t) : ''}
- <label class="field">الأولوية (1 الأعلى، 5 الأدنى)<select name="priority">${Object.entries(
-   priorityNames,
- )
-   .map(
-     ([v, n]) =>
-       `<option value="${v}" ${String(taskPriority(t)) === v ? 'selected' : ''}>${n}</option>`,
-   )
-   .join('')}</select></label>
+ ${priorityButtons(taskPriority(t))}
  <label class="field">الخانات المتوقعة (الخانة ١٠ دقائق)<input name="expectedSlots" type="number" min="0" ${hasChildren ? 'disabled' : 'max="144" required'} step="1" value="${taskExpectedSlots(t)}"></label>${hasChildren ? '<p class="hint">محسوبة تلقائيًا من مجموع خانات المهام الفرعية النهائية؛ عدّل الخانات من الفروع.</p>' : ''}
  <div class="field task-action-field"><input type="hidden" name="actionId" value="${esc(t.actionId || '')}"><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span class="task-action-caption">الفعل المرتبط</span><span class="task-action-selected" data-task-action-label>بدون ربط — اختر فعلًا</span><span class="task-action-arrow" aria-hidden="true">▾</span></button></div>
  ${includeDate ? `<label class="field">اليوم (اتركه فارغًا لصندوق الوارد)<input name="taskDate" type="date" value="${t.date || ''}"></label>${periodPicker(t)}` : ''}`;
@@ -735,14 +731,15 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
         ? [projectId]
         : [],
   };
-  dialog.innerHTML = `<div class="dialog-head"><h2 id="plannerTitle">${t ? 'تعديل وتوزيع المهمة' : parent ? 'إضافة مهمة فرعية' : 'إضافة مهمة'}</h2><button type="button" id="closePlanner" aria-label="إغلاق">×</button></div><form id="plannerForm"><label class="field">المهمة<input name="taskName" maxlength="150" required value="${esc(draft.name)}"></label><label class="field">وصف قصير للمهمة<input name="taskDescription" maxlength="500" value="${esc(draft.description || '')}" placeholder="مثل: من 1 إلى 21"></label>${draft.parentId ? `<p>ضمن: ${esc(parentName(draft))}</p>` : ''}<div class="planner-fields">${taskFields(draft)}${t ? `<label class="field">الخانات المنجزة<input name="completedSlots" type="number" min="0" max="9999" step="1" required value="${completedSlots(t)}"></label>` : ''}</div><p id="plannerCapacity" class="capacity-note"></p><label class="field">بداية التنفيذ في خانات الفعل المطلوب<select name="startSlot"></select></label><p class="hint">التخطيط يحجز عدد الخانات المتوقع ويكتب الفعل المرتبط. لا يغيّر تسجيلك الفعلي ولا يضع علامة إنجاز تلقائيًا.</p>${t?.recurrent ? '<p class="hint">تعديل هذه النسخة يفصلها عن السلسلة لهذا اليوم فقط.</p>' : ''}<p id="plannerError" role="alert"></p><button class="primary">حفظ المهمة</button></form>${t ? '<div class="planner-edit-actions"><button type="button" id="editorAddChild" class="secondary">＋ إضافة مهمة فرعية</button><button type="button" id="editorDeleteTask" class="danger">حذف المهمة</button></div>' : ''}`;
+  dialog.innerHTML = `<div class="dialog-head"><h2 id="plannerTitle">${t ? 'تعديل وتوزيع المهمة' : parent ? 'إضافة مهمة فرعية' : 'إضافة مهمة'}</h2><button type="button" id="closePlanner" aria-label="إغلاق">×</button></div><form id="plannerForm"><div class="planner-main-fields"><label class="field">المهمة<input name="taskName" maxlength="150" required value="${esc(draft.name)}"></label><label class="field">وصف قصير للمهمة<input name="taskDescription" maxlength="500" value="${esc(draft.description || '')}" placeholder="مثل: من 1 إلى 21"></label></div>${draft.parentId ? `<p>ضمن: ${esc(parentName(draft))}</p>` : ''}<div class="planner-fields">${taskFields(draft)}${t ? `<label class="field">الخانات المنجزة<input name="completedSlots" type="number" min="0" max="9999" step="1" required value="${completedSlots(t)}"></label>` : ''}</div><details class="planner-capacity-details"><summary>عرض الخانات المتاحة في الفترات</summary><p id="plannerCapacity" class="capacity-note"></p></details><label class="field">بداية التنفيذ في خانات الفعل المطلوب<select name="startSlot"></select></label><p class="hint">التخطيط يحجز عدد الخانات المتوقع ويكتب الفعل المرتبط. لا يغيّر تسجيلك الفعلي ولا يضع علامة إنجاز تلقائيًا.</p>${t?.recurrent ? '<p class="hint">تعديل هذه النسخة يفصلها عن السلسلة لهذا اليوم فقط.</p>' : ''}<p id="plannerError" role="alert"></p><div class="planner-form-actions"><button class="primary">حفظ المهمة</button><button type="button" class="secondary" data-editor-cancel>إلغاء</button></div></form>${t ? '<div class="planner-edit-actions"><button type="button" id="editorAddChild" class="secondary">＋ إضافة مهمة فرعية</button><button type="button" id="editorDeleteTask" class="danger">حذف المهمة</button></div>' : ''}`;
   if (t) {
     const children = childTasks(t);
     if (children.length) {
-      const section = document.createElement('section');
+      const section = document.createElement('details');
       section.className = 'editor-subtasks';
+      section.open = children.length <= 3;
       section.innerHTML =
-        '<h3>المهام الفرعية</h3>' + children.map((c) => taskCard(c)).join('');
+        '<summary>المهام الفرعية (' + children.length + ')</summary>' + children.map((c) => taskCard(c)).join('');
       dialog.append(section);
       bindTaskCards(section, true);
     }
@@ -763,6 +760,7 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
   const form = $('#plannerForm'),
     f = form.elements;
   attachTaskActionPicker(form);
+  attachTaskProjectSummary(form);
   const refresh = () => {
     const key = f.taskDate.value,
       periods = selectedTaskPeriods(form),
@@ -800,6 +798,7 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
   refresh();
   if (draft.startSlot != null) f.startSlot.value = String(draft.startSlot);
   $('#closePlanner').onclick = () => dialog.close();
+  form.querySelector('[data-editor-cancel]').onclick = () => dialog.close();
   if (t) {
     $('#editorAddChild').onclick = () => {
       dialog.close();
@@ -927,6 +926,7 @@ function renderRepeat(edit = null) {
   extra.innerHTML = taskFields(edit || {}, false);
   form.insertBefore(extra, form.querySelector('.primary'));
   attachTaskActionPicker(form);
+  attachTaskProjectSummary(form);
   const legacyPeriod = form.querySelector('[name=prayer]').closest('label');
   legacyPeriod.outerHTML = periodPicker(edit || { prayer: prayer });
   bindPeriodPicker(form);
