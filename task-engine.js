@@ -9,17 +9,54 @@ function normalizeTaskPriorities(){
 }
 function actualTasksForSlot(key,n){const p=prayerOrder.find(p=>periodSlots(key,p).includes(n));return sortedTasks(allTasksOn(key).filter(t=>taskInPeriod(t,p))).map(t=>({...t,parentName:t.parentId?mainTask(t).name:''}))}
 
-// Each final subtask has equal weight; ancestors never count a second time.
-function progressEntries(){
- const entries=taskEntries();
- for(const t of allTasksOn(date))if(!entries.some(x=>taskIdentity(x)===taskIdentity(t)))entries.push(t);
- return entries;
+// Cache derived reads only during one synchronous view/editor update. A save clears
+// the scope, and finally releases it, so edits, imports and remote snapshots stay fresh.
+let taskReadCache=null;
+function taskReadScope(fn){return function(...args){
+ if(taskReadCache)return fn.apply(this,args);
+ taskReadCache=new Map();try{return fn.apply(this,args)}finally{taskReadCache=null}
+}}
+function cachedTaskRead(key,read){
+ if(!taskReadCache)return read();
+ if(!taskReadCache.has(key))taskReadCache.set(key,read());
+ return taskReadCache.get(key);
 }
-function parentTask(t,entries=progressEntries()){return t?.parentId?entries.find(p=>p.id===t.parentId&&(t.parentDate===undefined||(p.date||'')===t.parentDate)):null}
-function mainTask(t,entries=progressEntries()){
+function invalidateTaskReads(){taskReadCache?.clear()}
+function taskEntryIndex(entries){
+ const indexes=cachedTaskRead('indexes',()=>new WeakMap());
+ if(indexes.has(entries))return indexes.get(entries);
+ const index={byId:new Map(),byIdentity:new Map(),children:new Map(),datedChildren:new Map(),order:new WeakMap(),roots:new WeakMap()};
+ for(const [position,t] of entries.entries()){
+  index.order.set(t,position);
+  if(!index.byId.has(t.id))index.byId.set(t.id,t);
+  const identity=taskIdentity(t);if(!index.byIdentity.has(identity))index.byIdentity.set(identity,t);
+  if(t.parentId){
+   const map=t.parentDate===undefined?index.children:index.datedChildren;
+   const key=t.parentDate===undefined?t.parentId:taskIdentity({id:t.parentId,date:t.parentDate});
+   if(!map.has(key))map.set(key,[]);map.get(key).push(t);
+  }
+ }
+ indexes.set(entries,index);return index;
+}
+
+// Each final subtask has equal weight; ancestors never count a second time.
+function progressEntries(){return cachedTaskRead('progress:'+date,()=>{
+ const entries=[...taskEntries()],seen=new Set(entries.map(taskIdentity));
+ for(const t of allTasksOn(date)){const key=taskIdentity(t);if(!seen.has(key)){seen.add(key);entries.push(t)}}
+ return entries;
+})}
+function parentTask(t,entries=progressEntries()){
+ if(!t?.parentId)return null;
+ if(taskReadCache){const index=taskEntryIndex(entries);return t.parentDate===undefined?index.byId.get(t.parentId):index.byIdentity.get(taskIdentity({id:t.parentId,date:t.parentDate}))}
+ return entries.find(p=>p.id===t.parentId&&(t.parentDate===undefined||(p.date||'')===t.parentDate));
+}
+function mainTask(t,entries){
+ if(!t?.parentId)return t;
+ entries??=progressEntries();const roots=taskReadCache?taskEntryIndex(entries).roots:null;
+ if(roots?.has(t))return roots.get(t);
  const seen=new Set();let current=t;
- while(current?.parentId&&!seen.has(taskIdentity(current))){seen.add(taskIdentity(current));const parent=parentTask(current,entries);if(!parent)return {id:current.parentId,date:current.parentDate||'',name:current.parentName||'مهمة رئيسية محذوفة',projectId:current.projectId,virtual:true};current=parent}
- return current;
+ while(current?.parentId&&!seen.has(taskIdentity(current))){seen.add(taskIdentity(current));const parent=parentTask(current,entries);if(!parent){current={id:current.parentId,date:current.parentDate||'',name:current.parentName||'مهمة رئيسية محذوفة',projectId:current.projectId,virtual:true};break}current=parent}
+ roots?.set(t,current);return current;
 }
 function taskGroups(list){
  const entries=progressEntries(),groups=new Map();
@@ -35,7 +72,13 @@ function openTaskManager(t){
 }
 function effectiveProjectId(t){return mainTask(t)?.projectId||''}
 function taskIdentity(t){return JSON.stringify([t.id,t.date||''])}
-function childTasks(t,entries=progressEntries()){return entries.filter(c=>c.parentId===t.id&&(c.parentDate===undefined||c.parentDate===(t.date||'')))}
+function childTasks(t,entries=progressEntries()){
+ if(!taskReadCache)return entries.filter(c=>c.parentId===t.id&&(c.parentDate===undefined||c.parentDate===(t.date||'')));
+ const index=taskEntryIndex(entries),dated=index.datedChildren.get(taskIdentity(t))||[],legacy=index.children.get(t.id)||[];
+ if(!legacy.length)return dated;
+ if(!dated.length)return legacy;
+ return [...dated,...legacy].sort((a,b)=>index.order.get(a)-index.order.get(b));
+}
 function progressLeaves(roots,entries=progressEntries(),projectId=null){
  const leaves=new Map();
  function visit(t,path=new Set(),inheritedDone=false){
@@ -51,7 +94,7 @@ function progressLeaves(roots,entries=progressEntries(),projectId=null){
 function leafCompletion(t){return t.rollupDone||outcome(t)==='done'?100:t.expectedSlots>0?Math.min(100,completedSlots(t)/t.expectedSlots*100):0}
 function averageCompletion(list){return list.length?list.reduce((sum,t)=>sum+leafCompletion(t),0)/list.length:0}
 function taskCompletion(t,entries){return outcome(t)==='done'?100:averageCompletion(progressLeaves([t],entries))}
-function projectCompletion(id){const entries=progressEntries();return averageCompletion(progressLeaves(entries.filter(t=>effectiveProjectId(t)===id),entries,id))}
+function projectCompletion(id){return cachedTaskRead('projectCompletion:'+id,()=>{const entries=progressEntries();return averageCompletion(progressLeaves(entries.filter(t=>effectiveProjectId(t)===id),entries,id))})}
 function percentLabel(value){return Number(value.toFixed(1))+'٪'}
 function taskProgressBar(t){const value=taskCompletion(t);return `<progress class="task-progress-bar" value="${value}" max="100" aria-label="إنجاز ${esc(t.name)}: ${percentLabel(value)}"></progress>`}
 function completionField(t){return `<div class="field">نسبة الإنجاز: <strong>${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}<p class="hint">تُحسب من المهام الفرعية النهائية، أو من الخانات المنجزة ÷ المتوقعة عند عدم وجود فروع. علامة صح تجعل الإنجاز ١٠٠٪، وإلغاؤها يعيد النسبة المحسوبة.</p></div>`}
@@ -81,17 +124,17 @@ function initializeTaskHistory(){
  }
  if(changed)save();
 }
-function allTasksOn(key){
+function allTasksOn(key){return cachedTaskRead('day:'+key,()=>{
  const d=state.sunsetDays[key]||emptyDay();
- const repeats=key<activeDay()?(d.repeatSnapshot||[]):repeatFor(key);
+ const repeats=key<cachedTaskRead('today',()=>activeDay())?(d.repeatSnapshot||[]):repeatFor(key);
  return [...d.tasks,...repeats.filter(t=>!d.excludedRepeat?.[t.id])].map(t=>({...t,date:key}));
-}
+})}
 function outcome(t){if(!t.date)return t.inboxOutcome||'pending';const d=state.sunsetDays[t.date];return d?.done?.[t.id]?'done':d?.failed?.[t.id]?'failed':'pending'}
 function setInboxOutcome(t,value){if(t.inboxOutcome===value)delete t.inboxOutcome;else t.inboxOutcome=value}
 function completedSlots(t){return t.date?state.sunsetDays[t.date]?.taskProgress?.[t.id]||0:t.completedSlotCount||0}
-function taskEntries(){return [...Object.keys(state.sunsetDays).sort().flatMap(allTasksOn),...(state.taskInbox||[]).map(t=>({...t,date:''}))]}
+function taskEntries(){return cachedTaskRead('entries',()=>[...Object.keys(state.sunsetDays).sort().flatMap(allTasksOn),...(state.taskInbox||[]).map(t=>({...t,date:''}))])}
 function findTask(id,key){return key?allTasksOn(key).find(t=>t.id===id):(state.taskInbox||[]).find(t=>t.id===id)}
-function parentName(t){if(!t.parentId)return '';return t.parentName||taskEntries().find(x=>x.id===t.parentId)?.name||'مهمة رئيسية'}
+function parentName(t){if(!t.parentId)return '';if(t.parentName)return t.parentName;const entries=taskEntries(),parent=taskReadCache?taskEntryIndex(entries).byId.get(t.parentId):entries.find(x=>x.id===t.parentId);return parent?.name||'مهمة رئيسية'}
 function periodSlots(key,p){const previous=date;try{date=key;return range(p)}finally{date=previous}}
 function capacity(key,p,ignoreId=''){
  const d=state.sunsetDays[key]||emptyDay(),slots=periodSlots(key,p);

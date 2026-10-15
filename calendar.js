@@ -4,8 +4,18 @@ const prayerOrder=[3,4,0,1,2], prayerFields=['fajr','dhuhr','asr','maghrib','ish
 const cairoLocation={name:'القاهرة',lat:30.0444,lon:31.2357,zone:'Africa/Cairo'};
 const prayerCache=new Map();
 function addDate(s,n){let d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
-function zonedDate(now=new Date()){let parts=new Intl.DateTimeFormat('en-CA',{timeZone:state.location.zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);let v=t=>parts.find(p=>p.type===t).value;return `${v('year')}-${v('month')}-${v('day')}`}
-function clockAt(d){return new Intl.DateTimeFormat('en-GB',{timeZone:state.location.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d)}
+// Intl formatters are expensive to construct, especially on mobile devices.
+const calendarFormatters=new Map();
+function calendarFormatter(locale,options){
+ const key=JSON.stringify([locale,options]);
+ if(!calendarFormatters.has(key)){
+  if(calendarFormatters.size>=24)calendarFormatters.clear();
+  calendarFormatters.set(key,new Intl.DateTimeFormat(locale,options));
+ }
+ return calendarFormatters.get(key);
+}
+function zonedDate(now=new Date()){let parts=calendarFormatter('en-CA',{timeZone:state.location.zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);let v=t=>parts.find(p=>p.type===t).value;return `${v('year')}-${v('month')}-${v('day')}`}
+function clockAt(d){return calendarFormatter('en-GB',{timeZone:state.location.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d)}
 function solar(civil){let key=JSON.stringify([civil,state.location,state.method,state.offsets]);if(prayerCache.has(key))return prayerCache.get(key);let [y,m,d]=civil.split('-').map(Number),c=new adhan.Coordinates(state.location.lat,state.location.lon),params=adhan.CalculationMethod[state.method]();params.highLatitudeRule=adhan.HighLatitudeRule.recommended(c);for(let i=0;i<5;i++)params.adjustments[prayerFields[i]]=state.offsets[i];let p=new adhan.PrayerTimes(c,new Date(y,m-1,d,12),params);if(prayerFields.some(f=>!Number.isFinite(+p[f])))throw Error('تعذر حساب المواقيت لهذا الموقع؛ اختر موقعًا آخر.');prayerCache.set(key,p);return p}
 function activeDay(now=new Date()){let civil=zonedDate(now);return +now>=+solar(civil).maghrib?addDate(civil,1):civil}
 function timesFor(logical){let prev=solar(addDate(logical,-1)),today=solar(logical);return prayerFields.map((f,i)=>clockAt((i===3||i===4?prev:today)[f]))}
@@ -16,8 +26,8 @@ for(const day of [addDate(civil,-1),civil]){const p=solar(day);for(let i=0;i<pra
 return chosen;
 }
 function prayerTimes(){return timesFor(date)}
-function hijriLabel(logical){let d=new Date(addDate(logical,state.hijriOffset)+'T12:00:00Z');return new Intl.DateTimeFormat('ar-EG-u-ca-islamic-umalqura',{timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)}
-function gregorianLabel(){return new Intl.DateTimeFormat('ar-EG',{timeZone:state.location.zone,weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date())}
+function hijriLabel(logical){let d=new Date(addDate(logical,state.hijriOffset)+'T12:00:00Z');return calendarFormatter('ar-EG-u-ca-islamic-umalqura',{timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)}
+function gregorianLabel(){return calendarFormatter('ar-EG',{timeZone:state.location.zone,weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date())}
 function dayRangeLabel(){return `من مغرب ${addDate(date,-1)} (${displayTime(prayerTimes()[3])}) إلى مغرب ${date} (${displayTime(clockAt(solar(date).maghrib))})`}
 function emptyDay(){return {slots:{},checks:{},tasks:[],done:{}}}
 function setupCalendar(){state.location??={...cairoLocation};state.method??='Egyptian';state.offsets??=[0,0,0,0,0];state.hijriOffset??=0;

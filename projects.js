@@ -13,8 +13,7 @@ function validateProjects(s){
  }
 }
 function projectTasks(id){
- const entries=taskEntries();
- for(const t of allTasksOn(date))if(!entries.some(x=>x.id===t.id&&x.date===t.date))entries.push(t);
+ const entries=progressEntries();
  return sortedTasks(entries.filter(t=>effectiveProjectId(t)===id));
 }
 // Order belongs to the project; it never changes task priority, dates or parent links.
