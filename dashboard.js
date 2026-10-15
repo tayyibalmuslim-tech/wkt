@@ -436,8 +436,9 @@ function groupedPlannerTasks(list) {
     byProject = new Map(projects.map((p) => [p.id, []])),
     unassigned = [];
   for (const t of list) {
-    const bucket = byProject.get(effectiveProjectId(t));
-    (bucket || unassigned).push(t);
+    const ids = effectiveProjectIds(t).filter((id) => byProject.has(id));
+    if (!ids.length) unassigned.push(t);
+    else ids.forEach((id) => byProject.get(id).push(t));
   }
   const available = projects.filter((p) => byProject.get(p.id).length);
   if (!available.some((p) => p.id === plannerProjectTabs[plannerTab]))
@@ -623,7 +624,7 @@ function monthlyTasks(key, entries = progressEntries()) {
       return (
         t.showInMonthlyCalendar !== false &&
         (monthFilters.project === 'all' ||
-          mainTask(t, entries)?.projectId === monthFilters.project) &&
+          effectiveProjectIds(t, entries).includes(monthFilters.project)) &&
         (monthFilters.category === 'all' ||
           ActionCategories.category(state, action)?.id ===
             monthFilters.category) &&

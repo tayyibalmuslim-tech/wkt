@@ -2547,3 +2547,61 @@ nav button {
 nav .ui-icon {
   margin-inline-end: var(--space-2);
 }
+
+/* Compact multi-project picker; one task may belong to several projects. */
+.task-project-picker {
+  min-width: 0;
+  grid-column: 1/-1;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0;
+}
+.task-project-picker legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-brand);
+  padding-inline: 6px;
+}
+.task-project-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 6px;
+  max-height: 175px;
+  overflow-y: auto;
+}
+.task-project-options label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  min-width: 0;
+  cursor: pointer;
+  font-size: 12px;
+}
+.task-project-options label:has(input:checked) {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+.task-project-options label:has(input:disabled) {
+  opacity: 0.7;
+  cursor: default;
+}
+.task-project-options input {
+  flex-shrink: 0;
+  margin: 0;
+}
+.task-project-options span {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 650px) {
+  .task-project-options label,
+  .monthly-visibility,
+  .days label {
+    min-height: 40px;
+  }
+}

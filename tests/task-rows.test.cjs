@@ -18,6 +18,7 @@ w.HTMLDialogElement.prototype.close = function () {
 };
 w.confirm = () => true;
 const errors = [];
+dom.virtualConsole.on('jsdomError', (e) => errors.push(e.message));
 w.addEventListener('error', (e) => errors.push(e.error));
 w.eval(
   [
@@ -317,6 +318,18 @@ try {
     dated[0].querySelector('.task-children > .task-row').dataset.taskDate,
     dated[0].dataset.taskDate,
   );
+  // A shared family's live progress updates both project summaries immediately.
+  run(
+    `state.sunsetDays={};state.taskInbox=[{id:'ui-shared',name:'مشتركة',projectIds:['ui-a','ui-b']},{id:'ui-shared-child',name:'فرع مشترك',parentId:'ui-shared',parentDate:'',expectedSlots:2},{id:'ui-exclusive',name:'خاصة',projectId:'ui-b'}];state.projects=[{id:'ui-a',name:'أ'},{id:'ui-b',name:'ب'}];selectedProject='ui-a';view='projects';expandedTaskRows.clear();render();window.uiRenderCount=0;`,
+  );
+  own(row('ui-shared'), '[data-task-toggle]').click();
+  own(row('ui-shared-child'), '[data-task-select]').click();
+  own(row('ui-shared-child'), '[data-outcome="done"]').click();
+  assert.equal(run("projectCompletion('ui-a')"), 100);
+  assert.equal(run("projectCompletion('ui-b')"), 50);
+  assert.ok($('[data-project-summary="ui-b"]').textContent.includes('50٪'));
+  assert.equal($('#projectDetails > progress').value, 100);
+  assert.equal(run('window.uiRenderCount'), 0);
   // Deep families cap visual indentation; persisted parent links remain unmodified.
   run(
     `state.taskInbox=Array.from({length:9},(_,i)=>({id:'deep-'+i,name:'مستوى '+i,projectId:'deep',...(i?{parentId:'deep-'+(i-1),parentDate:''}:{})}));state.sunsetDays={};state.projects=[{id:'deep',name:'مستويات'}];selectedProject='deep';expandedTaskRows.clear();render();`,

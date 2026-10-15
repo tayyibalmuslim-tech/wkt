@@ -135,6 +135,7 @@ function mainTask(t, entries) {
         date: current.parentDate || '',
         name: current.parentName || 'مهمة رئيسية محذوفة',
         projectId: current.projectId,
+        projectIds: current.projectIds,
         virtual: true,
       };
       break;
@@ -175,8 +176,25 @@ function openTaskManager(t) {
   bindTaskCards(dialog, true);
   dialog.showModal();
 }
+// projectId remains the legacy primary link; projectIds contains all memberships.
+function taskProjectIds(t) {
+  return Array.isArray(t?.projectIds)
+    ? t.projectIds
+    : t?.projectId
+      ? [t.projectId]
+      : [];
+}
+function effectiveProjectIds(t, entries) {
+  return taskProjectIds(mainTask(t, entries) || t);
+}
 function effectiveProjectId(t) {
-  return mainTask(t)?.projectId || '';
+  return effectiveProjectIds(t)[0] || '';
+}
+function setTaskProjects(t, ids) {
+  const unique = [...new Set(ids.filter(Boolean))];
+  t.projectIds = unique;
+  t.projectId = unique[0] || '';
+  return t;
 }
 function taskIdentity(t) {
   return JSON.stringify([t.id, t.date || '']);
@@ -206,10 +224,7 @@ function progressLeaves(roots, entries = progressEntries(), projectId = null) {
     nextPath.add(key);
     const done = inheritedDone || outcome(t) === 'done';
     const children = childTasks(t, entries).filter(
-      (c) =>
-        !projectId ||
-        !effectiveProjectId(c) ||
-        effectiveProjectId(c) === projectId,
+      (c) => !projectId || effectiveProjectIds(c, entries).includes(projectId),
     );
     if (children.length) children.forEach((c) => visit(c, nextPath, done));
     else {
@@ -242,7 +257,7 @@ function projectCompletion(id) {
     const entries = progressEntries();
     return averageCompletion(
       progressLeaves(
-        entries.filter((t) => effectiveProjectId(t) === id),
+        entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
         entries,
         id,
       ),
@@ -656,16 +671,15 @@ function attachTaskActionPicker(form) {
   updateLabel();
 }
 function formProjectField(dialog, t) {
-  const select = dialog.querySelector('[name=projectId]');
-  if (!select) return;
-  select.value = effectiveProjectId(t);
-  const hidden = document.createElement('input');
-  hidden.type = 'hidden';
-  hidden.name = 'projectId';
-  hidden.value = select.value;
-  select.removeAttribute('name');
-  select.disabled = true;
-  select.after(hidden);
+  const picker = dialog.querySelector('.task-project-picker');
+  if (!picker) return;
+  picker
+    .querySelectorAll('input[name=projectIds]')
+    .forEach((input) => (input.disabled = true));
+  picker.insertAdjacentHTML(
+    'beforeend',
+    '<small class="hint">المهام الفرعية تتبع مشاريع المهمة الرئيسية. عدّل الرئيسية لتغيير المشاريع.</small>',
+  );
 }
 function openPlannerEditor(t = null, parent = null, projectId = '') {
   let dialog = $('#plannerEditor');
@@ -687,6 +701,11 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
     parentName: parent?.name,
     parentDate: parent?.date || '',
     projectId: parent?.projectId || projectId,
+    projectIds: parent
+      ? effectiveProjectIds(parent)
+      : projectId
+        ? [projectId]
+        : [],
   };
   dialog.innerHTML = `<div class="dialog-head"><h2 id="plannerTitle">${t ? 'تعديل وتوزيع المهمة' : parent ? 'إضافة مهمة فرعية' : 'إضافة مهمة'}</h2><button type="button" id="closePlanner" aria-label="إغلاق">×</button></div><form id="plannerForm"><label class="field">المهمة<input name="taskName" maxlength="150" required value="${esc(draft.name)}"></label><label class="field">وصف قصير للمهمة<input name="taskDescription" maxlength="500" value="${esc(draft.description || '')}" placeholder="مثل: من 1 إلى 21"></label>${draft.parentId ? `<p>ضمن: ${esc(parentName(draft))}</p>` : ''}<div class="planner-fields">${taskFields(draft)}${t ? `<label class="field">الخانات المنجزة<input name="completedSlots" type="number" min="0" max="9999" step="1" required value="${completedSlots(t)}"></label>` : ''}</div><p id="plannerCapacity" class="capacity-note"></p><label class="field">بداية التنفيذ في خانات الفعل المطلوب<select name="startSlot"></select></label><p class="hint">التخطيط يحجز عدد الخانات المتوقع ويكتب الفعل المرتبط. لا يغيّر تسجيلك الفعلي ولا يضع علامة إنجاز تلقائيًا.</p>${t?.recurrent ? '<p class="hint">تعديل هذه النسخة يفصلها عن السلسلة لهذا اليوم فقط.</p>' : ''}<p id="plannerError" role="alert"></p><button class="primary">حفظ المهمة</button></form>${t ? '<div class="planner-edit-actions"><button type="button" id="editorAddChild" class="secondary">＋ إضافة مهمة فرعية</button><button type="button" id="editorDeleteTask" class="danger">حذف المهمة</button></div>' : ''}`;
   if (t) {
@@ -777,12 +796,14 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
       const count = +f.expectedSlots.value;
       if (!Number.isInteger(count) || count < 0 || count > 96)
         throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و٩٦.');
+      const selectedProjects = selectedProjectIds(form, draft);
       const next = {
           ...draft,
           name,
           description: f.taskDescription.value.trim(),
           showInMonthlyCalendar: f.showInMonthlyCalendar.checked,
-          projectId: f.projectId.value,
+          projectIds: selectedProjects,
+          projectId: selectedProjects[0] || '',
           priority: +f.priority.value,
           expectedSlots: count,
           actionId: f.actionId.value,
@@ -811,7 +832,7 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
         next.expectedSlots === (t.expectedSlots || 0) &&
         next.actionId === (t.actionId || '') &&
         next.startSlot === (t.startSlot ?? null) &&
-        next.projectId === (t.projectId || '');
+        JSON.stringify(next.projectIds) === JSON.stringify(taskProjectIds(t));
       if (progressOnly) {
         (taskDay(t.date).taskProgress ??= {})[t.id] = progress;
         save();
@@ -896,10 +917,12 @@ function renderRepeat(edit = null) {
     }
     initializeTaskHistory();
     const periods = selectedTaskPeriods(form);
+    const ids = selectedProjectIds(form);
     const fields = {
       description: f.taskDescription.value.trim(),
       showInMonthlyCalendar: f.showInMonthlyCalendar.checked,
-      projectId: f.projectId.value,
+      projectIds: ids,
+      projectId: ids[0] || '',
       prayers: periods,
       prayer: periods[0] ?? null,
       priority: +f.priority.value,
@@ -1012,6 +1035,14 @@ function validatePlanning(s) {
     for (const key of ['actionId', 'parentId', 'parentName', 'projectId'])
       if (t[key] !== undefined && typeof t[key] !== 'string')
         throw Error('بيانات مهمة غير صالحة');
+    if (
+      t.projectIds !== undefined &&
+      (!Array.isArray(t.projectIds) ||
+        t.projectIds.length > 100 ||
+        t.projectIds.some((id) => typeof id !== 'string' || !id) ||
+        new Set(t.projectIds).size !== t.projectIds.length)
+    )
+      throw Error('روابط المشاريع غير صالحة');
   };
   for (const t of [
     ...(s.taskInbox || []),
