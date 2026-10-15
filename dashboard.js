@@ -13,7 +13,6 @@ function taskCard(t,path=new Set()){
  ${projectName(t)?`<p class="task-meta">المشروع: ${esc(projectName(t))}</p>`:''}
  ${t.parentId?`<p class="task-parent">↳ ${esc(parentName(t))}</p>`:''}
  <p class="task-completion">الإنجاز: <strong>${percentLabel(taskCompletion(t))}</strong>${taskProgressBar(t)}</p><div class="task-effort">${t.date?`<label>الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" value="${count}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>`:'<span>التقدير</span>'}<strong> / ${expected} خانة مستهدفة</strong><span class="hint">${expected*15} دقيقة مخططة${count>expected?' · تجاوزت المستهدف':''}</span></div>
- ${expected?`<progress value="${Math.min(count,expected)}" max="${expected}" aria-label="تقدم الخانات"></progress>`:''}
 
  <div class="task-controls"><button data-outcome="done" class="secondary ${status==='done'?'selected-outcome':''}" aria-pressed="${status==='done'}">✓ فعلتها</button><button data-outcome="failed" class="secondary ${status==='failed'?'selected-outcome':''}" aria-pressed="${status==='failed'}">✕ لم أفعلها</button><button data-task-edit class="secondary">${t.date?'تعديل / توزيع':'توزيع المهمة'}</button><button data-task-child class="secondary">＋ فرعية</button><button data-task-delete class="danger">حذف</button></div> ${children.length?`<details class="task-children"><summary>${children.length} مهام فرعية · ${doneChildren} مكتملة</summary>${children.map(c=>taskCard(c,path)).join('')}</details>`:''} </article>`;
 }
