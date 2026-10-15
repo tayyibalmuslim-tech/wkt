@@ -2879,3 +2879,107 @@ nav .ui-icon {
     margin-inline-start: auto;
   }
 }
+
+/* A compact dashboard: summaries first, then lists and on-demand context. */
+.dashboard-workspace .top {
+  margin-bottom: var(--space-2);
+}
+.dashboard-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: var(--color-secondary);
+  font-size: 0.85rem;
+  padding-block: 8px 12px;
+}
+.dashboard-summary strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-workspace .planner-toolbar {
+  margin-block: 8px;
+}
+.dashboard-workspace > .planner-tabs {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+.dashboard-workspace [data-planner-tab='month'] {
+  margin-inline-start: auto;
+}
+.dashboard-list {
+  padding: 12px;
+}
+.dashboard-list .dashboard-filters {
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) repeat(3, minmax(100px, 1fr));
+  gap: 10px;
+}
+.dashboard-help {
+  font-size: 0.8rem;
+  color: var(--color-secondary);
+  margin-block: 8px;
+}
+.dashboard-help summary {
+  cursor: pointer;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+.dashboard-workspace .planner-period {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.dashboard-workspace .planner-period .panel-title {
+  margin-bottom: 0;
+}
+.dashboard-workspace .capacity-note {
+  margin-block: 2px 6px;
+  font-size: 0.78rem;
+}
+.dashboard-workspace .planner-task-section h2,
+.dashboard-workspace .planner-period h2 {
+  font-size: 1rem;
+}
+.dashboard-quick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.dashboard-quick input {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-quick label {
+  font-size: 0.9rem;
+}
+@media (max-width: 650px) {
+  .dashboard-list .dashboard-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-list .dashboard-filters .field:first-child {
+    grid-column: 1/-1;
+  }
+  .dashboard-workspace .planner-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .dashboard-workspace .planner-tabs button {
+    flex-shrink: 0;
+    min-height: 40px;
+  }
+  .dashboard-workspace [data-planner-tab='month'] {
+    margin-inline-start: 0;
+  }
+  .dashboard-quick {
+    flex-wrap: wrap;
+  }
+  .dashboard-quick label {
+    width: 100%;
+  }
+  .dashboard-quick button,
+  .dashboard-quick input {
+    min-height: 40px;
+  }
+}

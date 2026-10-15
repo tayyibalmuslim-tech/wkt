@@ -3,6 +3,7 @@ let plannerTab = 'day',
   plannerQuery = '',
   plannerPriority = 'all',
   plannerStatus = 'all',
+  plannerProject = 'all',
   plannerMonth = '',
   plannerWeek = '';
 function dashboardTasks() {
@@ -164,8 +165,11 @@ function toggleTaskRow(card) {
       );
       ancestor = ancestor.parentElement.closest('.task-row');
     }
-    const context =
-      typeof projectRowContext === 'function' ? projectRowContext(card) : null;
+    const context = card.closest('#plannerResults')
+      ? dashboardRowContext
+      : typeof projectRowContext === 'function'
+        ? projectRowContext(card)
+        : null;
     container.innerHTML = childTasks(t)
       .filter((c) => !context?.visible || context.visible.has(taskIdentity(c)))
       .map((c) =>
@@ -433,7 +437,13 @@ function filteredTasks(list) {
             .includes(plannerQuery.trim().toLocaleLowerCase())) &&
         (plannerPriority === 'all' ||
           String(taskPriority(t)) === plannerPriority) &&
-        (plannerStatus === 'all' || outcome(t) === plannerStatus),
+        (plannerStatus === 'all' || outcome(t) === plannerStatus) &&
+        (plannerProject === 'all' ||
+          (plannerProject === 'none'
+            ? !effectiveProjectIds(t).some((id) =>
+                state.projects.some((p) => p.id === id),
+              )
+            : effectiveProjectIds(t).includes(plannerProject))),
     ),
   );
 }
@@ -454,6 +464,27 @@ function dateControls() {
 }
 // Project selection belongs to each backlog view and survives outcome edits.
 const plannerProjectTabs = { inbox: '', missed: '' };
+let dashboardRowContext = null;
+function dashboardTaskCard(task) {
+  return taskCard(task, dashboardRowContext);
+}
+function dashboardFilterContext(list) {
+  if (!plannerQuery.trim()) return null;
+  const visible = new Set(list.map(taskIdentity)),
+    forced = new Set();
+  for (const task of list) {
+    let current = task;
+    const seen = new Set();
+    while (current.parentId && !seen.has(taskIdentity(current))) {
+      seen.add(taskIdentity(current));
+      current = parentTask(current) || mainTask(current);
+      visible.add(taskIdentity(current));
+      forced.add(taskIdentity(current));
+      if (current.virtual) break;
+    }
+  }
+  return { visible, forced };
+}
 function groupedPlannerTasks(list) {
   const projects = state.projects || [],
     byProject = new Map(projects.map((p) => [p.id, []])),
@@ -469,12 +500,26 @@ function groupedPlannerTasks(list) {
   const selected = plannerProjectTabs[plannerTab],
     cards = (tasks) =>
       taskGroups(tasks)
-        .map((t) => taskCard(t))
+        .map((t) => dashboardTaskCard(t))
         .join('');
   return `<section class="planner-task-section" data-planner-section="projects"><h2>مهام المشاريع</h2>${available.length ? `<div class="planner-tabs" role="group" aria-label="مشاريع المهام">${available.map((p) => `<button type="button" class="secondary ${p.id === selected ? 'chosen' : ''}" data-planner-project="${esc(p.id)}" aria-pressed="${p.id === selected}">${esc(p.name)} (${taskGroups(byProject.get(p.id)).length})</button>`).join('')}</div><div class="planner-project-tasks">${cards(byProject.get(selected))}</div>` : '<p class="empty-note">لا توجد مهام تابعة لمشاريع تطابق التصفية.</p>'}</section>
  <section class="planner-task-section" data-planner-section="unassigned"><h2>مهام بدون مشروع (${taskGroups(unassigned).length})</h2>${cards(unassigned) || '<p class="empty-note">لا توجد مهام بدون مشروع تطابق التصفية.</p>'}</section>`;
 }
+const dashboardPositions = new Map();
+let mountedDashboard = '';
+function rememberDashboardPosition() {
+  if (!app.firstElementChild?.classList.contains('dashboard-workspace')) return;
+  dashboardPositions.set(mountedDashboard, {
+    app: app.scrollTop,
+    page: document.scrollingElement?.scrollTop || 0,
+  });
+}
 function renderDashboard() {
+  const reuseShell =
+    !!app.firstElementChild?.classList.contains('dashboard-workspace') &&
+    mountedDashboard.endsWith(':' + date);
+  rememberDashboardPosition();
+  mountedDashboard = plannerTab + ':' + date;
   plannerListRefresh = null;
   const all = allTasksOn(date),
     done = taskGroups(all).filter((t) => taskCompletion(t) === 100).length,
@@ -486,8 +531,8 @@ function renderDashboard() {
     ),
     future = entries.filter((t) => t.date > today && !t.recurrent),
     inbox = state.taskInbox || [];
-  app.innerHTML = `<div class="top"><div><h1>لوحة المهام</h1><p>خطط حول صلاتك، وقس تقدمك بخانات الوقت.</p></div>${dateControls()}</div>
- <div class="hero"><div><h2>${hijriLabel(date)}</h2><p>${dayRangeLabel()}</p></div><div class="stats"><div class="stat"><strong id="dashboardDone">${done}/${taskGroups(all).length}</strong><span>مهام مكتملة</span></div><div class="stat"><strong id="dashboardPending">${pending}</strong><span>بانتظار التسجيل</span></div><div class="stat"><strong>${daySummary(date).checks}/25</strong><span>من مهام الصلوات</span></div></div></div>
+  const dashboardHTML = `<div class="dashboard-workspace"><div class="top"><h1>لوحة المهام</h1>${dateControls()}</div>
+ <div class="dashboard-summary" aria-label="ملخص اليوم"><span>${hijriLabel(date)}</span><span>${dayRangeLabel()}</span><span><strong id="dashboardDone">${done}/${taskGroups(all).length}</strong> مكتملة</span><span><strong id="dashboardPending">${pending}</strong> بانتظار التسجيل</span><span>${daySummary(date).checks}/25 من مهام الصلوات</span></div>
  <div class="planner-toolbar"><button id="newPlannedTask" class="primary">＋ إضافة مهمة وتوزيعها</button><button id="plannerRepeats" class="secondary">↻ المهام المتكررة</button></div>
  <div class="planner-tabs" role="group" aria-label="عروض المهام">${[
    ['day', 'اليوم'],
@@ -502,7 +547,31 @@ function renderDashboard() {
        `<button class="secondary ${plannerTab === v ? 'chosen' : ''}" data-planner-tab="${v}" aria-pressed="${plannerTab === v}">${n}</button>`,
    )
    .join('')}</div>
- <div id="plannerContent"></div>`;
+ <div id="plannerContent"></div></div>`;
+  if (!reuseShell) app.innerHTML = dashboardHTML;
+  else {
+    $('#plannerContent').replaceChildren();
+    $('#dashboardDone').textContent = `${done}/${taskGroups(all).length}`;
+    $('#dashboardPending').textContent = pending;
+    for (const [tab, tasks] of [
+      ['missed', missed],
+      ['future', future],
+      ['inbox', inbox],
+    ]) {
+      const button = $(`[data-planner-tab="${tab}"]`);
+      const label = {
+        missed: 'الفائتة',
+        future: 'المستقبلية',
+        inbox: 'تحتاج توزيعًا',
+      }[tab];
+      button.textContent = `${label} (${taskGroups(tasks).length})`;
+    }
+  }
+  app.querySelectorAll('[data-planner-tab]').forEach((button) => {
+    const chosen = button.dataset.plannerTab === plannerTab;
+    button.classList.toggle('chosen', chosen);
+    button.setAttribute('aria-pressed', String(chosen));
+  });
   $('#plannerDate').onchange = (e) => {
     if (e.target.value) {
       plannerTab = 'day';
@@ -529,22 +598,24 @@ function renderDashboard() {
     (b) =>
       (b.onclick = () => {
         plannerTab = b.dataset.plannerTab;
-        render();
+        document.body.classList.toggle('monthly-view', plannerTab === 'month');
+        renderDashboard();
       }),
   );
   if (plannerTab === 'month') renderTaskMonth();
   else if (plannerTab === 'week') renderTaskWeek();
   else {
     const content = $('#plannerContent');
-    content.innerHTML = `<section class="panel"><div class="dashboard-filters"><label class="field">بحث<input id="plannerSearch" type="search" value="${esc(plannerQuery)}" placeholder="اسم المهمة"></label><label class="field">الأولوية<select id="plannerPriority"><option value="all">كل الأولويات</option>${Object.entries(
+    content.innerHTML = `${plannerTab === 'inbox' ? '<form id="dashboardQuickTask" class="dashboard-quick"><label for="dashboardQuickName">مهمة سريعة</label><input id="dashboardQuickName" name="taskName" required maxlength="150" placeholder="ماذا تريد أن تنجز؟"><button class="primary">إضافة</button></form>' : ''}<section class="panel dashboard-list"><div class="dashboard-filters"><label class="field">بحث<input id="plannerSearch" type="search" value="${esc(plannerQuery)}" placeholder="اسم المهمة"></label><label class="field">الأولوية<select id="plannerPriority"><option value="all">كل الأولويات</option>${Object.entries(
       priorityNames,
     )
       .map(([v, n]) => `<option value="${v}">${n}</option>`)
       .join(
         '',
-      )}</select></label><label class="field">الحالة<select id="plannerStatus"><option value="all">كل الحالات</option><option value="pending">لم تُسجل</option><option value="done">فعلتها</option><option value="failed">لم أفعلها</option></select></label></div><p class="hint">${plannerTab === 'missed' ? 'المهام في الأيام السابقة دون علامة فعلتها أو لم أفعلها، حتى لو سجلت بعض الخانات.' : plannerTab === 'future' ? 'المهام المستقلة والمستقلة عن التكرار في الأيام القادمة؛ لا تشمل السلاسل المتكررة.' : plannerTab === 'inbox' ? 'أفكارك السريعة هنا؛ وزع المهمة عندما تكون مستعدًا.' : 'كل فترة تعرض المهام وإجمالي المتاح والمشغول من الخانات.'}</p><div id="plannerResults"></div></section>`;
+      )}</select></label><label class="field">الحالة<select id="plannerStatus"><option value="all">كل الحالات</option><option value="pending">لم تُسجل</option><option value="done">فعلتها</option><option value="failed">لم أفعلها</option></select></label><label class="field">المشروع<select id="plannerProject"><option value="all">كل المشاريع</option><option value="none">بدون مشروع</option>${state.projects.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label></div><details class="dashboard-help"><summary>عن هذه القائمة</summary><p class="hint">${plannerTab === 'missed' ? 'المهام في الأيام السابقة دون علامة فعلتها أو لم أفعلها، حتى لو سجلت بعض الخانات.' : plannerTab === 'future' ? 'المهام المستقلة والمستقلة عن التكرار في الأيام القادمة؛ لا تشمل السلاسل المتكررة.' : plannerTab === 'inbox' ? 'أفكارك السريعة هنا؛ وزع المهمة عندما تكون مستعدًا.' : 'كل فترة تعرض المهام وإجمالي المتاح والمشغول من الخانات.'}</p></details><div id="plannerResults" data-task-list></div></section>`;
     $('#plannerPriority').value = plannerPriority;
     $('#plannerStatus').value = plannerStatus;
+    $('#plannerProject').value = plannerProject;
     const refresh = taskReadScope(() => {
       const list = filteredTasks(
         plannerTab === 'day'
@@ -555,6 +626,9 @@ function renderDashboard() {
               ? future
               : inbox.map((t) => ({ ...t, date: '' })),
       );
+      dashboardRowContext = dashboardFilterContext(list);
+      const scroll = app.scrollTop,
+        pageScroll = document.scrollingElement?.scrollTop || 0;
       $('#plannerResults').innerHTML =
         plannerTab === 'day'
           ? prayerOrder
@@ -562,7 +636,7 @@ function renderDashboard() {
                 (p) =>
                   `<section class="planner-period"><div class="panel-title"><h2>${names[p]}</h2><button data-add-period="${p}" class="secondary">＋ مهمة</button></div><p class="capacity-note">${capacityText(date, p)}</p>${
                     taskGroups(list.filter((t) => taskInPeriod(t, p)))
-                      .map((t) => taskCard(t))
+                      .map((t) => dashboardTaskCard(t))
                       .join('') ||
                     '<p class="empty-note">لا توجد مهام مطابقة في هذه الفترة.</p>'
                   }<details><summary>قائمة صلاة ${names[p]} · ${checks.filter((_, i) => taskDay(date).checks[p + '-' + i]).length}/5</summary><button class="secondary" data-open-prayer="${p}">عرض وتسجيل مهام الصلاة</button></details></section>`,
@@ -572,13 +646,13 @@ function renderDashboard() {
               ? `<section class="planner-period"><h2>بدون فترة محددة</h2>${taskGroups(
                   list.filter((t) => !taskPeriods(t).length),
                 )
-                  .map((t) => taskCard(t))
+                  .map((t) => dashboardTaskCard(t))
                   .join('')}</section>`
               : '')
           : ['inbox', 'missed'].includes(plannerTab)
             ? groupedPlannerTasks(list)
             : taskGroups(list)
-                .map((t) => taskCard(t))
+                .map((t) => dashboardTaskCard(t))
                 .join('') ||
               '<p class="empty-note">لا توجد مهام في هذه القائمة تطابق التصفية.</p>';
       app.querySelectorAll('[data-planner-project]').forEach(
@@ -588,6 +662,9 @@ function renderDashboard() {
             refresh();
           }),
       );
+      app.scrollTop = scroll;
+      if (document.scrollingElement)
+        document.scrollingElement.scrollTop = pageScroll;
       bindTaskCards();
       app.querySelectorAll('[data-add-period]').forEach(
         (b) =>
@@ -616,8 +693,40 @@ function renderDashboard() {
       plannerStatus = e.target.value;
       refresh();
     };
+    $('#plannerProject').onchange = (e) => {
+      plannerProject = e.target.value;
+      refresh();
+    };
+    const quick = $('#dashboardQuickTask');
+    if (quick)
+      quick.onsubmit = (e) => {
+        e.preventDefault();
+        const name = quick.elements.taskName.value.trim();
+        if (!name) return;
+        (state.taskInbox ??= []).push({
+          id: uid(),
+          name,
+          description: '',
+          priority: 3,
+          expectedSlots: 0,
+          showInMonthlyCalendar: true,
+        });
+        save();
+        quick.reset();
+        refresh();
+        const tab = $('[data-planner-tab="inbox"]');
+        tab.textContent = `تحتاج توزيعًا (${taskGroups(state.taskInbox).length})`;
+        $('#dashboardQuickName').focus({ preventScroll: true });
+        toast('أضيفت إلى المهام التي تحتاج توزيعًا');
+      };
     plannerListRefresh = refresh;
     refresh();
+  }
+  const position = dashboardPositions.get(mountedDashboard);
+  if (position) {
+    app.scrollTop = position.app;
+    if (document.scrollingElement)
+      document.scrollingElement.scrollTop = position.page;
   }
 }
 function openPlannerDay(key) {

@@ -151,6 +151,7 @@ function colorText(c) {
     : '#ffffff';
 }
 function render() {
+  rememberDashboardPosition();
   rememberProjectView();
   app.onclick = app.onchange = app.onkeydown = null;
   document.body.classList.toggle(
@@ -647,6 +648,7 @@ $('#taskEditForm').onsubmit = (e) => {
 };
 // Direct month/week navigation and editor opening also get an isolated read scope.
 render = taskReadScope(render);
+renderDashboard = taskReadScope(renderDashboard);
 renderTaskMonth = taskReadScope(renderTaskMonth);
 renderTaskWeek = taskReadScope(renderTaskWeek);
 openPlannerEditor = taskReadScope(openPlannerEditor);
