@@ -477,7 +477,7 @@ assert.equal(run("state.taskInbox.some(t=>t.id==='shared-parent')"),true);
 assert.deepEqual(Array.from(run("taskProjectIds(findTask('shared-parent',''))")),[]);
 console.log('PASS: shared project membership, inherited subtasks, unified progress, backward compatibility and safe project deletion');
 
-assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');dom.window.close();
+assert.deepEqual(errors,[]);console.log('PASS: inbox, priority, estimates/progress, schedule, outcomes, children, future/backlog, recurrence history, month/week, conflict rollback, daily integration, owned-slot cleanup, validation');
 
 // Project progress weights final tasks by slots, excludes unestimated work and caps overruns.
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'slot-weight',name:'وزن الخانات'}];state.taskInbox=[{id:'slot-root',name:'أصل',projectId:'slot-weight',expectedSlots:100},{id:'slot-small',name:'صغيرة',parentId:'slot-root',parentDate:'',expectedSlots:2,inboxOutcome:'done'},{id:'slot-large',name:'كبيرة',parentId:'slot-root',parentDate:'',expectedSlots:8},{id:'slot-zero',name:'بلا تقدير',projectId:'slot-weight',inboxOutcome:'done',completedSlotCount:50}];render()");
@@ -493,3 +493,31 @@ assert.equal(run("projectCompletion('slot-weight')"),20);
 run("findTask('slot-small','').expectedSlots=0;findTask('slot-large','').expectedSlots=0;render()");
 assert.equal(run("projectCompletion('slot-weight')"),0);
 console.log('PASS: slot-weighted project completion');
+
+// Parent estimates sum final descendants, remain read-only and can exceed a day's slots.
+run("state.sunsetDays={};state.repeat=[];state.projects=[];state.taskInbox=[{id:'sum-root',name:'مجموع الأصل',expectedSlots:7},{id:'sum-branch',name:'فرع',parentId:'sum-root',parentDate:'',expectedSlots:90},{id:'sum-a',name:'ورقة أ',parentId:'sum-branch',parentDate:'',expectedSlots:144},{id:'sum-b',name:'ورقة ب',parentId:'sum-root',parentDate:'',expectedSlots:144}];view='dashboard';plannerTab='inbox';render();openPlannerEditor(findTask('sum-root',''))");
+assert.equal(run("taskExpectedSlots(findTask('sum-root',''))"),288);
+assert.equal(run("taskExpectedSlots(findTask('sum-branch',''))"),144);
+f=$('#plannerForm').elements;
+assert.equal(f.expectedSlots.value,'288');assert.equal(f.expectedSlots.disabled,true);
+f.taskName.value='مجموع محفوظ';submit('#plannerForm');
+assert.equal(run("findTask('sum-root','').name"),'مجموع محفوظ');
+assert.equal(run("taskExpectedSlots(findTask('sum-root',''))"),288);
+run("findTask('sum-a','').expectedSlots=2;save();openPlannerEditor(findTask('sum-root',''))");
+assert.equal($('#plannerForm').elements.expectedSlots.value,'146');
+run("state.taskInbox=state.taskInbox.filter(t=>t.id!=='sum-b');save();openPlannerEditor(findTask('sum-root',''))");
+assert.equal($('#plannerForm').elements.expectedSlots.value,'2');
+run("state.taskInbox=state.taskInbox.filter(t=>!t.parentId);save();openPlannerEditor(findTask('sum-root',''))");
+assert.equal($('#plannerForm').elements.expectedSlots.disabled,false);
+assert.equal($('#plannerForm').elements.expectedSlots.value,'7');
+console.log('PASS: automatic nested parent slot totals, updates and editable leaf estimates');
+
+// Adding an existing dated task to a second project must persist even if no other fields change.
+run("state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[{id:'link-a',name:'أ'},{id:'link-b',name:'ب'}];date=activeDay();taskDay(date).tasks=[{id:'link-dated',name:'مشتركة موزعة',description:'',projectIds:['link-a'],projectId:'link-a',priority:3,prayers:[],expectedSlots:2,actionId:'',startSlot:null,showInMonthlyCalendar:true}];view='projects';selectedProject='link-b';render()");
+click('#linkProjectTask');click('[data-link-task]');
+assert.equal($('#plannerForm').querySelectorAll('input[name="projectIds"]:checked').length,2);
+submit('#plannerForm');
+assert.deepEqual(Array.from(run("taskProjectIds(findTask('link-dated',date))")),['link-a','link-b']);
+assert.equal(run("taskDay(date).tasks.filter(t=>t.id==='link-dated').length"),1);
+console.log('PASS: existing dated task gains project membership without copying or unrelated edits');
+assert.deepEqual(errors,[]);dom.window.close();

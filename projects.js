@@ -561,7 +561,13 @@ function openProjectTaskLink(project) {
           view = 'repeat';
           render();
           renderRepeat(draft);
-        } else openPlannerEditor(draft);
+        } else {
+          // Keep the original identity/fields for change detection; preselect the added membership in the form only.
+          openPlannerEditor(task);
+          document.querySelectorAll('#plannerForm input[name="projectIds"]').forEach(input => {
+            input.checked = projectIds.includes(input.value);
+          });
+        }
       }),
   );
   dialog.showModal();

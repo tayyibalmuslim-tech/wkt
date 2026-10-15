@@ -34,7 +34,7 @@ function taskIcon(name) {
   return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name] || paths.circle}</svg>`;
 }
 function taskRowMetrics(t, children = childTasks(t)) {
-  const expected = t.expectedSlots || 0,
+  const expected = taskExpectedSlots(t),
     count = completedSlots(t);
   const completion = taskCompletion(t);
   return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}" aria-label="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ" aria-label="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}<bdi>${time(t.startSlot)}</bdi></span>` : ''}${expected ? `<span title="الخانات المنجزة / المتوقعة · ${expected * SlotTools.minutes} دقيقة مخططة" aria-label="${count} من ${expected} خانة">${taskIcon('slots')}<bdi>${count}/${expected}</bdi></span>` : ''}${t.recurrent ? `<span title="متكررة" aria-label="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || expected || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;

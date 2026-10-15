@@ -247,6 +247,13 @@ function progressLeaves(roots, entries = progressEntries(), projectId = null) {
   roots.forEach((t) => visit(t));
   return [...leaves.values()];
 }
+// Parent estimates are derived from final descendants; never count an ancestor twice.
+function taskExpectedSlots(t) {
+  if (!t?.id) return t?.expectedSlots || 0;
+  return cachedTaskRead('taskExpectedSlots:' + taskIdentity(t), () =>
+    progressLeaves([t]).reduce((total, leaf) => total + (leaf.expectedSlots || 0), 0),
+  );
+}
 function leafCompletion(t) {
   return t.rollupDone || outcome(t) === 'done'
     ? 100
@@ -634,6 +641,7 @@ function deletePlannedTask(t) {
   return true;
 }
 function taskFields(t = {}, includeDate = true) {
+  const hasChildren = !!t.id && childTasks(t).length > 0;
   return `
  ${projectField(t)}
  <label class="monthly-visibility"><input name="showInMonthlyCalendar" type="checkbox" ${t.showInMonthlyCalendar !== false ? 'checked' : ''}> إظهار في التقويم الشهري</label>
@@ -646,7 +654,7 @@ function taskFields(t = {}, includeDate = true) {
        `<option value="${v}" ${String(taskPriority(t)) === v ? 'selected' : ''}>${n}</option>`,
    )
    .join('')}</select></label>
- <label class="field">الخانات المتوقعة (الخانة ١٠ دقائق)<input name="expectedSlots" type="number" min="0" max="144" step="1" value="${t.expectedSlots || 0}" required></label>
+ <label class="field">الخانات المتوقعة (الخانة ١٠ دقائق)<input name="expectedSlots" type="number" min="0" ${hasChildren ? 'disabled' : 'max="144" required'} step="1" value="${taskExpectedSlots(t)}"></label>${hasChildren ? '<p class="hint">محسوبة تلقائيًا من مجموع خانات المهام الفرعية النهائية؛ عدّل الخانات من الفروع.</p>' : ''}
  <div class="field task-action-field"><input type="hidden" name="actionId" value="${esc(t.actionId || '')}"><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span class="task-action-caption">الفعل المرتبط</span><span class="task-action-selected" data-task-action-label>بدون ربط — اختر فعلًا</span><span class="task-action-arrow" aria-hidden="true">▾</span></button></div>
  ${includeDate ? `<label class="field">اليوم (اتركه فارغًا لصندوق الوارد)<input name="taskDate" type="date" value="${t.date || ''}"></label>${periodPicker(t)}` : ''}`;
 }
@@ -813,7 +821,7 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
         throw Error(
           'تغيرت البيانات أو الحساب. أغلق النافذة وافتح المهمة مجددًا.',
         );
-      const count = +f.expectedSlots.value;
+      const count = f.expectedSlots.disabled ? draft.expectedSlots || 0 : +f.expectedSlots.value;
       if (!Number.isInteger(count) || count < 0 || count > 144)
         throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و١٤٤.');
       const selectedProjects = selectedProjectIds(form, draft);
@@ -925,7 +933,7 @@ function renderRepeat(edit = null) {
   const submit = form.onsubmit;
   form.onsubmit = (e) => {
     const f = form.elements,
-      count = +f.expectedSlots.value;
+      count = f.expectedSlots.disabled ? edit?.expectedSlots || 0 : +f.expectedSlots.value;
     if (!Number.isInteger(count) || count < 0 || count > 144) {
       e.preventDefault();
       toast('الخانات المتوقعة بين ٠ و١٤٤');
