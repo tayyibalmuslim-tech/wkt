@@ -153,6 +153,7 @@ const server = http.createServer((req, res) => {
       'http://127.0.0.1:' + server.address().port,
     );
     await require('./inline-controls-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
+    await require('./project-goals-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
     await require('./accessibility-browser.cjs')(
       browser,
       'http://127.0.0.1:' + server.address().port,

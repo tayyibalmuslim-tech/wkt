@@ -180,7 +180,7 @@ try {
     run("taskCompletion(findTask('ui-root',''))"),
   );
   assert.equal(
-    $('#projectDetails > progress').value,
+    $('#projectDetails progress').value,
     run("projectCompletion('ui-project')"),
   );
   assert.equal(
@@ -329,7 +329,7 @@ try {
   assert.equal(run("projectCompletion('ui-a')"), 100);
   assert.equal(run("projectCompletion('ui-b')"), 50);
   assert.ok($('[data-project-summary="ui-b"]').textContent.includes('50٪'));
-  assert.equal($('#projectDetails > progress').value, 100);
+  assert.equal($('#projectDetails progress').value, 100);
   assert.equal(run('window.uiRenderCount'), 0);
   // Deep families cap visual indentation; persisted parent links remain unmodified.
   run(

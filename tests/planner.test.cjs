@@ -169,7 +169,7 @@ run("state.projects=[{id:'weighted',name:'مشروع النسب'}];state.taskInb
 assert.equal(run("projectCompletion('weighted')"),0);
 click('#projectDetails [data-task-id="pa"] [data-task-toggle]');
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),25);assert.equal(run("taskCompletion(findTask('pa',''))"),50);
-assert.equal($('#projectDetails>progress').value,25);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
+assert.equal($('#projectDetails progress').value,25);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),0);
 click('#projectDetails [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.completedSlots.value='2';submit('#plannerForm');assert.equal(run("projectCompletion('weighted')"),12.5);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
 // Done overrides unfinished children without mutating them; undo restores computed progress.
@@ -261,7 +261,7 @@ assert.equal(run("taskCompletion(findTask('month-parent',addDate(date,-1)))"),50
 click(monthChip('m-sub-a'));click('[data-month-edit]');assert.equal($('#plannerForm').elements.taskName.value,'رئيسية يوم آخر');
 assert.ok($('#plannerEditor [data-task-id="m-sub-a"]'));click('#closePlanner');
 run("view='projects';selectedProject='monthly-project';render()");
-assert.equal($('#projectDetails > progress').value,25);assert.equal($('#projectTaskList > [data-task-id="m-sub-a"]'),null);
+assert.equal($('#projectDetails progress').value,25);assert.equal($('#projectTaskList > [data-task-id="m-sub-a"]'),null);
 run("view='dashboard';plannerTab='month';render();openPlannerEditor(findTask('m-sub-a',date))");
 f=$('#plannerForm').elements;f.showInMonthlyCalendar.checked=false;submit('#plannerForm');assert.equal(run("projectCompletion('monthly-project')"),25);
 assert.equal($(monthChip('m-sub-a')),null);click('#closePlanner');

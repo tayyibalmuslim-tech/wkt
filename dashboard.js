@@ -434,6 +434,7 @@ function refreshTaskRowValues(changed = null) {
     else
       node.textContent = `${percentLabel(projectCompletion(id))} إنجاز · ${done} / ${list.length} مهام مكتملة`;
   });
+  refreshProjectGoals();
   const all = allTasksOn(date),
     groups = taskGroups(all);
   if ($('#dashboardDone'))

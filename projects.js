@@ -42,6 +42,189 @@ function selectedProjectIds(form, t) {
     (input) => input.value,
   );
 }
+// Optional project-local deadlines; actual completion is still derived from tasks.
+function validateProjectGoals(goals) {
+  if (goals === undefined) return;
+  if (!Array.isArray(goals) || goals.length > 100)
+    throw Error('أهداف المشروع غير صالحة؛ الحد الأقصى 100 هدف.');
+  const ids = new Set();
+  for (const goal of goals) {
+    if (
+      !goal ||
+      typeof goal.id !== 'string' ||
+      !goal.id ||
+      goal.id.length > 120 ||
+      ids.has(goal.id) ||
+      typeof goal.date !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(goal.date) ||
+      !Number.isFinite(Date.parse(goal.date + 'T12:00:00Z')) ||
+      new Date(goal.date + 'T12:00:00Z').toISOString().slice(0, 10) !==
+        goal.date ||
+      !Number.isInteger(goal.percent) ||
+      goal.percent < 1 ||
+      goal.percent > 100
+    )
+      throw Error('أدخل تاريخًا صحيحًا ونسبة صحيحة من 1 إلى 100.');
+    ids.add(goal.id);
+  }
+}
+function sortedProjectGoals(project) {
+  return [...(project.goals || [])].sort(
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      a.percent - b.percent ||
+      a.id.localeCompare(b.id),
+  );
+}
+function projectGoalStatus(goal, percent, today = zonedDate()) {
+  if (percent >= goal.percent) return 'متحقق حاليًا';
+  return goal.date < today
+    ? 'تجاوز الموعد'
+    : goal.date === today
+      ? 'موعده اليوم'
+      : 'قادم';
+}
+function projectGoalLabel(goal, percent, today = zonedDate()) {
+  return `${goal.percent}% في ${goal.date} — ${projectGoalStatus(goal, percent, today)}`;
+}
+function refreshProjectGoals() {
+  const track = $('#projectGoalsTrack');
+  if (!track) return;
+  const project = state.projects?.find((p) => p.id === track.dataset.projectId);
+  if (!project) return;
+  const goals = sortedProjectGoals(project),
+    percent = projectCompletion(project.id),
+    today = zonedDate();
+  const groups = new Map();
+  goals.forEach((goal) => {
+    const group = groups.get(goal.percent) || [];
+    group.push(goal);
+    groups.set(goal.percent, group);
+  });
+  track.querySelector('.project-goal-markers').innerHTML = [...groups.values()]
+    .map((group) => {
+      const goal = group[0],
+        reached = percent >= goal.percent;
+      const label = group
+        .map((g) => projectGoalLabel(g, percent, today))
+        .join('؛ ');
+      return `<button type="button" class="project-goal-marker ${reached ? 'reached' : goal.date < today ? 'overdue' : ''}" style="--goal-percent:${goal.percent}" data-project-goal="${esc(goal.id)}" title="${esc(label)}" aria-label="${esc(label)}"><small aria-hidden="true">${goal.percent}%</small><span aria-hidden="true"></span></button>`;
+    })
+    .join('');
+  const next = goals.find((goal) => percent < goal.percent);
+  $('#projectGoalSummary').textContent = next
+    ? `الهدف التالي: ${projectGoalLabel(next, percent, today)}`
+    : goals.length
+      ? `الأهداف متحققة حاليًا (${goals.length})`
+      : '';
+  $('#projectGoalSummary').title = $('#projectGoalSummary').textContent;
+}
+function openProjectGoals(project, goalId = '') {
+  let dialog = $('#projectGoalsEditor');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'projectGoalsEditor';
+    document.body.append(dialog);
+  }
+  const originalState = state,
+    originalProject = project;
+  dialog.setAttribute('aria-labelledby', 'projectGoalsTitle');
+  dialog.innerHTML = `<div class="dialog-head"><h2 id="projectGoalsTitle">أهداف ${esc(project.name)}</h2><button type="button" data-close-goals aria-label="إغلاق">×</button></div><form id="projectGoalForm"><input type="hidden" name="goalId"><label class="field">بحلول يوم<input type="date" name="goalDate" required value="${zonedDate()}"></label><label class="field">الإنجاز المستهدف %<input type="number" name="goalPercent" min="1" max="100" step="1" required value="50"></label><div class="project-goal-form-actions"><button class="primary" data-save-goal>إضافة هدف</button><button type="button" class="secondary" data-cancel-goal hidden>إلغاء التعديل</button></div><p id="projectGoalError" role="alert"></p></form><div id="projectGoalsList"></div>`;
+  const form = dialog.querySelector('form'),
+    fields = form.elements;
+  const current = () => {
+    const target = state.projects?.find((p) => p.id === project.id);
+    if (state !== originalState || target !== originalProject)
+      throw Error(
+        'تغيرت البيانات أو حُذف المشروع. أغلق النافذة وافتحها مجددًا.',
+      );
+    return target;
+  };
+  const reset = () => {
+    fields.goalId.value = '';
+    fields.goalDate.value = zonedDate();
+    fields.goalPercent.value = '50';
+    dialog.querySelector('[data-save-goal]').textContent = 'إضافة هدف';
+    dialog.querySelector('[data-cancel-goal]').hidden = true;
+    $('#projectGoalError').textContent = '';
+  };
+  const edit = (id) => {
+    const goal = current().goals?.find((g) => g.id === id);
+    if (!goal) throw Error('الهدف لم يعد موجودًا.');
+    fields.goalId.value = id;
+    fields.goalDate.value = goal.date;
+    fields.goalPercent.value = goal.percent;
+    dialog.querySelector('[data-save-goal]').textContent = 'حفظ التعديل';
+    dialog.querySelector('[data-cancel-goal]').hidden = false;
+    $('#projectGoalError').textContent = '';
+    fields.goalDate.focus({ preventScroll: true });
+  };
+  const refresh = () => {
+    const goals = sortedProjectGoals(current()),
+      percent = projectCompletion(project.id),
+      today = zonedDate();
+    $('#projectGoalsList').innerHTML =
+      goals
+        .map(
+          (goal) =>
+            `<div class="project-goal-item"><div><b>${goal.percent}%</b> <time datetime="${goal.date}">${goal.date}</time><small>${projectGoalStatus(goal, percent, today)}</small></div><button type="button" data-edit-goal="${esc(goal.id)}" aria-label="تعديل هدف ${goal.percent}% في ${goal.date}">تعديل</button><button type="button" data-delete-goal="${esc(goal.id)}" aria-label="حذف هدف ${goal.percent}% في ${goal.date}">حذف</button></div>`,
+        )
+        .join('') || '<p class="empty-note">لا توجد أهداف بعد.</p>';
+  };
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    try {
+      const target = current(),
+        id = fields.goalId.value;
+      const goals = [...(target.goals || [])];
+      if (id && !goals.some((g) => g.id === id))
+        throw Error('الهدف لم يعد موجودًا.');
+      const next = {
+        id: id || uid(),
+        date: fields.goalDate.value,
+        percent: Number(fields.goalPercent.value),
+      };
+      if (!fields.goalPercent.value) throw Error('أدخل النسبة المستهدفة.');
+      if (id) goals[goals.findIndex((g) => g.id === id)] = next;
+      else goals.push(next);
+      validateProjectGoals(goals);
+      target.goals = goals;
+      save();
+      refreshProjectGoals();
+      reset();
+      refresh();
+      fields.goalDate.focus({ preventScroll: true });
+    } catch (error) {
+      $('#projectGoalError').textContent = error.message;
+    }
+  };
+  $('#projectGoalsList').onclick = (event) => {
+    try {
+      const editButton = event.target.closest('[data-edit-goal]');
+      if (editButton) {
+        edit(editButton.dataset.editGoal);
+        return;
+      }
+      const remove = event.target.closest('[data-delete-goal]');
+      if (!remove) return;
+      const target = current(),
+        id = remove.dataset.deleteGoal;
+      target.goals = (target.goals || []).filter((g) => g.id !== id);
+      save();
+      refreshProjectGoals();
+      if (fields.goalId.value === id) reset();
+      refresh();
+      fields.goalDate.focus({ preventScroll: true });
+    } catch (error) {
+      $('#projectGoalError').textContent = error.message;
+    }
+  };
+  dialog.querySelector('[data-close-goals]').onclick = () => dialog.close();
+  dialog.querySelector('[data-cancel-goal]').onclick = reset;
+  refresh();
+  dialog.showModal();
+  if (goalId) edit(goalId);
+}
 function validateProjects(s) {
   if (
     s.tafsirDefaultInstalled !== undefined &&
@@ -71,6 +254,7 @@ function validateProjects(s) {
         new Set(p.taskOrder).size !== p.taskOrder.length)
     )
       throw Error('ترتيب مهام المشروع غير صالح');
+    validateProjectGoals(p.goals);
     ids.add(p.id);
   }
 }
@@ -688,6 +872,7 @@ function importProjectPackage(data) {
     name: p.name.trim(),
     description: p.description || '',
     taskOrder: roots.map((t) => taskIdentity(t)),
+    ...(p.goals !== undefined ? { goals: structuredClone(p.goals) } : {}),
   };
   const candidate = {
     ...state,
@@ -966,9 +1151,15 @@ function renderProjectDetails() {
   }
   mountedProject = { id: project.id, keys: model.keys };
   details.dataset.projectId = project.id;
-  details.innerHTML = `<div class="project-heading"><div><h2>${esc(project.name)}</h2><span class="project-heading-count"><b data-project-summary="${esc(project.id)}" data-summary-kind="count">${model.done}/${model.roots.length}</b> مهام رئيسية مكتملة</span></div><strong class="project-heading-percent" data-project-summary="${esc(project.id)}" data-summary-kind="percent">${percentLabel(model.percent)}</strong><details class="project-menu"><summary aria-label="إجراءات مشروع ${esc(project.name)}">${taskIcon('more')}</summary><div><button type="button" id="editProject">تعديل المشروع</button><button type="button" id="linkProjectTask">ربط مهمة موجودة</button><button type="button" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button type="button" id="deleteProject">حذف المشروع (الاحتفاظ بالمهام)</button><details><summary>خيارات إضافية</summary><button type="button" id="deleteProjectWithTasks">حذف المشروع ومهامه الحصرية نهائيًا</button></details><details class="project-info"><summary>تفاصيل المشروع والتقدم</summary>${project.description ? `<p>${esc(project.description)}</p>` : ''}<p data-project-summary="${esc(project.id)}" data-summary-kind="outcomes">${model.done} مكتملة · ${model.roots.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${model.roots.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل</p><p class="hint">نسبة المشروع = الخانات المنجزة ÷ الخانات المتوقعة للمهام النهائية. المهام بلا تقدير لا تدخل في النسبة، وعلامة صح تحتسب كامل خانات المهمة. المهام المشتركة تحتسب في كل مشروع مرتبط وتتشارك التقدم والنتائج. الأصل ذو الفروع يُحسب من فروعه دون احتسابه مرتين. المهام تشمل صندوق الوارد والنسخ الموزعة والمتكررة المسجلة ونسخ اليوم (${date}). الترتيب بالأرقام في «المزيد» لكل مهمة رئيسية.</p></details></div></details></div>
-    <progress class="project-heading-progress" data-project-summary="${esc(project.id)}" value="${model.percent}" max="100" aria-label="إنجاز ${esc(project.name)}"></progress>
+  details.innerHTML = `<div class="project-heading"><div><h2>${esc(project.name)}</h2><span class="project-heading-count"><b data-project-summary="${esc(project.id)}" data-summary-kind="count">${model.done}/${model.roots.length}</b> مهام رئيسية مكتملة</span></div><strong class="project-heading-percent" data-project-summary="${esc(project.id)}" data-summary-kind="percent">${percentLabel(model.percent)}</strong><button type="button" id="projectGoals" class="project-goals-trigger" aria-label="أهداف المشروع">＋ هدف</button><details class="project-menu"><summary aria-label="إجراءات مشروع ${esc(project.name)}">${taskIcon('more')}</summary><div><button type="button" id="editProject">تعديل المشروع</button><button type="button" id="linkProjectTask">ربط مهمة موجودة</button><button type="button" id="bulkProjectTasks">تعديل جميع مهام المشروع</button><button type="button" id="deleteProject">حذف المشروع (الاحتفاظ بالمهام)</button><details><summary>خيارات إضافية</summary><button type="button" id="deleteProjectWithTasks">حذف المشروع ومهامه الحصرية نهائيًا</button></details><details class="project-info"><summary>تفاصيل المشروع والتقدم</summary>${project.description ? `<p>${esc(project.description)}</p>` : ''}<p data-project-summary="${esc(project.id)}" data-summary-kind="outcomes">${model.done} مكتملة · ${model.roots.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${model.roots.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل</p><p class="hint">نسبة المشروع = الخانات المنجزة ÷ الخانات المتوقعة للمهام النهائية. المهام بلا تقدير لا تدخل في النسبة، وعلامة صح تحتسب كامل خانات المهمة. المهام المشتركة تحتسب في كل مشروع مرتبط وتتشارك التقدم والنتائج. الأصل ذو الفروع يُحسب من فروعه دون احتسابه مرتين. المهام تشمل صندوق الوارد والنسخ الموزعة والمتكررة المسجلة ونسخ اليوم (${date}). الترتيب بالأرقام في «المزيد» لكل مهمة رئيسية.</p></details></div></details></div>
+    <div class="project-progress-track" id="projectGoalsTrack" data-project-id="${esc(project.id)}"><progress class="project-heading-progress" data-project-summary="${esc(project.id)}" value="${model.percent}" max="100" aria-label="إنجاز ${esc(project.name)}"></progress><div class="project-goal-markers"></div></div><p class="project-goal-summary" id="projectGoalSummary" aria-live="polite"></p>
     <div class="project-list-toolbar"><label class="project-search"><span class="sr-only">بحث داخل المشروع</span><input type="search" id="projectSearch" placeholder="ابحث عن مهمة أو جزء أو صفحات…" value="${esc(ui.query)}" aria-controls="projectTaskList"></label><button type="button" id="clearProjectSearch" class="secondary" ${ui.query ? '' : 'hidden'}>مسح</button><button type="button" id="newProjectTask" class="primary">${taskIcon('plus')} مهمة</button><div class="project-expansion"><button type="button" id="expandProjectTasks">فتح الكل</button><button type="button" id="collapseProjectTasks">طي الكل</button></div><span id="projectSearchResults" role="status" aria-live="polite"></span></div><section id="projectTaskList" aria-label="مهام ${esc(project.name)}"></section>`;
+  $('#projectGoals').onclick = () => openProjectGoals(project);
+  $('#projectGoalsTrack').onclick = (event) => {
+    const marker = event.target.closest('[data-project-goal]');
+    if (marker) openProjectGoals(project, marker.dataset.projectGoal);
+  };
+  refreshProjectGoals();
   $('#editProject').onclick = () => openProjectEditor(project);
   $('#bulkProjectTasks').onclick = () => openProjectBulkEditor(project);
   $('#deleteProject').onclick = () => deleteProject(project);
