@@ -908,7 +908,7 @@ function installQuickTask() {
   const b = document.createElement('button');
   b.id = 'quickTaskButton';
   b.className = 'quick-task';
-  b.textContent = '＋ مهمة سريعة';
+  b.innerHTML = taskIcon('plus') + ' مهمة سريعة';
   b.onclick = () => {
     if (app.inert) {
       toast('انتظر تحميل بيانات الحساب');

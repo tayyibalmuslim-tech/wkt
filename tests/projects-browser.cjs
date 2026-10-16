@@ -97,7 +97,7 @@ module.exports = async function projectsBrowser(browser, url) {
       )
       .click();
     await page.locator('#plannerForm [name="taskName"]').fill('جزء معدّل');
-    await page.locator('#plannerForm > .primary').click();
+    await page.locator('#plannerForm .planner-form-actions .primary').click();
     assert.equal(await panel.evaluate((e) => e.scrollTop), editScroll);
     const payload = {
       format: 'wkt-project-v1',
