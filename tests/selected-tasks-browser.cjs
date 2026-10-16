@@ -302,6 +302,110 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       await page.evaluate(() => !!findTask('dashboard-delete', '')),
       false,
     );
+    for (const width of [1366, 820, 390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(() => {
+        eval(
+          `state.repeat=Array.from({length:20},(_,i)=>({id:'compact-repeat-'+i,name:'مهمة متكررة '+i,description:'وصف قصير',days:[0,1,2,3,4,5,6],prayer:0,prayers:[0],expectedSlots:3,priority:3,projectId:'delete-a',actionId:state.actions[0].id}));view='repeat';render();window.scrollTo(0,0);`,
+        );
+      });
+      assert.equal(
+        await page.locator('.repeat-editor-panel').getAttribute('open'),
+        null,
+      );
+      assert.equal(
+        await page.locator('.repeat-list-panel .task-row').count(),
+        20,
+      );
+      const first = page.locator('.repeat-list-panel .task-row').first();
+      assert.ok(
+        (await first.boundingBox()).height <= 50,
+        'compact recurring list on all screens',
+      );
+      await first.locator('[data-edit]').click();
+      const form = page.locator('#repeatForm');
+      assert.equal(await form.isVisible(), true);
+      assert.equal(
+        await form.locator('[name=name]').inputValue(),
+        'مهمة متكررة 0',
+      );
+      const slot = await form.locator('[name=expectedSlots]').boundingBox();
+      assert.ok(slot.width <= 74, 'slot input only uses the width it needs');
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+        'open recurring editor does not overflow',
+      );
+      assert.ok(
+        (await form.boundingBox()).height < (width > 650 ? 580 : 850),
+        'bounded compact editor',
+      );
+      await form.locator('[name=name]').fill('متكررة معدلة');
+      await form.locator('[name=expectedSlots]').fill('5');
+      await form.locator('[name=priority][value="2"]').check();
+      await form.locator('[name=days][value="6"]').uncheck();
+      await shot('repeat-compact-editor-' + width);
+      await form.locator('button.primary').click();
+      const saved = await page.evaluate(() =>
+        state.repeat.find((t) => t.id === 'compact-repeat-0'),
+      );
+      assert.equal(saved.name, 'متكررة معدلة');
+      assert.equal(saved.expectedSlots, 5);
+      assert.equal(saved.priority, 2);
+      assert.deepEqual(saved.days, [0, 1, 2, 3, 4, 5]);
+      assert.equal(saved.projectId, 'delete-a');
+      assert.ok(saved.actionId);
+      assert.deepEqual(saved.prayers, [0]);
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+      await page.locator('.repeat-editor-panel > summary').click();
+      await page.locator('#repeatForm [name=name]').fill('متكررة جديدة');
+      await page.locator('#repeatForm button.primary').click();
+      assert.equal(
+        await page.evaluate(() =>
+          state.repeat.some((t) => t.name === 'متكررة جديدة'),
+        ),
+        true,
+      );
+      await page.reload();
+      assert.equal(
+        await page.evaluate(() =>
+          state.repeat.some((t) => t.name === 'متكررة جديدة'),
+        ),
+        true,
+      );
+      await page.evaluate(() => {
+        view = 'repeat';
+        render();
+      });
+      await page.locator('.repeat-list-panel [data-edit]').first().click();
+      await page.locator('#repeatForm [name=name]').fill('تعديل ملغى');
+      await page.locator('#repeatForm #cancel').click();
+      assert.equal(
+        await page.evaluate(() =>
+          state.repeat.some((t) => t.name === 'تعديل ملغى'),
+        ),
+        false,
+      );
+      const added = page
+        .locator('.repeat-list-panel .task-row')
+        .filter({ hasText: 'متكررة جديدة' });
+      await added.locator('.task-row-secondary > summary').click();
+      page.once('dialog', (d) => d.accept());
+      await added.locator('[data-del]').click();
+      assert.equal(
+        await page.evaluate(() =>
+          state.repeat.some((t) => t.name === 'متكررة جديدة'),
+        ),
+        false,
+      );
+    }
     assert.deepEqual(errors, []);
     console.log(
       'PASS: desktop/phone selection, visible-only lazy children, unchanged row height, bulk priority and project add/replace, family inheritance, dashboard, saved results and reload',

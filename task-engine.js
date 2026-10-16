@@ -1056,6 +1056,57 @@ function renderRepeat(edit = null) {
     'تعديل السلسلة يغيّر اليوم والأيام القادمة فقط. سجلات الأيام السابقة محفوظة منذ تفعيل سجل المهام.';
   form.before(note);
   bindTaskCards();
+  compactRepeatWorkspace(form, edit, note);
+}
+function compactRepeatWorkspace(form, edit, note) {
+  const workspace = document.createElement('div');
+  workspace.className = 'repeat-workspace';
+  workspace.append(...app.childNodes);
+  app.append(workspace);
+  const heading = document.createElement('div');
+  heading.className = 'repeat-heading';
+  const help = document.createElement('details');
+  help.className = 'repeat-help';
+  help.innerHTML = '<summary>عن التكرار</summary>';
+  help.append(workspace.querySelector(':scope > p'), note);
+  heading.append(workspace.querySelector('h1'), help);
+  workspace.prepend(heading);
+  const panel = form.closest('.panel'),
+    editor = document.createElement('details');
+  editor.className = 'repeat-editor-panel';
+  editor.open = !!edit || !state.repeat.length;
+  const summary = document.createElement('summary');
+  summary.textContent = edit ? 'تعديل المهمة المتكررة' : '＋ مهمة متكررة';
+  panel.replaceWith(editor);
+  editor.append(summary, form);
+  const main = form.querySelector('.form');
+  main.className = 'planner-main-fields';
+  const extra = form.querySelector('.planner-fields');
+  extra.append(main.querySelector('.task-period-picker'));
+  const days = form.querySelector(':scope > .days'),
+    daysLabel = days.previousElementSibling;
+  const daysField = document.createElement('fieldset');
+  daysField.className = 'repeat-days';
+  daysField.innerHTML = '<legend>أيام التكرار</legend>';
+  daysLabel.replaceWith(daysField);
+  daysField.append(days);
+  const actions = document.createElement('div');
+  actions.className = 'planner-form-actions';
+  actions.append(form.querySelector(':scope > .primary'));
+  if (form.querySelector('#cancel'))
+    actions.append(form.querySelector('#cancel'));
+  form.append(actions);
+  const list = workspace.querySelector(':scope > .panel');
+  list.classList.add('repeat-list-panel');
+  list.setAttribute('aria-label', 'قائمة المهام المتكررة');
+  list.querySelectorAll('.task-row').forEach((card) => {
+    const select = card.querySelector('[data-task-select]'),
+      schedule = document.createElement('small');
+    schedule.className = 'repeat-row-schedule';
+    schedule.textContent = select.dataset.taskContext;
+    select.append(schedule);
+  });
+  if (edit) form.elements.name.focus({ preventScroll: true });
 }
 function validatePlanning(s) {
   if (!s || typeof s !== 'object') throw Error('بيانات غير صالحة');
