@@ -1,0 +1,2860 @@
+{
+  "format": "wkt-project-v1",
+  "version": 1,
+  "project": {
+    "name": "البناء المنهجي — المرحلة التمهيدية والمرحلتان الأولى والثانية",
+    "description": "خطة البناء المنهجي حسب ترتيب أيام مستودع Albinaa_Almanhaji. لكل يوم دراسي مهمتان فرعيتان: سماع المحاضرة (3 خانات)، وقراءة ملخص المحاضرة (3 خانات). أيام الاستدراك والاختبارات مهام مستقلة بلا محاضرة. الخانة في WKT عشر دقائق."
+  },
+  "tasks": [
+    {
+      "id": "albinaa_s0_d1",
+      "name": "تمهيدي اليوم 1: فتعلمنا الإيمان",
+      "description": "فتعلمنا الإيمان\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/muqaddimat/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d1_listen",
+      "parentId": "albinaa_s0_d1",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d1_summary",
+      "parentId": "albinaa_s0_d1",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d2",
+      "name": "تمهيدي اليوم 2: القلب المنيب",
+      "description": "القلب المنيب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/muqaddimat/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d2_listen",
+      "parentId": "albinaa_s0_d2",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d2_summary",
+      "parentId": "albinaa_s0_d2",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d3",
+      "name": "تمهيدي اليوم 3: المدخل إلى المنهاج",
+      "description": "المدخل إلى المنهاج\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/madkhal-manhaj/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d3_listen",
+      "parentId": "albinaa_s0_d3",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d3_summary",
+      "parentId": "albinaa_s0_d3",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d4",
+      "name": "تمهيدي اليوم 4: القبس الوهاج — من ص 7 إلى 27",
+      "description": "القبس الوهاج — من ص 7 إلى 27\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d4_listen",
+      "parentId": "albinaa_s0_d4",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d4_summary",
+      "parentId": "albinaa_s0_d4",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d5",
+      "name": "تمهيدي اليوم 5: القبس الوهاج — من ص 28 إلى 45",
+      "description": "القبس الوهاج — من ص 28 إلى 45\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d5_listen",
+      "parentId": "albinaa_s0_d5",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d5_summary",
+      "parentId": "albinaa_s0_d5",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d6",
+      "name": "تمهيدي اليوم 6: لقاء مدارسة المنهاج (1)",
+      "description": "لقاء مدارسة المنهاج (1)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/midarasat/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d6_listen",
+      "parentId": "albinaa_s0_d6",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d6_summary",
+      "parentId": "albinaa_s0_d6",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d7",
+      "name": "تمهيدي اليوم 7: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d8",
+      "name": "تمهيدي اليوم 8: القبس الوهاج — من ص 46 إلى 67",
+      "description": "القبس الوهاج — من ص 46 إلى 67\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d8_listen",
+      "parentId": "albinaa_s0_d8",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d8_summary",
+      "parentId": "albinaa_s0_d8",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d9",
+      "name": "تمهيدي اليوم 9: القبس الوهاج — من ص 68 إلى 92",
+      "description": "القبس الوهاج — من ص 68 إلى 92\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d9_listen",
+      "parentId": "albinaa_s0_d9",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d9_summary",
+      "parentId": "albinaa_s0_d9",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d10",
+      "name": "تمهيدي اليوم 10: لقاء مدارسة المنهاج (2)",
+      "description": "لقاء مدارسة المنهاج (2)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/midarasat/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d10_listen",
+      "parentId": "albinaa_s0_d10",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d10_summary",
+      "parentId": "albinaa_s0_d10",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d11",
+      "name": "تمهيدي اليوم 11: القبس الوهاج — من ص 93 إلى 111",
+      "description": "القبس الوهاج — من ص 93 إلى 111\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d11_listen",
+      "parentId": "albinaa_s0_d11",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d11_summary",
+      "parentId": "albinaa_s0_d11",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d12",
+      "name": "تمهيدي اليوم 12: القبس الوهاج — من ص 112 إلى 136",
+      "description": "القبس الوهاج — من ص 112 إلى 136\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d12_listen",
+      "parentId": "albinaa_s0_d12",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d12_summary",
+      "parentId": "albinaa_s0_d12",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d13",
+      "name": "تمهيدي اليوم 13: لقاء مدارسة المنهاج (3)",
+      "description": "لقاء مدارسة المنهاج (3)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/midarasat/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d13_listen",
+      "parentId": "albinaa_s0_d13",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d13_summary",
+      "parentId": "albinaa_s0_d13",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d14",
+      "name": "تمهيدي اليوم 14: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d15",
+      "name": "تمهيدي اليوم 15: القبس الوهاج — من ص 137 إلى 161",
+      "description": "القبس الوهاج — من ص 137 إلى 161\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/07.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d15_listen",
+      "parentId": "albinaa_s0_d15",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d15_summary",
+      "parentId": "albinaa_s0_d15",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d16",
+      "name": "تمهيدي اليوم 16: القبس الوهاج — من ص 162 إلى 181",
+      "description": "القبس الوهاج — من ص 162 إلى 181\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/08.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d16_listen",
+      "parentId": "albinaa_s0_d16",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d16_summary",
+      "parentId": "albinaa_s0_d16",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d17",
+      "name": "تمهيدي اليوم 17: لقاء مدارسة المنهاج (4)",
+      "description": "لقاء مدارسة المنهاج (4)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/midarasat/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d17_listen",
+      "parentId": "albinaa_s0_d17",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d17_summary",
+      "parentId": "albinaa_s0_d17",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d18",
+      "name": "تمهيدي اليوم 18: القبس الوهاج — من ص 182 إلى 204",
+      "description": "القبس الوهاج — من ص 182 إلى 204\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/09.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d18_listen",
+      "parentId": "albinaa_s0_d18",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d18_summary",
+      "parentId": "albinaa_s0_d18",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d19",
+      "name": "تمهيدي اليوم 19: القبس الوهاج — من ص 205 إلى 224",
+      "description": "القبس الوهاج — من ص 205 إلى 224\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/10.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d19_listen",
+      "parentId": "albinaa_s0_d19",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d19_summary",
+      "parentId": "albinaa_s0_d19",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d20",
+      "name": "تمهيدي اليوم 20: لقاء مدارسة المنهاج (5)",
+      "description": "لقاء مدارسة المنهاج (5)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/midarasat/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d20_listen",
+      "parentId": "albinaa_s0_d20",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d20_summary",
+      "parentId": "albinaa_s0_d20",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d21",
+      "name": "تمهيدي اليوم 21: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d22",
+      "name": "تمهيدي اليوم 22: القبس الوهاج — من ص 225 إلى نهاية الكتاب",
+      "description": "القبس الوهاج — من ص 225 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/qabas-wahhaj/lectures/11.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d22_listen",
+      "parentId": "albinaa_s0_d22",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d22_summary",
+      "parentId": "albinaa_s0_d22",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d23",
+      "name": "تمهيدي اليوم 23: لقاء مدارسة المنهاج (6)",
+      "description": "لقاء مدارسة المنهاج (6)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/midarasat/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d23_listen",
+      "parentId": "albinaa_s0_d23",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d23_summary",
+      "parentId": "albinaa_s0_d23",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d24",
+      "name": "تمهيدي اليوم 24: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d25",
+      "name": "تمهيدي اليوم 25: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d26",
+      "name": "تمهيدي اليوم 26: الامتحان الأول على النصف الأول من المرحلة التمهيدية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d27",
+      "name": "تمهيدي اليوم 27: الامتحان الثاني على النصف الأول من المرحلة التمهيدية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d28",
+      "name": "تمهيدي اليوم 28: العلم بين المنهجية والفوضوية — النصف الأول",
+      "description": "العلم بين المنهجية والفوضوية — النصف الأول\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/manhajiyyah/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d28_listen",
+      "parentId": "albinaa_s0_d28",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d28_summary",
+      "parentId": "albinaa_s0_d28",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d29",
+      "name": "تمهيدي اليوم 29: العلم بين المنهجية والفوضوية — النصف الثاني",
+      "description": "العلم بين المنهجية والفوضوية — النصف الثاني\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/manhajiyyah/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d29_listen",
+      "parentId": "albinaa_s0_d29",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d29_summary",
+      "parentId": "albinaa_s0_d29",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d30",
+      "name": "تمهيدي اليوم 30: العلم بالله — النصف الأول",
+      "description": "العلم بالله — النصف الأول\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/ilm-billah/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d30_listen",
+      "parentId": "albinaa_s0_d30",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d30_summary",
+      "parentId": "albinaa_s0_d30",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d31",
+      "name": "تمهيدي اليوم 31: العلم بالله — النصف الثاني",
+      "description": "العلم بالله — النصف الثاني\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/ilm-billah/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d31_listen",
+      "parentId": "albinaa_s0_d31",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d31_summary",
+      "parentId": "albinaa_s0_d31",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d32",
+      "name": "تمهيدي اليوم 32: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d33",
+      "name": "تمهيدي اليوم 33: لا إله إلا الله — المحاضرة كاملة",
+      "description": "لا إله إلا الله — المحاضرة كاملة\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/tawhid/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d33_listen",
+      "parentId": "albinaa_s0_d33",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d33_summary",
+      "parentId": "albinaa_s0_d33",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d34",
+      "name": "تمهيدي اليوم 34: البناء العقدي — من ص 27 إلى 51",
+      "description": "البناء العقدي — من ص 27 إلى 51\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/bina-aqadi/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d34_listen",
+      "parentId": "albinaa_s0_d34",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d34_summary",
+      "parentId": "albinaa_s0_d34",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d35",
+      "name": "تمهيدي اليوم 35: البناء العقدي — من ص 51 إلى 73",
+      "description": "البناء العقدي — من ص 51 إلى 73\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/bina-aqadi/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d35_listen",
+      "parentId": "albinaa_s0_d35",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d35_summary",
+      "parentId": "albinaa_s0_d35",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d36",
+      "name": "تمهيدي اليوم 36: البناء العقدي — من ص 75 إلى 96",
+      "description": "البناء العقدي — من ص 75 إلى 96\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/bina-aqadi/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d36_listen",
+      "parentId": "albinaa_s0_d36",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d36_summary",
+      "parentId": "albinaa_s0_d36",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d37",
+      "name": "تمهيدي اليوم 37: البناء العقدي — من ص 97 إلى 119",
+      "description": "البناء العقدي — من ص 97 إلى 119\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/bina-aqadi/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d37_listen",
+      "parentId": "albinaa_s0_d37",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d37_summary",
+      "parentId": "albinaa_s0_d37",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d38",
+      "name": "تمهيدي اليوم 38: البناء العقدي — من ص 120 إلى 139",
+      "description": "البناء العقدي — من ص 120 إلى 139\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/bina-aqadi/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d38_listen",
+      "parentId": "albinaa_s0_d38",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d38_summary",
+      "parentId": "albinaa_s0_d38",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d39",
+      "name": "تمهيدي اليوم 39: البناء العقدي — من ص 139 إلى نهاية الكتاب",
+      "description": "البناء العقدي — من ص 139 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-0/bina-aqadi/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d39_listen",
+      "parentId": "albinaa_s0_d39",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d39_summary",
+      "parentId": "albinaa_s0_d39",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d40",
+      "name": "تمهيدي اليوم 40: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d41",
+      "name": "تمهيدي اليوم 41: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d42",
+      "name": "تمهيدي اليوم 42: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d43",
+      "name": "تمهيدي اليوم 43: الامتحان الأول على النصف الثاني من المرحلة التمهيدية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d44",
+      "name": "تمهيدي اليوم 44: الامتحان الثاني على النصف الثاني من المرحلة التمهيدية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s0_d45",
+      "name": "تمهيدي اليوم 45: الامتحان النهائي على المرحلة التمهيدية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d1",
+      "name": "م1:1 اليوم 1: مدخل إلى علم النحو",
+      "description": "مدخل إلى علم النحو\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/nahw/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d1_listen",
+      "parentId": "albinaa_s1_d1",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d1_summary",
+      "parentId": "albinaa_s1_d1",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d2",
+      "name": "م1:1 اليوم 2: مدخل إلى علم الفقه 1",
+      "description": "مدخل إلى علم الفقه 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/fiqh/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d2_listen",
+      "parentId": "albinaa_s1_d2",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d2_summary",
+      "parentId": "albinaa_s1_d2",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d3",
+      "name": "م1:1 اليوم 3: مدخل إلى علم الفقه 2",
+      "description": "مدخل إلى علم الفقه 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/fiqh/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d3_listen",
+      "parentId": "albinaa_s1_d3",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d3_summary",
+      "parentId": "albinaa_s1_d3",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d4",
+      "name": "م1:1 اليوم 4: أنوار الأنبياء: من بداية الكتاب إلى ص 34",
+      "description": "أنوار الأنبياء: من بداية الكتاب إلى ص 34\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/anwar-al-anbiya/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d4_listen",
+      "parentId": "albinaa_s1_d4",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d4_summary",
+      "parentId": "albinaa_s1_d4",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d5",
+      "name": "م1:1 اليوم 5: أنوار الأنبياء: من 35 إلى 61",
+      "description": "أنوار الأنبياء: من 35 إلى 61\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/anwar-al-anbiya/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d5_listen",
+      "parentId": "albinaa_s1_d5",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d5_summary",
+      "parentId": "albinaa_s1_d5",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d6",
+      "name": "م1:1 اليوم 6: شرح رياض الصالحين: باب الإخلاص والنية 1",
+      "description": "شرح رياض الصالحين: باب الإخلاص والنية 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/riyad-al-saliheen/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d6_listen",
+      "parentId": "albinaa_s1_d6",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d6_summary",
+      "parentId": "albinaa_s1_d6",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d7",
+      "name": "م1:1 اليوم 7: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d8",
+      "name": "م1:1 اليوم 8: مدخل إلى علم الفقه 3",
+      "description": "مدخل إلى علم الفقه 3\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/fiqh/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d8_listen",
+      "parentId": "albinaa_s1_d8",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d8_summary",
+      "parentId": "albinaa_s1_d8",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d9",
+      "name": "م1:1 اليوم 9: مدخل إلى علم الفقه 4",
+      "description": "مدخل إلى علم الفقه 4\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/fiqh/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d9_listen",
+      "parentId": "albinaa_s1_d9",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d9_summary",
+      "parentId": "albinaa_s1_d9",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d10",
+      "name": "م1:1 اليوم 10: مدخل إلى علم الفقه 5",
+      "description": "مدخل إلى علم الفقه 5\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/fiqh/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d10_listen",
+      "parentId": "albinaa_s1_d10",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d10_summary",
+      "parentId": "albinaa_s1_d10",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d11",
+      "name": "م1:1 اليوم 11: أنوار الأنبياء: من 63 إلى 93",
+      "description": "أنوار الأنبياء: من 63 إلى 93\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/anwar-al-anbiya/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d11_listen",
+      "parentId": "albinaa_s1_d11",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d11_summary",
+      "parentId": "albinaa_s1_d11",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d12",
+      "name": "م1:1 اليوم 12: أنوار الأنبياء: من 95 إلى نهاية الكتاب",
+      "description": "أنوار الأنبياء: من 95 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/anwar-al-anbiya/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d12_listen",
+      "parentId": "albinaa_s1_d12",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d12_summary",
+      "parentId": "albinaa_s1_d12",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d13",
+      "name": "م1:1 اليوم 13: شرح رياض الصالحين: باب الإخلاص والنية 2",
+      "description": "شرح رياض الصالحين: باب الإخلاص والنية 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/riyad-al-saliheen/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d13_listen",
+      "parentId": "albinaa_s1_d13",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d13_summary",
+      "parentId": "albinaa_s1_d13",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d14",
+      "name": "م1:1 اليوم 14: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d15",
+      "name": "م1:1 اليوم 15: المدخل إلى الفقه الإسلامي — العصر الحاضر ودعوى التجديد",
+      "description": "المدخل إلى الفقه الإسلامي — العصر الحاضر ودعوى التجديد\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/fiqh/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d15_listen",
+      "parentId": "albinaa_s1_d15",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d15_summary",
+      "parentId": "albinaa_s1_d15",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d16",
+      "name": "م1:1 اليوم 16: مدخل إلى علم الفقه 7",
+      "description": "مدخل إلى علم الفقه 7\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/fiqh/lectures/07.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d16_listen",
+      "parentId": "albinaa_s1_d16",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d16_summary",
+      "parentId": "albinaa_s1_d16",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d17",
+      "name": "م1:1 اليوم 17: المدخل إلى علوم القرآن والتفسير — الجزء الأول",
+      "description": "المدخل إلى علوم القرآن والتفسير — الجزء الأول\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/quran-sciences/lectures/01.html?p=1",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d17_listen",
+      "parentId": "albinaa_s1_d17",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d17_summary",
+      "parentId": "albinaa_s1_d17",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d18",
+      "name": "م1:1 اليوم 18: العلوم الشرعية بين الوسائل والمقاصد",
+      "description": "العلوم الشرعية بين الوسائل والمقاصد\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/sharaya-wasael-maqasid/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d18_listen",
+      "parentId": "albinaa_s1_d18",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d18_summary",
+      "parentId": "albinaa_s1_d18",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d19",
+      "name": "م1:1 اليوم 19: رقائق القرآن: من البداية إلى ص 33",
+      "description": "رقائق القرآن: من البداية إلى ص 33\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/raqaeq-al-quran/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d19_listen",
+      "parentId": "albinaa_s1_d19",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d19_summary",
+      "parentId": "albinaa_s1_d19",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d20",
+      "name": "م1:1 اليوم 20: شرح رياض الصالحين: باب التوبة 1",
+      "description": "شرح رياض الصالحين: باب التوبة 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/riyad-al-saliheen/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d20_listen",
+      "parentId": "albinaa_s1_d20",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d20_summary",
+      "parentId": "albinaa_s1_d20",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d21",
+      "name": "م1:1 اليوم 21: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d22",
+      "name": "م1:1 اليوم 22: المدخل إلى علوم القرآن والتفسير — الجزء الثاني",
+      "description": "المدخل إلى علوم القرآن والتفسير — الجزء الثاني\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/quran-sciences/lectures/01.html?p=2",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d22_listen",
+      "parentId": "albinaa_s1_d22",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d22_summary",
+      "parentId": "albinaa_s1_d22",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d23",
+      "name": "م1:1 اليوم 23: مدخل إلى علم العقيدة",
+      "description": "مدخل إلى علم العقيدة\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/aqeedah/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d23_listen",
+      "parentId": "albinaa_s1_d23",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d23_summary",
+      "parentId": "albinaa_s1_d23",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d24",
+      "name": "م1:1 اليوم 24: مدخل إلى علم العقيدة",
+      "description": "مدخل إلى علم العقيدة\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/aqeedah/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d24_listen",
+      "parentId": "albinaa_s1_d24",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d24_summary",
+      "parentId": "albinaa_s1_d24",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d25",
+      "name": "م1:1 اليوم 25: رقائق القرآن: من 34 إلى 53",
+      "description": "رقائق القرآن: من 34 إلى 53\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/raqaeq-al-quran/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d25_listen",
+      "parentId": "albinaa_s1_d25",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d25_summary",
+      "parentId": "albinaa_s1_d25",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d26",
+      "name": "م1:1 اليوم 26: رقائق القرآن: من 54 إلى 78",
+      "description": "رقائق القرآن: من 54 إلى 78\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/raqaeq-al-quran/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d26_listen",
+      "parentId": "albinaa_s1_d26",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d26_summary",
+      "parentId": "albinaa_s1_d26",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d27",
+      "name": "م1:1 اليوم 27: شرح رياض الصالحين: باب التوبة 1",
+      "description": "شرح رياض الصالحين: باب التوبة 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/riyad-al-saliheen/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d27_listen",
+      "parentId": "albinaa_s1_d27",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d27_summary",
+      "parentId": "albinaa_s1_d27",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d28",
+      "name": "م1:1 اليوم 28: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d29",
+      "name": "م1:1 اليوم 29: المجلس الأول (1/3)",
+      "description": "المجلس الأول (1/3)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/hadith/lectures/01.html?p=stage1_hadith_01",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d29_listen",
+      "parentId": "albinaa_s1_d29",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d29_summary",
+      "parentId": "albinaa_s1_d29",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d30",
+      "name": "م1:1 اليوم 30: رقائق القرآن: من 109 إلى 133",
+      "description": "رقائق القرآن: من 109 إلى 133\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/raqaeq-al-quran/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d30_listen",
+      "parentId": "albinaa_s1_d30",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d30_summary",
+      "parentId": "albinaa_s1_d30",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d31",
+      "name": "م1:1 اليوم 31: رقائق القرآن: من 135 إلى النهاية",
+      "description": "رقائق القرآن: من 135 إلى النهاية\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/raqaeq-al-quran/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d31_listen",
+      "parentId": "albinaa_s1_d31",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d31_summary",
+      "parentId": "albinaa_s1_d31",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d32",
+      "name": "م1:1 اليوم 32: المجلس الأول (2/3)",
+      "description": "المجلس الأول (2/3)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/hadith/lectures/01.html?p=stage1_hadith_02",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d32_listen",
+      "parentId": "albinaa_s1_d32",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d32_summary",
+      "parentId": "albinaa_s1_d32",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d33",
+      "name": "م1:1 اليوم 33: المجلس الأول (3/3)",
+      "description": "المجلس الأول (3/3)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/hadith/lectures/01.html?p=stage1_hadith_03",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d33_listen",
+      "parentId": "albinaa_s1_d33",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d33_summary",
+      "parentId": "albinaa_s1_d33",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d34",
+      "name": "م1:1 اليوم 34: المجلس الثاني (1/2)",
+      "description": "المجلس الثاني (1/2)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/hadith/lectures/02.html?p=stage1_hadith_04",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d34_listen",
+      "parentId": "albinaa_s1_d34",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d34_summary",
+      "parentId": "albinaa_s1_d34",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d35",
+      "name": "م1:1 اليوم 35: التوطئة والمقاطع الأول إلى الثالث",
+      "description": "التوطئة والمقاطع الأول إلى الثالث\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/mu_alajat-al-quran/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d35_listen",
+      "parentId": "albinaa_s1_d35",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d35_summary",
+      "parentId": "albinaa_s1_d35",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d36",
+      "name": "م1:1 اليوم 36: المقطع الرابع",
+      "description": "المقطع الرابع\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/mu_alajat-al-quran/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d36_listen",
+      "parentId": "albinaa_s1_d36",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d36_summary",
+      "parentId": "albinaa_s1_d36",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d37",
+      "name": "م1:1 اليوم 37: المقاطع الخامس إلى الثامن والخاتمة",
+      "description": "المقاطع الخامس إلى الثامن والخاتمة\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/mu_alajat-al-quran/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d37_listen",
+      "parentId": "albinaa_s1_d37",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d37_summary",
+      "parentId": "albinaa_s1_d37",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d38",
+      "name": "م1:1 اليوم 38: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d39",
+      "name": "م1:1 اليوم 39: المجلس الثاني (2/2)",
+      "description": "المجلس الثاني (2/2)\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/hadith/lectures/02.html?p=stage1_hadith_05",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d39_listen",
+      "parentId": "albinaa_s1_d39",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d39_summary",
+      "parentId": "albinaa_s1_d39",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d40",
+      "name": "م1:1 اليوم 40: شرح رياض الصالحين: باب التوبة 2",
+      "description": "شرح رياض الصالحين: باب التوبة 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/riyad-al-saliheen/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d40_listen",
+      "parentId": "albinaa_s1_d40",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d40_summary",
+      "parentId": "albinaa_s1_d40",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d41",
+      "name": "م1:1 اليوم 41: شرح رياض الصالحين: باب التوبة 3",
+      "description": "شرح رياض الصالحين: باب التوبة 3\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-1/riyad-al-saliheen/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d41_listen",
+      "parentId": "albinaa_s1_d41",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d41_summary",
+      "parentId": "albinaa_s1_d41",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d42",
+      "name": "م1:1 اليوم 42: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d43",
+      "name": "م1:1 اليوم 43: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d44",
+      "name": "م1:1 اليوم 44: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d45",
+      "name": "م1:1 اليوم 45: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d46",
+      "name": "م1:1 اليوم 46: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d47",
+      "name": "م1:1 اليوم 47: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s1_d48",
+      "name": "م1:1 اليوم 48: اختبار المرحلة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d1",
+      "name": "م1:2 اليوم 1: الحقيبة الشرعية (العقيدة) 1",
+      "description": "الحقيبة الشرعية (العقيدة) 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d1_listen",
+      "parentId": "albinaa_s2_d1",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d1_summary",
+      "parentId": "albinaa_s2_d1",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d2",
+      "name": "م1:2 اليوم 2: الحقيبة الشرعية (العقيدة) 2",
+      "description": "الحقيبة الشرعية (العقيدة) 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d2_listen",
+      "parentId": "albinaa_s2_d2",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d2_summary",
+      "parentId": "albinaa_s2_d2",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d3",
+      "name": "م1:2 اليوم 3: الحقيبة الشرعية (العقيدة) 3",
+      "description": "الحقيبة الشرعية (العقيدة) 3\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d3_listen",
+      "parentId": "albinaa_s2_d3",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d3_summary",
+      "parentId": "albinaa_s2_d3",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d4",
+      "name": "م1:2 اليوم 4: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d5",
+      "name": "م1:2 اليوم 5: الحقيبة الشرعية (العقيدة) 4",
+      "description": "الحقيبة الشرعية (العقيدة) 4\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d5_listen",
+      "parentId": "albinaa_s2_d5",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d5_summary",
+      "parentId": "albinaa_s2_d5",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d6",
+      "name": "م1:2 اليوم 6: الحقيبة الشرعية (العقيدة) 5، 6",
+      "description": "الحقيبة الشرعية (العقيدة) 5، 6\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d6_listen",
+      "parentId": "albinaa_s2_d6",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d6_summary",
+      "parentId": "albinaa_s2_d6",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d7",
+      "name": "م1:2 اليوم 7: الحقيبة الشرعية (العقيدة) 7، 8",
+      "description": "الحقيبة الشرعية (العقيدة) 7، 8\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d7_listen",
+      "parentId": "albinaa_s2_d7",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d7_summary",
+      "parentId": "albinaa_s2_d7",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d8",
+      "name": "م1:2 اليوم 8: المشوق إلى القرآن — من ص 9 إلى 41",
+      "description": "المشوق إلى القرآن — من ص 9 إلى 41\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mushawwiq/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d8_listen",
+      "parentId": "albinaa_s2_d8",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d8_summary",
+      "parentId": "albinaa_s2_d8",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d9",
+      "name": "م1:2 اليوم 9: المشوق إلى القرآن — من ص 43 إلى 66 + شرح رياض الصالحين: باب الصبر 1",
+      "description": "المشوق إلى القرآن — من ص 43 إلى 66\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mushawwiq/lectures/02.html\nشرح رياض الصالحين: باب الصبر 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/07.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d9_listen",
+      "parentId": "albinaa_s2_d9",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d9_summary",
+      "parentId": "albinaa_s2_d9",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d10",
+      "name": "م1:2 اليوم 10: المشوق إلى القرآن — من ص 67 إلى 93 + شرح رياض الصالحين: باب الصبر 2",
+      "description": "المشوق إلى القرآن — من ص 67 إلى 93\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mushawwiq/lectures/03.html\nشرح رياض الصالحين: باب الصبر 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/08.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d10_listen",
+      "parentId": "albinaa_s2_d10",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d10_summary",
+      "parentId": "albinaa_s2_d10",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d11",
+      "name": "م1:2 اليوم 11: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d12",
+      "name": "م1:2 اليوم 12: الحقيبة الشرعية (العقيدة) 9",
+      "description": "الحقيبة الشرعية (العقيدة) 9\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/07.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d12_listen",
+      "parentId": "albinaa_s2_d12",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d12_summary",
+      "parentId": "albinaa_s2_d12",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d13",
+      "name": "م1:2 اليوم 13: الحقيبة الشرعية (العقيدة) 10",
+      "description": "الحقيبة الشرعية (العقيدة) 10\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/08.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d13_listen",
+      "parentId": "albinaa_s2_d13",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d13_summary",
+      "parentId": "albinaa_s2_d13",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d14",
+      "name": "م1:2 اليوم 14: الحقيبة الشرعية (العقيدة) 11",
+      "description": "الحقيبة الشرعية (العقيدة) 11\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/09.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d14_listen",
+      "parentId": "albinaa_s2_d14",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d14_summary",
+      "parentId": "albinaa_s2_d14",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d15",
+      "name": "م1:2 اليوم 15: المشوق إلى القرآن — من ص 95 إلى 131",
+      "description": "المشوق إلى القرآن — من ص 95 إلى 131\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mushawwiq/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d15_listen",
+      "parentId": "albinaa_s2_d15",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d15_summary",
+      "parentId": "albinaa_s2_d15",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d16",
+      "name": "م1:2 اليوم 16: المشوق إلى القرآن — من ص 133 إلى 160 + شرح رياض الصالحين: باب الصبر 3",
+      "description": "المشوق إلى القرآن — من ص 133 إلى 160\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mushawwiq/lectures/05.html\nشرح رياض الصالحين: باب الصبر 3\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/09.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d16_listen",
+      "parentId": "albinaa_s2_d16",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d16_summary",
+      "parentId": "albinaa_s2_d16",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d17",
+      "name": "م1:2 اليوم 17: المشوق إلى القرآن — من ص 161 إلى 187",
+      "description": "المشوق إلى القرآن — من ص 161 إلى 187\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mushawwiq/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d17_listen",
+      "parentId": "albinaa_s2_d17",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d17_summary",
+      "parentId": "albinaa_s2_d17",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d18",
+      "name": "م1:2 اليوم 18: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d19",
+      "name": "م1:2 اليوم 19: الحقيبة الشرعية (العقيدة) 12 — النصف الأول",
+      "description": "الحقيبة الشرعية (العقيدة) 12 — النصف الأول\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/10.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d19_listen",
+      "parentId": "albinaa_s2_d19",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d19_summary",
+      "parentId": "albinaa_s2_d19",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d20",
+      "name": "م1:2 اليوم 20: الحقيبة الشرعية (العقيدة) 12 — النصف الثاني",
+      "description": "الحقيبة الشرعية (العقيدة) 12 — النصف الثاني\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/11.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d20_listen",
+      "parentId": "albinaa_s2_d20",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d20_summary",
+      "parentId": "albinaa_s2_d20",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d21",
+      "name": "م1:2 اليوم 21: الحقيبة الشرعية (العقيدة) 13",
+      "description": "الحقيبة الشرعية (العقيدة) 13\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/12.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d21_listen",
+      "parentId": "albinaa_s2_d21",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d21_summary",
+      "parentId": "albinaa_s2_d21",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d22",
+      "name": "م1:2 اليوم 22: المشوق إلى القرآن — من ص 189 إلى نهاية الكتاب",
+      "description": "المشوق إلى القرآن — من ص 189 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mushawwiq/lectures/07.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d22_listen",
+      "parentId": "albinaa_s2_d22",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d22_summary",
+      "parentId": "albinaa_s2_d22",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d23",
+      "name": "م1:2 اليوم 23: معاني الأذكار — من ص 7 إلى ص 32",
+      "description": "معاني الأذكار — من ص 7 إلى ص 32\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/adhkar/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d23_listen",
+      "parentId": "albinaa_s2_d23",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d23_summary",
+      "parentId": "albinaa_s2_d23",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d24",
+      "name": "م1:2 اليوم 24: معاني الأذكار — من ص 33 إلى ص 70 + شرح رياض الصالحين: باب الصبر 4",
+      "description": "معاني الأذكار — من ص 33 إلى ص 70\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/adhkar/lectures/02.html\nشرح رياض الصالحين: باب الصبر 4\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/10.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d24_listen",
+      "parentId": "albinaa_s2_d24",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d24_summary",
+      "parentId": "albinaa_s2_d24",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d25",
+      "name": "م1:2 اليوم 25: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d26",
+      "name": "م1:2 اليوم 26: الحقيبة الشرعية (العقيدة) 14",
+      "description": "الحقيبة الشرعية (العقيدة) 14\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/13.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d26_listen",
+      "parentId": "albinaa_s2_d26",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d26_summary",
+      "parentId": "albinaa_s2_d26",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d27",
+      "name": "م1:2 اليوم 27: الحقيبة الشرعية (العقيدة) 15",
+      "description": "الحقيبة الشرعية (العقيدة) 15\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/aqeedah2/lectures/14.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d27_listen",
+      "parentId": "albinaa_s2_d27",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d27_summary",
+      "parentId": "albinaa_s2_d27",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d28",
+      "name": "م1:2 اليوم 28: معاني الأذكار — من ص 71 إلى ص 114",
+      "description": "معاني الأذكار — من ص 71 إلى ص 114\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/adhkar/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d28_listen",
+      "parentId": "albinaa_s2_d28",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d28_summary",
+      "parentId": "albinaa_s2_d28",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d29",
+      "name": "م1:2 اليوم 29: معاني الأذكار — من ص 115 إلى ص 153",
+      "description": "معاني الأذكار — من ص 115 إلى ص 153\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/adhkar/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d29_listen",
+      "parentId": "albinaa_s2_d29",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d29_summary",
+      "parentId": "albinaa_s2_d29",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d30",
+      "name": "م1:2 اليوم 30: معاني الأذكار — من ص 154 إلى نهاية الكتاب",
+      "description": "معاني الأذكار — من ص 154 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/adhkar/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d30_listen",
+      "parentId": "albinaa_s2_d30",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d30_summary",
+      "parentId": "albinaa_s2_d30",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d31",
+      "name": "م1:2 اليوم 31: حصول الطلب بسلوك الأدب — من ص 9 إلى ص 43 + شرح رياض الصالحين: باب الصبر 5",
+      "description": "حصول الطلب بسلوك الأدب — من ص 9 إلى ص 43\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/hosul-tolab/lectures/01.html\nشرح رياض الصالحين: باب الصبر 5\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/11.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d31_listen",
+      "parentId": "albinaa_s2_d31",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d31_summary",
+      "parentId": "albinaa_s2_d31",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d32",
+      "name": "م1:2 اليوم 32: حصول الطلب بسلوك الأدب — من ص 44 إلى 71",
+      "description": "حصول الطلب بسلوك الأدب — من ص 44 إلى 71\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/hosul-tolab/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d32_listen",
+      "parentId": "albinaa_s2_d32",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d32_summary",
+      "parentId": "albinaa_s2_d32",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d33",
+      "name": "م1:2 اليوم 33: حصول الطلب بسلوك الأدب — من ص 72 إلى 110",
+      "description": "حصول الطلب بسلوك الأدب — من ص 72 إلى 110\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/hosul-tolab/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d33_listen",
+      "parentId": "albinaa_s2_d33",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d33_summary",
+      "parentId": "albinaa_s2_d33",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d34",
+      "name": "م1:2 اليوم 34: حصول الطلب بسلوك الأدب — من ص 111 إلى نهاية الكتاب",
+      "description": "حصول الطلب بسلوك الأدب — من ص 111 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/hosul-tolab/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d34_listen",
+      "parentId": "albinaa_s2_d34",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d34_summary",
+      "parentId": "albinaa_s2_d34",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d35",
+      "name": "م1:2 اليوم 35: محاسن الإسلام — من ص 7 إلى 35",
+      "description": "محاسن الإسلام — من ص 7 إلى 35\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mahasin-islam/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d35_listen",
+      "parentId": "albinaa_s2_d35",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d35_summary",
+      "parentId": "albinaa_s2_d35",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d36",
+      "name": "م1:2 اليوم 36: محاسن الإسلام — من ص 36 إلى نهاية الكتاب",
+      "description": "محاسن الإسلام — من ص 36 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/mahasin-islam/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d36_listen",
+      "parentId": "albinaa_s2_d36",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d36_summary",
+      "parentId": "albinaa_s2_d36",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d37",
+      "name": "م1:2 اليوم 37: شرح رياض الصالحين: باب الصبر 6",
+      "description": "شرح رياض الصالحين: باب الصبر 6\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/12.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d37_listen",
+      "parentId": "albinaa_s2_d37",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d37_summary",
+      "parentId": "albinaa_s2_d37",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d38",
+      "name": "م1:2 اليوم 38: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d39",
+      "name": "م1:2 اليوم 39: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d40",
+      "name": "م1:2 اليوم 40: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d41",
+      "name": "م1:2 اليوم 41: الاختبار النصفي الأول للمرحلة الثانية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d42",
+      "name": "م1:2 اليوم 42: الاختبار النصفي الثاني للمرحلة الثانية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d43",
+      "name": "م1:2 اليوم 43: شرح الركيزة في أصول التفسير — محاضرة 1",
+      "description": "شرح الركيزة في أصول التفسير — محاضرة 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/rakiza-tafsir/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d43_listen",
+      "parentId": "albinaa_s2_d43",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d43_summary",
+      "parentId": "albinaa_s2_d43",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d44",
+      "name": "م1:2 اليوم 44: شرح الركيزة في أصول التفسير — محاضرة 2",
+      "description": "شرح الركيزة في أصول التفسير — محاضرة 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/rakiza-tafsir/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d44_listen",
+      "parentId": "albinaa_s2_d44",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d44_summary",
+      "parentId": "albinaa_s2_d44",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d45",
+      "name": "م1:2 اليوم 45: شرح الركيزة في أصول التفسير — محاضرة 3",
+      "description": "شرح الركيزة في أصول التفسير — محاضرة 3\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/rakiza-tafsir/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d45_listen",
+      "parentId": "albinaa_s2_d45",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d45_summary",
+      "parentId": "albinaa_s2_d45",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d46",
+      "name": "م1:2 اليوم 46: سَوِيّة المؤمن: الثبات 1",
+      "description": "سَوِيّة المؤمن: الثبات 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/sawiyat-al-mumin/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d46_listen",
+      "parentId": "albinaa_s2_d46",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d46_summary",
+      "parentId": "albinaa_s2_d46",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d47",
+      "name": "م1:2 اليوم 47: سَوِيّة المؤمن: الثبات 2 + شرح رياض الصالحين: باب الصدق",
+      "description": "سَوِيّة المؤمن: الثبات 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/sawiyat-al-mumin/lectures/02.html\nشرح رياض الصالحين: باب الصدق\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/13.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d47_listen",
+      "parentId": "albinaa_s2_d47",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d47_summary",
+      "parentId": "albinaa_s2_d47",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d48",
+      "name": "م1:2 اليوم 48: سَوِيّة المؤمن: قوة النفس",
+      "description": "سَوِيّة المؤمن: قوة النفس\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/sawiyat-al-mumin/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d48_listen",
+      "parentId": "albinaa_s2_d48",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d48_summary",
+      "parentId": "albinaa_s2_d48",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d49",
+      "name": "م1:2 اليوم 49: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d50",
+      "name": "م1:2 اليوم 50: شرح الركيزة في أصول التفسير — محاضرة 4",
+      "description": "شرح الركيزة في أصول التفسير — محاضرة 4\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/rakiza-tafsir/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d50_listen",
+      "parentId": "albinaa_s2_d50",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d50_summary",
+      "parentId": "albinaa_s2_d50",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d51",
+      "name": "م1:2 اليوم 51: شرح الركيزة في أصول التفسير — محاضرة 5",
+      "description": "شرح الركيزة في أصول التفسير — محاضرة 5\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/rakiza-tafsir/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d51_listen",
+      "parentId": "albinaa_s2_d51",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d51_summary",
+      "parentId": "albinaa_s2_d51",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d52",
+      "name": "م1:2 اليوم 52: سَوِيّة المؤمن: التفاؤل",
+      "description": "سَوِيّة المؤمن: التفاؤل\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/sawiyat-al-mumin/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d52_listen",
+      "parentId": "albinaa_s2_d52",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d52_summary",
+      "parentId": "albinaa_s2_d52",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d53",
+      "name": "م1:2 اليوم 53: قواعد نبوية — من ص 11 إلى ص 37",
+      "description": "قواعد نبوية — من ص 11 إلى ص 37\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d53_listen",
+      "parentId": "albinaa_s2_d53",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d53_summary",
+      "parentId": "albinaa_s2_d53",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d54",
+      "name": "م1:2 اليوم 54: قواعد نبوية — من ص 38 إلى ص 68",
+      "description": "قواعد نبوية — من ص 38 إلى ص 68\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d54_listen",
+      "parentId": "albinaa_s2_d54",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d54_summary",
+      "parentId": "albinaa_s2_d54",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d55",
+      "name": "م1:2 اليوم 55: قواعد نبوية — من ص 69 إلى ص 98 + شرح رياض الصالحين: باب المراقبة 1",
+      "description": "قواعد نبوية — من ص 69 إلى ص 98\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/03.html\nشرح رياض الصالحين: باب المراقبة 1\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/14.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d55_listen",
+      "parentId": "albinaa_s2_d55",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d55_summary",
+      "parentId": "albinaa_s2_d55",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d56",
+      "name": "م1:2 اليوم 56: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d57",
+      "name": "م1:2 اليوم 57: الدليل إلى القرآن — من ص 9 إلى 34",
+      "description": "الدليل إلى القرآن — من ص 9 إلى 34\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/01.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d57_listen",
+      "parentId": "albinaa_s2_d57",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d57_summary",
+      "parentId": "albinaa_s2_d57",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d58",
+      "name": "م1:2 اليوم 58: الدليل إلى القرآن — من ص 35 إلى 57",
+      "description": "الدليل إلى القرآن — من ص 35 إلى 57\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/02.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d58_listen",
+      "parentId": "albinaa_s2_d58",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d58_summary",
+      "parentId": "albinaa_s2_d58",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d59",
+      "name": "م1:2 اليوم 59: الدليل إلى القرآن — من ص 58 إلى 84",
+      "description": "الدليل إلى القرآن — من ص 58 إلى 84\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/03.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d59_listen",
+      "parentId": "albinaa_s2_d59",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d59_summary",
+      "parentId": "albinaa_s2_d59",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d60",
+      "name": "م1:2 اليوم 60: قواعد نبوية — من ص 99 إلى ص 129",
+      "description": "قواعد نبوية — من ص 99 إلى ص 129\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d60_listen",
+      "parentId": "albinaa_s2_d60",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d60_summary",
+      "parentId": "albinaa_s2_d60",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d61",
+      "name": "م1:2 اليوم 61: قواعد نبوية — من ص 130 إلى ص 159",
+      "description": "قواعد نبوية — من ص 130 إلى ص 159\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d61_listen",
+      "parentId": "albinaa_s2_d61",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d61_summary",
+      "parentId": "albinaa_s2_d61",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d62",
+      "name": "م1:2 اليوم 62: قواعد نبوية — من ص 160 إلى ص 189 + شرح رياض الصالحين: باب المراقبة 2",
+      "description": "قواعد نبوية — من ص 160 إلى ص 189\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/06.html\nشرح رياض الصالحين: باب المراقبة 2\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/15.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d62_listen",
+      "parentId": "albinaa_s2_d62",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d62_summary",
+      "parentId": "albinaa_s2_d62",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d63",
+      "name": "م1:2 اليوم 63: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d64",
+      "name": "م1:2 اليوم 64: الدليل إلى القرآن — من ص 85 إلى 107",
+      "description": "الدليل إلى القرآن — من ص 85 إلى 107\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/04.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d64_listen",
+      "parentId": "albinaa_s2_d64",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d64_summary",
+      "parentId": "albinaa_s2_d64",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d65",
+      "name": "م1:2 اليوم 65: الدليل إلى القرآن — من ص 108 إلى 135",
+      "description": "الدليل إلى القرآن — من ص 108 إلى 135\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/05.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d65_listen",
+      "parentId": "albinaa_s2_d65",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d65_summary",
+      "parentId": "albinaa_s2_d65",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d66",
+      "name": "م1:2 اليوم 66: الدليل إلى القرآن — من ص 137 إلى 156",
+      "description": "الدليل إلى القرآن — من ص 137 إلى 156\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/06.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d66_listen",
+      "parentId": "albinaa_s2_d66",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d66_summary",
+      "parentId": "albinaa_s2_d66",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d67",
+      "name": "م1:2 اليوم 67: قواعد نبوية — من ص 190 إلى ص 222",
+      "description": "قواعد نبوية — من ص 190 إلى ص 222\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/07.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d67_listen",
+      "parentId": "albinaa_s2_d67",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d67_summary",
+      "parentId": "albinaa_s2_d67",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d68",
+      "name": "م1:2 اليوم 68: قواعد نبوية — من ص 223 إلى ص 250",
+      "description": "قواعد نبوية — من ص 223 إلى ص 250\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/08.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d68_listen",
+      "parentId": "albinaa_s2_d68",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d68_summary",
+      "parentId": "albinaa_s2_d68",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d69",
+      "name": "م1:2 اليوم 69: قواعد نبوية — من ص 251 إلى ص 285 + شرح رياض الصالحين: باب المراقبة 3",
+      "description": "قواعد نبوية — من ص 251 إلى ص 285\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/09.html\nشرح رياض الصالحين: باب المراقبة 3\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/riyad-al-saliheen/lectures/16.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d69_listen",
+      "parentId": "albinaa_s2_d69",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d69_summary",
+      "parentId": "albinaa_s2_d69",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d70",
+      "name": "م1:2 اليوم 70: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d71",
+      "name": "م1:2 اليوم 71: الدليل إلى القرآن — من ص 158 إلى 187",
+      "description": "الدليل إلى القرآن — من ص 158 إلى 187\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/07.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d71_listen",
+      "parentId": "albinaa_s2_d71",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d71_summary",
+      "parentId": "albinaa_s2_d71",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d72",
+      "name": "م1:2 اليوم 72: الدليل إلى القرآن — من ص 188 إلى 219",
+      "description": "الدليل إلى القرآن — من ص 188 إلى 219\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/08.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d72_listen",
+      "parentId": "albinaa_s2_d72",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d72_summary",
+      "parentId": "albinaa_s2_d72",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d73",
+      "name": "م1:2 اليوم 73: الدليل إلى القرآن — من ص 220 إلى نهاية الكتاب",
+      "description": "الدليل إلى القرآن — من ص 220 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/dalil-quran/lectures/09.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d73_listen",
+      "parentId": "albinaa_s2_d73",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d73_summary",
+      "parentId": "albinaa_s2_d73",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d74",
+      "name": "م1:2 اليوم 74: قواعد نبوية — من ص 286 إلى ص 318",
+      "description": "قواعد نبوية — من ص 286 إلى ص 318\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/10.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d74_listen",
+      "parentId": "albinaa_s2_d74",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d74_summary",
+      "parentId": "albinaa_s2_d74",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d75",
+      "name": "م1:2 اليوم 75: قواعد نبوية — من ص 319 إلى نهاية الكتاب",
+      "description": "قواعد نبوية — من ص 319 إلى نهاية الكتاب\nhttps://tayyibalmuslim-tech.github.io/Albinaa_Almanhaji/stage-2/qawaid-nabawiya/lectures/11.html",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d75_listen",
+      "parentId": "albinaa_s2_d75",
+      "name": "سماع المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d75_summary",
+      "parentId": "albinaa_s2_d75",
+      "name": "قراءة ملخص المحاضرة",
+      "expectedSlots": 3,
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d76",
+      "name": "م1:2 اليوم 76: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d77",
+      "name": "م1:2 اليوم 77: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d78",
+      "name": "م1:2 اليوم 78: استدراك وراحة",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d79",
+      "name": "م1:2 اليوم 79: الامتحان الأول على النصف الثاني للمرحلة الثانية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d80",
+      "name": "م1:2 اليوم 80: الامتحان الثاني على النصف الثاني للمرحلة الثانية",
+      "description": "",
+      "priority": 3
+    },
+    {
+      "id": "albinaa_s2_d81",
+      "name": "م1:2 اليوم 81: الامتحان النهائي على المرحلة الثانية",
+      "description": "",
+      "priority": 3
+    }
+  ]
+}
