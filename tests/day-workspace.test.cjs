@@ -229,6 +229,39 @@ try {
   assert.equal(run('JSON.stringify(state)'), beforeRejectedPlan);
   $('#close').click();
   run('validate(state)');
+  // Completed tasks disappear from both pickers; previously registered slots stay editable.
+  run(`state.sunsetDays={};state.repeat=[];prayer=3;view='day';day().tasks=[
+    {id:'finished',name:'مهمة تمت',prayer:3,actionId:state.actions[0].id},
+    {id:'all-slots',name:'خانات مكتملة',prayer:3,expectedSlots:2,actionId:state.actions[0].id},
+    {id:'finished-parent',name:'أصل مكتمل',prayer:3,actionId:state.actions[0].id},
+    {id:'unfinished-child',name:'فرع أصل مكتمل',parentId:'finished-parent',parentDate:date,prayer:3,actionId:state.actions[0].id},
+    {id:'pending',name:'باقية',prayer:3,expectedSlots:3,actionId:state.actions[0].id},
+    {id:'failed',name:'لم أفعلها',prayer:3,actionId:state.actions[0].id}
+  ];state.repeat=[{id:'repeat-finished',name:'متكررة مكتملة',prayer:3,days:[0,1,2,3,4,5,6],actionId:state.actions[0].id}];day().done={'finished-parent':true,'repeat-finished':true};day().failed={failed:true};day().taskProgress={'all-slots':2,pending:1};save();render()`);
+  for (const kind of ['actual', 'planned']) {
+    run(`openPicker(${first},${JSON.stringify(kind)})`);
+    $('[data-task-choice="finished"]').click();
+  }
+  run("day().done.finished=true;save();render()");
+  for (const kind of ['actual', 'planned']) {
+    run(`openPicker(${first},${JSON.stringify(kind)})`);
+    for (const id of ['finished','all-slots','finished-parent','unfinished-child','repeat-finished'])
+      assert.equal($(`[data-task-choice="${id}"]`), null, `${id} is omitted from ${kind} choices`);
+    assert.ok($('[data-task-choice="pending"]'));
+    assert.ok($('[data-task-choice="failed"]'));
+    $('#slotNote').value = 'سجل محفوظ بعد الإنجاز';
+    submit();
+    assert.equal($('#picker').open, false);
+  }
+  assert.equal(run(`day().actualTasks[${first}%144].id`), 'finished');
+  assert.equal(run(`day().taskSlotOwners[${first}%144]`), 'finished');
+  assert.match(slot(first).textContent, /مهمة تمت/);
+  assert.match(slot(first, 'planned').textContent, /مهمة تمت/);
+  run("delete day().done.finished;save()");
+  run(`openPicker(${first + 1},'planned')`);
+  assert.ok($('[data-task-choice="finished"]'), 'undoing completion makes the task selectable again');
+  $('#close').click();
+  run('validate(state)');
   assert.deepEqual(errors, []);
   console.log(
     'PASS: daily partial slot/range recording, independent notes, linked families, prayer outcomes, focus/scroll and responsive navigation destinations',

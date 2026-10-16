@@ -29,9 +29,22 @@ function normalizeTaskPriorities() {
   if (changed) save();
 }
 function actualTasksForSlot(key, n) {
-  const p = prayerOrder.find((p) => periodSlots(key, p).includes(n));
-  return sortedTasks(allTasksOn(key).filter((t) => taskInPeriod(t, p))).map(
-    (t) => ({ ...t, parentName: t.parentId ? mainTask(t).name : '' }),
+  const p = prayerOrder.find((p) => periodSlots(key, p).includes(n)),
+    entries = progressEntries();
+  const available = allTasksOn(key).filter((t) => {
+    if (!taskInPeriod(t, p) || taskCompletion(t, entries) >= 100) return false;
+    // A completed ancestor also finishes its branches without changing their records.
+    const seen = new Set([taskIdentity(t)]);
+    let parent = parentTask(t, entries);
+    while (parent && !seen.has(taskIdentity(parent))) {
+      if (outcome(parent) === 'done') return false;
+      seen.add(taskIdentity(parent));
+      parent = parentTask(parent, entries);
+    }
+    return true;
+  });
+  return sortedTasks(available).map(
+    (t) => ({ ...t, parentName: t.parentId ? mainTask(t, entries).name : '' }),
   );
 }
 
