@@ -235,6 +235,73 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       await page.evaluate(() => taskProjectIds(findTask('free', ''))),
       ['b'],
     );
+    for (const width of [1366, 390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(() => {
+        eval(
+          `state.sunsetDays={};state.repeat=[];state.projects=[{id:'delete-a',name:'مشروع الحذف'},{id:'delete-b',name:'مشروع مشترك'}];state.taskInbox=Array.from({length:30},(_,i)=>({id:'delete-'+i,name:'مهمة '+i,projectIds:['delete-a','delete-b']}));state.taskInbox.push({id:'delete-child',name:'فرعية باقية',parentId:'delete-0',parentDate:'',parentName:'مهمة 0'});view='projects';selectedProject='delete-a';render();`,
+        );
+      });
+      await page.locator('#toggleTaskSelection').click();
+      const remove = page.locator('#deleteSelectedTasks');
+      assert.equal(await remove.isDisabled(), true);
+      await own(row('delete-0'), '[data-select-task]').check();
+      await own(row('delete-1'), '[data-select-task]').check();
+      await remove.scrollIntoViewIfNeeded();
+      const position = await page.evaluate(() => scrollY);
+      page.once('dialog', async (d) => {
+        assert.match(d.message(), /حذف 2 مهمة/);
+        await d.dismiss();
+      });
+      await remove.click();
+      assert.equal(await page.evaluate(() => !!findTask('delete-0', '')), true);
+      assert.equal(
+        await page.locator('#selectedTaskCount').textContent(),
+        '2 محددة',
+      );
+      await shot('bulk-delete-' + width);
+      page.once('dialog', (d) => d.accept());
+      await remove.click();
+      assert.equal(
+        await page.evaluate(
+          () => !!findTask('delete-0', '') || !!findTask('delete-1', ''),
+        ),
+        false,
+      );
+      assert.equal(
+        await page.evaluate(
+          () => !!findTask('delete-child', '') && !!findTask('delete-2', ''),
+        ),
+        true,
+      );
+      assert.equal(await remove.isDisabled(), true);
+      assert.ok(Math.abs((await page.evaluate(() => scrollY)) - position) < 2);
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+      await page.reload();
+      assert.equal(
+        await page.evaluate(() => !!findTask('delete-0', '')),
+        false,
+      );
+    }
+    // The same deletion control works in the dashboard, including all remaining tasks.
+    await page.evaluate(() => {
+      eval(
+        `state.taskInbox=[{id:'dashboard-delete',name:'حذف من اللوحة'}];view='dashboard';plannerTab='inbox';plannerProjectTabs.inbox='';render();`,
+      );
+    });
+    await page.locator('#toggleTaskSelection').click();
+    await page.locator('#selectVisibleTasks').click();
+    page.once('dialog', (d) => d.accept());
+    await page.locator('#deleteSelectedTasks').click();
+    assert.equal(
+      await page.evaluate(() => !!findTask('dashboard-delete', '')),
+      false,
+    );
     assert.deepEqual(errors, []);
     console.log(
       'PASS: desktop/phone selection, visible-only lazy children, unchanged row height, bulk priority and project add/replace, family inheritance, dashboard, saved results and reload',

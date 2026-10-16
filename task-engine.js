@@ -511,9 +511,9 @@ function removeTaskSchedule(key, id) {
   for (const [slot, owner] of Object.entries(d.taskSlotOwners || {}))
     if (owner === id) {
       // Preserve later manual edits to either the action or its note.
-      if (d.planned?.[slot] === d.taskSlotValues?.[slot])
+      if (d.planned && d.planned[slot] === d.taskSlotValues?.[slot])
         delete d.planned[slot];
-      if (d.plannedNotes?.[slot] === d.taskSlotNotes?.[slot])
+      if (d.plannedNotes && d.plannedNotes[slot] === d.taskSlotNotes?.[slot])
         delete d.plannedNotes[slot];
       delete d.taskSlotOwners[slot];
       if (d.taskSlotValues) delete d.taskSlotValues[slot];
@@ -649,18 +649,40 @@ function savePlannedTask(original, next, progress = null) {
     throw error;
   }
 }
-function deletePlannedTask(t) {
-  if (!confirm('حذف هذه المهمة فقط؟ ستبقى مهامها الفرعية وسجل الأيام الأخرى.'))
-    return;
+function removePlannedTaskRecord(t) {
   if (!t.date) state.taskInbox = state.taskInbox.filter((x) => x.id !== t.id);
   else {
     const d = taskDay(t.date);
     removeTaskSchedule(t.date, t.id);
-    if (t.recurrent) (d.excludedRepeat ??= {})[t.id] = true;
-    else d.tasks = d.tasks.filter((x) => x.id !== t.id);
+    if (t.recurrent || d.repeatSnapshot?.some((x) => x.id === t.id))
+      (d.excludedRepeat ??= {})[t.id] = true;
+    d.tasks = d.tasks.filter((x) => x.id !== t.id);
     for (const f of ['done', 'failed', 'taskProgress'])
       if (d[f]) delete d[f][t.id];
   }
+}
+function bulkDeleteSelectedTasks(snapshot, references) {
+  if (!references.length) throw Error('حدد مهام لحذفها.');
+  const next = structuredClone(snapshot),
+    previous = state;
+  try {
+    state = next;
+    invalidateTaskReads();
+    const unique = new Map(references.map((ref) => [taskIdentity(ref), ref]));
+    const tasks = [...unique.values()].map((ref) => findTask(ref.id, ref.date));
+    if (tasks.some((t) => !t))
+      throw Error('تغيرت بعض المهام أو حُذفت. أعد تحديدها.');
+    tasks.forEach(removePlannedTaskRecord);
+    return next;
+  } finally {
+    state = previous;
+    invalidateTaskReads();
+  }
+}
+function deletePlannedTask(t) {
+  if (!confirm('حذف هذه المهمة فقط؟ ستبقى مهامها الفرعية وسجل الأيام الأخرى.'))
+    return;
+  removePlannedTaskRecord(t);
   save();
   render();
   return true;
