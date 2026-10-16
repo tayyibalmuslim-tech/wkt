@@ -18,6 +18,10 @@ module.exports = async function projectsBrowser(browser, url) {
     });
     const roots = page.locator('#projectTaskList > .task-row'),
       panel = page.locator('#projectDetails');
+    assert.ok(
+      (await panel.boundingBox()).width >= 0.8 * page.viewportSize().width,
+      'project details use most desktop width',
+    );
     assert.equal(await roots.count(), 30);
     assert.equal(
       await page.locator('#projectTaskList .task-children .task-row').count(),
@@ -131,6 +135,11 @@ module.exports = async function projectsBrowser(browser, url) {
     );
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.locator('.project-sidebar').isVisible(), false);
+    assert.ok(
+      (await page.locator('#projectDetails').boundingBox()).width >=
+        0.9 * page.viewportSize().width,
+      'project content uses mobile width',
+    );
     assert.equal(await page.locator('#projectSelect').isVisible(), true);
     await page.locator('#projectSelect').selectOption('phone-project');
     assert.equal(await roots.count(), 1);

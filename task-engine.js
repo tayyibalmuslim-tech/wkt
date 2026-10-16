@@ -154,40 +154,6 @@ function taskGroups(list) {
   }
   return sortedTasks([...groups.values()]);
 }
-// Optional listPosition orders roots in general lists. Older records keep their existing default order.
-function orderedTaskRoots(list) {
-  return taskGroups(list).sort(
-    (a, b) => (a.listPosition ?? Infinity) - (b.listPosition ?? Infinity),
-  );
-}
-function taskOrderRecord(task) {
-  if (!task.date) return (state.taskInbox || []).find((t) => t.id === task.id);
-  const day = state.sunsetDays[task.date];
-  return [
-    ...(day?.tasks || []),
-    ...(day?.repeatSnapshot || []),
-    ...(state.repeat || []),
-  ].find((t) => t.id === task.id);
-}
-function moveRootTask(task, position) {
-  const roots = orderedTaskRoots(progressEntries()).filter((t) => !t.virtual);
-  const index = roots.findIndex((t) => taskIdentity(t) === taskIdentity(task));
-  if (
-    index < 0 ||
-    !Number.isInteger(position) ||
-    position < 1 ||
-    position > roots.length
-  )
-    return false;
-  roots.splice(index, 1);
-  roots.splice(position - 1, 0, task);
-  roots.forEach((t, i) => {
-    const record = taskOrderRecord(t);
-    if (record) record.listPosition = i + 1;
-  });
-  save();
-  return true;
-}
 function openTaskManager(t) {
   if (!t) return;
   const main = mainTask(t);
@@ -700,18 +666,20 @@ function deletePlannedTask(t) {
   return true;
 }
 function priorityButtons(value = 3) {
-  return `<fieldset class="task-priority-field"><legend>الأولوية <small>(1 الأعلى، 5 الأدنى)</small></legend><div class="task-priority-options" role="radiogroup" aria-label="الأولوية">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="priority" value="${n}" ${n === +value ? 'checked' : ''} aria-label="الأولوية ${n}"><span>${n}</span></label>`).join('')}</div></fieldset>`;
+  return `<fieldset class="task-priority-field" title="1 الأعلى، 5 الأدنى"><legend>الأولوية</legend><div class="task-priority-options" role="radiogroup" aria-label="الأولوية">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="priority" value="${n}" ${n === +value ? 'checked' : ''} aria-label="الأولوية ${n}"><span>${n}</span></label>`).join('')}</div></fieldset>`;
 }
-function taskFields(t = {}, includeDate = true) {
+function taskFields(t = {}, includeDate = true, includeProgress = false) {
   const hasChildren = !!t.id && childTasks(t).length > 0;
   return `
  ${projectField(t)}
  <label class="monthly-visibility"><input name="showInMonthlyCalendar" type="checkbox" ${t.showInMonthlyCalendar !== false ? 'checked' : ''}> إظهار في التقويم الشهري</label>
- ${includeDate ? completionField(t) : ''}
  ${priorityButtons(taskPriority(t))}
- <label class="field">الخانات المتوقعة (الخانة ١٠ دقائق)<input name="expectedSlots" type="number" min="0" ${hasChildren ? 'disabled' : 'max="144" required'} step="1" value="${taskExpectedSlots(t)}"></label>${hasChildren ? '<p class="hint">محسوبة تلقائيًا من مجموع خانات المهام الفرعية النهائية؛ عدّل الخانات من الفروع.</p>' : ''}
+ <div class="task-effort-fields"><label class="field task-slot-field" title="الخانة ١٠ دقائق${hasChildren ? '؛ المجموع من الفروع، ويُعدّل من داخلها' : ''}">المتوقعة<input aria-label="الخانات المتوقعة" name="expectedSlots" type="number" min="0" ${hasChildren ? 'disabled' : 'max="144" required'} step="1" value="${taskExpectedSlots(t)}"></label>${includeProgress ? `<label class="field task-slot-field">المنجزة<input aria-label="الخانات المنجزة" name="completedSlots" type="number" min="0" max="9999" step="1" required value="${completedSlots(t)}"></label>` : ''}<span class="task-slot-unit">خانات · ١٠ دقائق${hasChildren ? '<small>المتوقعة من الفروع</small>' : ''}</span></div>
+
+ ${includeDate ? `<label class="field">اليوم<input title="اتركه فارغًا لتبقى المهمة في تحتاج توزيعًا" name="taskDate" type="date" value="${t.date || ''}"></label>` : ''}
  <div class="field task-action-field"><input type="hidden" name="actionId" value="${esc(t.actionId || '')}"><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span class="task-action-caption">الفعل المرتبط</span><span class="task-action-selected" data-task-action-label>بدون ربط — اختر فعلًا</span><span class="task-action-arrow" aria-hidden="true">▾</span></button></div>
- ${includeDate ? `<label class="field">اليوم (اتركه فارغًا لصندوق الوارد)<input name="taskDate" type="date" value="${t.date || ''}"></label>${periodPicker(t)}` : ''}`;
+
+ ${includeDate ? completionField(t) + periodPicker(t) : ''}`;
 }
 function attachTaskActionPicker(form) {
   const trigger = form.querySelector('[data-task-action-trigger]');
@@ -795,7 +763,7 @@ function openPlannerEditor(
         ? [projectId]
         : [],
   };
-  dialog.innerHTML = `<div class="dialog-head"><h2 id="plannerTitle">${t ? 'تعديل وتوزيع المهمة' : parent ? 'إضافة مهمة فرعية' : 'إضافة مهمة'}</h2><button type="button" id="closePlanner" aria-label="إغلاق">×</button></div><form id="plannerForm"><div class="planner-main-fields"><label class="field">المهمة<input name="taskName" maxlength="150" required value="${esc(draft.name)}"></label><label class="field">وصف قصير للمهمة<input name="taskDescription" maxlength="500" value="${esc(draft.description || '')}" placeholder="مثل: من 1 إلى 21"></label></div>${draft.parentId ? `<p>ضمن: ${esc(parentName(draft))}</p>` : ''}<div class="planner-fields">${taskFields(draft)}${t ? `<label class="field">الخانات المنجزة<input name="completedSlots" type="number" min="0" max="9999" step="1" required value="${completedSlots(t)}"></label>` : ''}</div><details class="planner-capacity-details"><summary>عرض الخانات المتاحة في الفترات</summary><p id="plannerCapacity" class="capacity-note"></p></details><label class="field">بداية التنفيذ في خانات الفعل المطلوب<select name="startSlot"></select></label><p class="hint">التخطيط يحجز عدد الخانات المتوقع ويكتب الفعل المرتبط. لا يغيّر تسجيلك الفعلي ولا يضع علامة إنجاز تلقائيًا.</p>${t?.recurrent ? '<p class="hint">تعديل هذه النسخة يفصلها عن السلسلة لهذا اليوم فقط.</p>' : ''}<p id="plannerError" role="alert"></p><div class="planner-form-actions"><button class="primary">حفظ المهمة</button><button type="button" class="secondary" data-editor-cancel>إلغاء</button></div></form>${t ? '<div class="planner-edit-actions"><button type="button" id="editorAddChild" class="secondary">＋ إضافة مهمة فرعية</button><button type="button" id="editorDeleteTask" class="danger">حذف المهمة</button></div>' : ''}`;
+  dialog.innerHTML = `<div class="dialog-head"><h2 id="plannerTitle">${t ? 'تعديل المهمة' : parent ? 'إضافة مهمة فرعية' : 'إضافة مهمة'}</h2><button type="button" id="closePlanner" aria-label="إغلاق">×</button></div><form id="plannerForm"><div class="planner-main-fields"><label class="field">المهمة<input name="taskName" maxlength="150" required value="${esc(draft.name)}"></label><label class="field">الوصف<input name="taskDescription" maxlength="500" value="${esc(draft.description || '')}" placeholder="مثل: من 1 إلى 21"></label></div>${draft.parentId ? `<p>ضمن: ${esc(parentName(draft))}</p>` : ''}<div class="planner-fields">${taskFields(draft, true, !!t)}</div><details class="planner-schedule-details" ${draft.startSlot != null ? 'open' : ''}><summary>حجز وقت في المطلوب</summary><label class="field">البداية<select name="startSlot"></select></label><details class="planner-capacity-details"><summary>الخانات المتاحة</summary><p id="plannerCapacity" class="capacity-note"></p></details><p class="hint">يحجز الخانات المتوقعة بالفعل المرتبط، دون تغيير التسجيل الفعلي أو الإنجاز.</p></details>${t?.recurrent ? '<p class="hint">تعديل هذه النسخة يفصلها عن السلسلة لهذا اليوم فقط.</p>' : ''}<p id="plannerError" role="alert"></p><div class="planner-form-actions"><button class="primary">حفظ المهمة</button><button type="button" class="secondary" data-editor-cancel>إلغاء</button></div></form>${t ? '<div class="planner-edit-actions"><button type="button" id="editorAddChild" class="secondary">＋ إضافة مهمة فرعية</button><button type="button" id="editorDeleteTask" class="danger">حذف المهمة</button></div>' : ''}`;
   if (t) {
     const children = childTasks(t);
     if (children.length) {
@@ -1125,6 +1093,7 @@ function validatePlanning(s) {
       !['done', 'failed'].includes(t.inboxOutcome)
     )
       throw Error('حالة مهمة غير موزعة غير صالحة');
+    // Accept the legacy optional field in old backups; general lists no longer use or write it.
     if (
       t.listPosition !== undefined &&
       (!Number.isInteger(t.listPosition) || t.listPosition < 1)
