@@ -429,7 +429,17 @@ function bulkUpdateSelectedTasks(snapshot, references, patch) {
   if (
     !references.length ||
     !fields.length ||
-    fields.some((key) => !['priority', 'projects'].includes(key))
+    fields.some(
+      (key) =>
+        ![
+          'priority',
+          'projects',
+          'date',
+          'prayers',
+          'actionId',
+          'showInMonthlyCalendar',
+        ].includes(key),
+    )
   )
     throw Error('حدد مهام وحقلًا واحدًا على الأقل.');
   if (
@@ -450,6 +460,35 @@ function bulkUpdateSelectedTasks(snapshot, references, patch) {
       (patch.projects.mode !== 'replace' && !patch.projects.ids.length))
   )
     throw Error('اختر المشاريع وطريقة التعديل.');
+  if (
+    'date' in patch &&
+    (typeof patch.date !== 'string' ||
+      (patch.date &&
+        (!/^\d{4}-\d{2}-\d{2}$/.test(patch.date) ||
+          !Number.isFinite(Date.parse(patch.date + 'T12:00:00Z')) ||
+          new Date(patch.date + 'T12:00:00Z').toISOString().slice(0, 10) !==
+            patch.date)))
+  )
+    throw Error('اختر تاريخًا صحيحًا أو اتركه فارغًا لصندوق الوارد.');
+  if (
+    'prayers' in patch &&
+    (!Array.isArray(patch.prayers) ||
+      patch.prayers.some((p) => !Number.isInteger(p) || p < 0 || p > 4) ||
+      new Set(patch.prayers).size !== patch.prayers.length)
+  )
+    throw Error('اختر فترات صلاة صحيحة.');
+  if (
+    'actionId' in patch &&
+    (typeof patch.actionId !== 'string' ||
+      (patch.actionId &&
+        !snapshot.actions.some((a) => a.id === patch.actionId)))
+  )
+    throw Error('اختر فعلًا موجودًا أو بدون ربط.');
+  if (
+    'showInMonthlyCalendar' in patch &&
+    typeof patch.showInMonthlyCalendar !== 'boolean'
+  )
+    throw Error('اختر إظهار المهمة في التقويم أو إخفاءها.');
   const next = structuredClone(snapshot),
     previous = state;
   try {
@@ -488,24 +527,71 @@ function bulkUpdateSelectedTasks(snapshot, references, patch) {
         day.tasks.push(occurrence);
         return occurrence;
       };
-      if ('priority' in patch)
-        selected.forEach((task) => {
-          record(task).priority = patch.priority;
-        });
-      if (patch.projects) {
-        for (const task of selected) {
-          const target = record(task),
-            current = effectiveProjectIds(task, entries),
+      const edits = selected.map((task) => {
+        const values = {};
+        for (const key of [
+          'priority',
+          'date',
+          'actionId',
+          'showInMonthlyCalendar',
+        ])
+          if (key in patch) values[key] = patch[key];
+        if ('prayers' in patch) {
+          values.prayers = [...patch.prayers];
+          values.prayer = patch.prayers[0] ?? null;
+        }
+        if (patch.projects) {
+          const current = effectiveProjectIds(task, entries),
             { mode, ids } = patch.projects;
           setTaskProjects(
-            target,
+            values,
             mode === 'replace'
               ? ids
               : mode === 'add'
                 ? [...current, ...ids]
                 : current.filter((id) => !ids.includes(id)),
           );
-          if (task.parentId) target.projectOverride = true;
+          if (task.parentId) values.projectOverride = true;
+        }
+        const moved = 'date' in patch && patch.date !== (task.date || '');
+        const periodChanged =
+          'prayers' in patch &&
+          JSON.stringify([...taskPeriods(task)].sort()) !==
+            JSON.stringify([...patch.prayers].sort());
+        const reschedule =
+          moved ||
+          periodChanged ||
+          ('actionId' in patch && patch.actionId !== task.actionId);
+        if (moved || periodChanged || ('actionId' in patch && !patch.actionId))
+          values.startSlot = null;
+        return { task, values, moved, reschedule };
+      });
+      // Remove old reservations together before rebuilding any affected plans.
+      for (const edit of edits)
+        if (edit.reschedule && edit.task.date)
+          removeTaskSchedule(edit.task.date, edit.task.id);
+      for (const { task: reference, values, moved, reschedule } of edits) {
+        invalidateTaskReads();
+        const task = findTask(reference.id, reference.date);
+        if (moved) {
+          const target = { ...task, ...values };
+          // Detached copies may share a series id on different days. Moving one
+          // must not overwrite the series occurrence at its destination.
+          if (target.date && findTask(target.id, target.date))
+            target.id = uid();
+          const source =
+            !task.date || taskDay(task.date).tasks.some((t) => t.id === task.id)
+              ? task
+              : { ...task, recurrent: true };
+          savePlannedTask(source, target, null, false);
+        } else {
+          const target = record(task);
+          Object.assign(target, values);
+          if (reschedule && task.date)
+            scheduleTask(
+              { ...target, date: task.date },
+              target.startSlot ?? null,
+            );
         }
       }
       invalidateTaskReads();
@@ -528,7 +614,18 @@ function openSelectedTaskEditor() {
     document.body.append(dialog);
   }
   dialog.setAttribute('aria-labelledby', 'selectedTasksTitle');
-  dialog.innerHTML = `<div class="dialog-head"><h2 id="selectedTasksTitle">تعديل ${references.length} مهمة</h2><button type="button" data-close-selected aria-label="إغلاق">×</button></div><form id="selectedTasksForm"><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="priority">تعديل الأولوية</label><fieldset data-selected-value="priority" disabled>${priorityButtons(3)}</fieldset></section><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="projects">تعديل المشاريع المرتبطة</label><fieldset data-selected-value="projects" disabled><label class="field">الطريقة<select name="projectMode"><option value="add">إضافة للمشاريع المختارة</option><option value="remove">إزالة من المشاريع المختارة</option><option value="replace">استبدال جميع المشاريع</option></select></label><div class="task-project-options">${(state.projects || []).map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div><p class="hint">تغيير المشاريع يخص المحدد؛ الفرع لا يغيّر مشاريع أصله. استبدال المشاريع دون اختيار يزيل كل الروابط.</p></fieldset></section><p class="hint">الأولوية والمشاريع للمهام المحددة فقط. النسخة المتكررة تُعدّل في يومها وحده.</p><p id="selectedTasksError" role="alert"></p><div class="selected-tasks-actions"><button class="primary">تطبيق التعديل</button><button type="button" class="secondary" data-close-selected>إلغاء</button></div></form>`;
+  const field = (key, title, control) =>
+    `<section data-selected-section="${key}"><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="${key}">تعديل ${title}</label><fieldset data-selected-value="${key}" disabled>${control}</fieldset></section>`;
+  dialog.innerHTML = `<div class="dialog-head"><h2 id="selectedTasksTitle">تعديل ${references.length} مهمة</h2><button type="button" data-close-selected aria-label="إغلاق">×</button></div><form id="selectedTasksForm">
+  ${field('date', 'التاريخ', '<label class="field">التاريخ<input type="date" name="date"></label><p class="hint">فارغ = تحتاج توزيعًا</p>')}
+  ${field('priority', 'الأولوية', priorityButtons(3))}
+  ${field('prayers', 'الفترة', periodPicker({ prayers: [] }))}
+  ${field('actionId', 'الفعل المرتبط', '<input type="hidden" name="actionId" value=""><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span data-task-action-label>بدون ربط — اختر فعلًا</span></button>')}
+  ${field('showInMonthlyCalendar', 'الظهور في التقويم', '<label class="field">التقويم الشهري<select name="showInMonthlyCalendar"><option value="true">إظهار</option><option value="false">إخفاء</option></select></label>')}
+  ${field('projects', 'المشاريع المرتبطة', `<label class="field">الطريقة<select name="projectMode"><option value="add">إضافة للمشاريع المختارة</option><option value="remove">إزالة من المشاريع المختارة</option><option value="replace">استبدال جميع المشاريع</option></select></label><div class="task-project-options">${(state.projects || []).map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div><p class="hint">التعديل للمحدد فقط؛ الفرع لا يغيّر مشاريع أصله. الاستبدال دون اختيار يزيل الروابط.</p>`)}
+  <p class="hint selected-tasks-note">تُطبّق الحقول المحددة فقط؛ نسخة التكرار لهذا اليوم وحده. تغيير التاريخ أو الفترة يلغي حجز الوقت القديم ويحفظ الإنجاز والتسجيل الفعلي.</p><p id="selectedTasksError" role="alert"></p><div class="selected-tasks-actions"><button class="primary">تطبيق التعديل</button><button type="button" class="secondary" data-close-selected>إلغاء</button></div></form>`;
+  attachTaskActionPicker($('#selectedTasksForm'));
+  bindPeriodPicker($('#selectedTasksForm'));
   dialog
     .querySelectorAll('[data-close-selected]')
     .forEach((button) => (button.onclick = () => dialog.close()));
@@ -558,6 +655,14 @@ function openSelectedTaskEditor() {
             (input) => input.value,
           ),
         };
+      for (const key of ['date', 'actionId', 'showInMonthlyCalendar'])
+        if (form.querySelector(`[data-edit-selected="${key}"]`).checked)
+          patch[key] =
+            key === 'showInMonthlyCalendar'
+              ? form.elements[key].value === 'true'
+              : form.elements[key].value;
+      if (form.querySelector('[data-edit-selected="prayers"]').checked)
+        patch.prayers = selectedTaskPeriods(form);
       const next = bulkUpdateSelectedTasks(state, references, patch);
       rememberDashboardPosition();
       rememberProjectView();

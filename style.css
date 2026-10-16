@@ -4977,3 +4977,32 @@ main > header {
     display: none;
   }
 }
+
+/* Selected fields stay compact; disabled controls take no space. */
+#selectedTasksForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+#selectedTasksForm > [data-selected-section='prayers'],
+#selectedTasksForm > [data-selected-section='projects'],
+#selectedTasksForm > .selected-tasks-note,
+#selectedTasksError,
+#selectedTasksForm > .selected-tasks-actions {
+  grid-column: 1 / -1;
+}
+#selectedTasksForm .task-period-picker > .hint {
+  display: none;
+}
+#selectedTasksForm .task-period-picker .days {
+  margin: 0;
+}
+#selectedTasksForm input[type='date'] {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 480px) {
+  #selectedTasksForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

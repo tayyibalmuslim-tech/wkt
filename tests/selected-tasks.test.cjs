@@ -397,6 +397,124 @@ try {
       ),
     /وراثة/,
   );
+  // Optional bulk fields: move complete families without losing results or actual logs.
+  run(`state.sunsetDays={};state.repeat=[];state.taskInbox=[
+    {id:'move-root',name:'أصل',projectIds:['a','b'],expectedSlots:8,inboxOutcome:'done',completedSlotCount:3},
+    {id:'move-child',name:'فرع',parentId:'move-root',parentDate:'',expectedSlots:2,completedSlotCount:1},
+    {id:'stay',name:'لا يتغير',priority:5}];save();window.untouched=JSON.stringify(state.taskInbox[2]);window.bulkDate=addDate(activeDay(),2);
+    window.patchBefore=JSON.stringify(state);
+    window.movedBulk=bulkUpdateSelectedTasks(state,[{id:'move-root',date:''},{id:'move-child',date:''}],{date:window.bulkDate,prayers:[0,3],priority:2,actionId:state.actions[0].id,showInMonthlyCalendar:false});`);
+  assert.equal(run('JSON.stringify(state)'), run('window.patchBefore'));
+  run('state=window.movedBulk;invalidateTaskReads();validate(state);');
+  assert.equal(run(`outcome(findTask('move-root',window.bulkDate))`), 'done');
+  assert.equal(run(`completedSlots(findTask('move-root',window.bulkDate))`), 3);
+  assert.equal(
+    run(`completedSlots(findTask('move-child',window.bulkDate))`),
+    1,
+  );
+  assert.equal(
+    run(`findTask('move-child',window.bulkDate).parentDate`),
+    run('window.bulkDate'),
+  );
+  assert.equal(
+    run(`findTask('move-child',window.bulkDate).showInMonthlyCalendar`),
+    false,
+  );
+  assert.deepEqual(
+    [...run(`taskPeriods(findTask('move-child',window.bulkDate))`)],
+    [0, 3],
+  );
+  assert.equal(
+    run(`JSON.stringify(findTask('stay',''))`),
+    run('window.untouched'),
+  );
+  run(
+    `state=bulkUpdateSelectedTasks(state,[{id:'move-root',date:window.bulkDate}],{date:''});invalidateTaskReads();`,
+  );
+  assert.equal(run(`outcome(findTask('move-root',''))`), 'done');
+  assert.equal(run(`completedSlots(findTask('move-root',''))`), 3);
+  assert.equal(run(`findTask('move-child',window.bulkDate).parentDate`), '');
+  // Period changes remove only task-owned planning; actual recording and manual edits survive.
+  run(
+    `window.slot=periodSlots(window.bulkDate,0)[0];window.scheduled=findTask('move-child',window.bulkDate);window.scheduled.startSlot=window.slot;Object.assign(taskDay(window.bulkDate).tasks.find(t=>t.id==='move-child'),window.scheduled);scheduleTask(window.scheduled,window.slot);taskDay(window.bulkDate).slots[window.slot%144]=state.actions[0].id;(taskDay(window.bulkDate).actualNotes??={})[window.slot%144]='تسجيل محفوظ';window.oldActual=JSON.stringify(taskDay(window.bulkDate).slots);state=bulkUpdateSelectedTasks(state,[{id:'move-child',date:window.bulkDate}],{prayers:[4]});invalidateTaskReads();`,
+  );
+  assert.equal(run(`findTask('move-child',window.bulkDate).startSlot`), null);
+  assert.equal(
+    run(`Object.keys(taskDay(window.bulkDate).taskSlotOwners).length`),
+    0,
+  );
+  assert.equal(
+    run(`JSON.stringify(taskDay(window.bulkDate).slots)`),
+    run('window.oldActual'),
+  );
+  assert.equal(
+    run(`taskDay(window.bulkDate).actualNotes[window.slot%144]`),
+    'تسجيل محفوظ',
+  );
+  // Recurring moves isolate one occurrence and preserve the series and its destination occurrence.
+  run(
+    `date=activeDay();state.repeat=[{id:'dated-repeat',name:'سلسلة',days:[0,1,2,3,4,5,6],prayer:0,priority:4}];(taskDay(date).failed??={})['dated-repeat']=true;(taskDay(date).taskProgress??={})['dated-repeat']=2;state.taskInbox.push({id:'repeat-child',name:'فرع السلسلة',parentId:'dated-repeat',parentDate:date});save();state=bulkUpdateSelectedTasks(state,[{id:'dated-repeat',date}],{date:window.bulkDate,prayers:[3],showInMonthlyCalendar:false});invalidateTaskReads();window.detached=taskDay(window.bulkDate).tasks.find(t=>t.detachedFrom==='dated-repeat');validate(state);`,
+  );
+  assert.ok(run('window.detached.id !== "dated-repeat"'));
+  assert.equal(
+    run(`outcome({...window.detached,date:window.bulkDate})`),
+    'failed',
+  );
+  assert.equal(
+    run(`completedSlots({...window.detached,date:window.bulkDate})`),
+    2,
+  );
+  assert.equal(
+    run(`findTask('repeat-child','').parentId`),
+    run('window.detached.id'),
+  );
+  assert.equal(
+    run(`findTask('repeat-child','').parentDate`),
+    run('window.bulkDate'),
+  );
+  assert.equal(run(`findTask('dated-repeat',window.bulkDate).priority`), 4);
+  assert.equal(run(`findTask('dated-repeat',date)`), undefined);
+  assert.equal(run(`state.repeat[0].showInMonthlyCalendar`), undefined);
+  const stable = run('JSON.stringify(state)');
+  for (const patch of [
+    "{date:'2026-02-30'}",
+    '{date:3}',
+    '{prayers:[5]}',
+    '{prayers:[1,1]}',
+    "{actionId:'missing'}",
+    "{showInMonthlyCalendar:'false'}",
+  ])
+    assert.throws(() =>
+      run(`bulkUpdateSelectedTasks(state,[{id:'stay',date:''}],${patch})`),
+    );
+  assert.equal(run('JSON.stringify(state)'), stable);
+  // The actual form commits the same opt-in fields and leaves unchecked fields untouched.
+  run(
+    `selectedTaskRefs.clear();selectedTaskRefs.set(taskIdentity({id:'stay',date:''}),{id:'stay',date:''});openSelectedTaskEditor();`,
+  );
+  for (const key of ['date', 'prayers', 'actionId', 'showInMonthlyCalendar'])
+    $(`[data-edit-selected="${key}"]`).click();
+  $('#selectedTasksForm [name="date"]').value = run('window.bulkDate');
+  $('#selectedTasksForm [name="taskPeriods"][value="3"]').click();
+  $('#selectedTasksForm [name="actionId"]').value = run('state.actions[0].id');
+  $('#selectedTasksForm [name="showInMonthlyCalendar"]').value = 'false';
+  $('#selectedTasksForm').dispatchEvent(
+    new w.Event('submit', { bubbles: true, cancelable: true }),
+  );
+  assert.equal($('#selectedTasksEditor').open, false);
+  assert.equal(run(`findTask('stay',window.bulkDate).priority`), 5);
+  assert.equal(
+    run(`findTask('stay',window.bulkDate).actionId`),
+    run('state.actions[0].id'),
+  );
+  assert.equal(
+    run(`findTask('stay',window.bulkDate).showInMonthlyCalendar`),
+    false,
+  );
+  assert.deepEqual(
+    [...run(`taskPeriods(findTask('stay',window.bulkDate))`)],
+    [3],
+  );
   assert.deepEqual(errors, []);
   console.log(
     'PASS: explicit lazy selection, atomic selected priority/project add/remove/replace, inherited/shared families, stable recurring occurrences, preserved progress/context and stale-account guard',
