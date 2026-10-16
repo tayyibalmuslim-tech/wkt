@@ -144,6 +144,44 @@ const SlotTools = (() => {
       }
     }
   }
+  function groups(day, indices, kind) {
+    const result = [];
+    for (const n of indices) {
+      const i = ((n % 144) + 144) % 144;
+      const action = (kind === 'actual' ? day.slots : day.planned)?.[i] || '';
+      const note = day[kind + 'Notes']?.[i] || '';
+      const task = kind === 'actual' ? day.actualTasks?.[i] || null : null;
+      const owner = kind === 'planned' ? day.taskSlotOwners?.[i] || '' : '';
+      const signature = JSON.stringify([
+        action,
+        note,
+        task
+          ? [task.id, task.name, task.actionId || '', task.parentName || '']
+          : null,
+        owner,
+      ]);
+      const previous = result[result.length - 1];
+      // Empty slots stay individually selectable. Notes and task identities are boundaries.
+      if (
+        (action || note || task || owner) &&
+        previous?.signature === signature &&
+        previous.end === n
+      )
+        previous.end = n + 1;
+      else
+        result.push({
+          start: n,
+          end: n + 1,
+          action,
+          note,
+          task,
+          owner,
+          signature,
+          kind,
+        });
+    }
+    return result;
+  }
   function actionChoices(o) {
     const selected = o.action || '';
     const groups = [];
@@ -240,7 +278,7 @@ const SlotTools = (() => {
             };
             q('#slotAction').value = t.actionId;
             refresh();
-            if (!o.bulk) commit(false);
+            if (!o.bulk || o.immediate) commit(false);
           }),
       );
     };
@@ -288,11 +326,11 @@ const SlotTools = (() => {
           selectedTask = null;
           q('#slotAction').value = b.dataset.actionChoice;
           refresh();
-          if (!o.bulk) commit(false);
+          if (!o.bulk || o.immediate) commit(false);
         }),
     );
     q('#slotKind').onchange = () => {
-      if (!o.bulk) {
+      if (!o.bulk || o.readOnKindChange) {
         let v = o.read(+q('#slotFrom').value, q('#slotKind').value);
         selectedTask = v.task || null;
         q('#slotAction').value = v.action || '';
@@ -324,6 +362,18 @@ const SlotTools = (() => {
     };
     q('#clearSlot').onclick = () => commit(true);
     q('#close').onclick = o.close;
+    if (o.immediate) {
+      const single = document.createElement('button');
+      single.type = 'button';
+      single.className = 'secondary';
+      single.id = 'singleSlotOnly';
+      single.textContent = 'خانة واحدة من وقت البداية';
+      single.onclick = () => {
+        q('#slotTo').value = String(+q('#slotFrom').value + 1);
+        refresh();
+      };
+      q('.range-fields').after(single);
+    }
     refresh();
     if (o.show) o.show();
   }
@@ -335,5 +385,6 @@ const SlotTools = (() => {
     validate,
     open,
     actionChoices,
+    groups,
   };
 })();

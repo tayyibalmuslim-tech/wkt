@@ -55,15 +55,15 @@ module.exports = async function dayBrowser(browser, url) {
         'navigation stays at top while scrolling',
       );
       await page.evaluate(() => scrollTo(0, 0));
-      const slot = page.locator('#dailySlots .slot').first();
+      const slot = page.locator('#dailySlots');
       for (const selector of ['.slot-actual', '.slot-planned']) {
-        const box = await slot.locator(selector).boundingBox();
+        const box = await slot.locator(selector).first().boundingBox();
         assert.ok(
           box.width >= 40 && box.height >= 40,
           'both recording targets are accessible',
         );
       }
-      await slot.locator('.slot-actual').click();
+      await slot.locator('.slot-actual').first().click();
       const picker = await page.locator('#picker').boundingBox();
       assert.ok(
         picker.x >= 0 &&
@@ -84,7 +84,7 @@ module.exports = async function dayBrowser(browser, url) {
         ),
         true,
       );
-      await slot.locator('.slot-planned').click();
+      await slot.locator('.slot-planned').first().click();
       await assertCentred();
       await page.keyboard.press('Escape');
       await page.locator('#bulkSlots').click();

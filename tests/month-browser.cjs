@@ -155,6 +155,7 @@ const server = http.createServer((req, res) => {
     await require('./inline-controls-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
     await require('./project-goals-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
     await require('./selected-tasks-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
+    await require('./merged-slots-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
     await require('./accessibility-browser.cjs')(
       browser,
       'http://127.0.0.1:' + server.address().port,

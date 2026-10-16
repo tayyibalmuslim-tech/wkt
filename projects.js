@@ -306,7 +306,8 @@ function moveProjectTask(projectId, key, position) {
           .filter((el) => el.matches('.task-row'))
           .map((card) => [taskIdentity(rowTask(card)), card]),
       );
-      const scroll = $('#projectDetails').scrollTop;
+      const scroll = $('#projectDetails').scrollTop,
+        pageScroll = projectWindowScroll();
       for (const task of list) {
         const card = cards.get(taskIdentity(task));
         if (card) {
@@ -316,6 +317,7 @@ function moveProjectTask(projectId, key, position) {
       }
       bindProjectTaskOrder(root, project, list, true);
       $('#projectDetails').scrollTop = scroll;
+      projectWindowScroll(pageScroll);
     })();
   } else {
     taskReadScope(() =>
@@ -1075,6 +1077,11 @@ function projectView(id) {
     });
   return projectViews.get(id);
 }
+function projectWindowScroll(top) {
+  const page = document.scrollingElement || document.documentElement;
+  if (top !== undefined) page.scrollTop = top;
+  return page.scrollTop;
+}
 function rememberProjectView() {
   const panel = $('#projectDetails');
   if (
@@ -1085,7 +1092,7 @@ function rememberProjectView() {
     return;
   const ui = projectView(mountedProject.id);
   ui.scroll = panel.scrollTop;
-  ui.windowScroll = window.scrollY;
+  ui.windowScroll = projectWindowScroll();
   if (!ui.query)
     ui.expanded = new Set(
       [...expandedTaskRows].filter((key) => mountedProject.keys.has(key)),
@@ -1211,7 +1218,8 @@ function expandProjectTasks(open) {
     const ui = projectView(selectedProject),
       model = projectModel(selectedProject),
       root = $('#projectTaskList');
-    const scroll = $('#projectDetails').scrollTop;
+    const scroll = $('#projectDetails').scrollTop,
+      pageScroll = projectWindowScroll();
     ui.expanded = open
       ? new Set(
           [...model.entries, ...model.roots]
@@ -1245,6 +1253,7 @@ function expandProjectTasks(open) {
         });
     }
     $('#projectDetails').scrollTop = scroll;
+    projectWindowScroll(pageScroll);
     rememberProjectView();
   })();
 }
@@ -1335,11 +1344,18 @@ function renderProjectDetails() {
   const changeSearch = () => {
     rememberProjectView();
     const old = ui.query;
-    if (!old) ui.browseScroll = details.scrollTop;
+    if (!old) ui.browseScroll = projectWindowScroll();
     ui.query = search.value;
     renderProjectTaskList();
-    details.scrollTop = ui.query ? 0 : ui.browseScroll;
-    ui.scroll = details.scrollTop;
+    projectWindowScroll(
+      ui.query
+        ? Math.max(
+            0,
+            projectWindowScroll() + details.getBoundingClientRect().top - 72,
+          )
+        : ui.browseScroll,
+    );
+    ui.windowScroll = projectWindowScroll();
   };
   search.oninput = changeSearch;
   search.onkeydown = (e) => {
@@ -1370,6 +1386,7 @@ function renderProjectDetails() {
   };
   renderProjectTaskList();
   details.scrollTop = ui.scroll;
+  projectWindowScroll(ui.windowScroll);
 }
 function renderProjects() {
   if (!projectMenusInstalled) {
