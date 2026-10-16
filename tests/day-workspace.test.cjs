@@ -161,6 +161,74 @@ try {
     'page',
   );
   assert.ok($('#downloadBackup').isConnected);
+  // Planned slots offer the same period tasks, without changing actual records or progress.
+  run(`state.sunsetDays={};state.repeat=[];view='day';prayer=3;day().tasks=[
+    {id:'plan-root',name:'المهمة الرئيسية',prayer:3,actionId:state.actions[0].id},
+    {id:'plan-child',name:'المهمة الفرعية',parentId:'plan-root',parentDate:date,prayer:3,actionId:state.actions[0].id},
+    {id:'plan-other',name:'فترة أخرى',prayer:4,actionId:state.actions[0].id},
+    {id:'plan-unlinked',name:'غير مرتبطة',prayer:3}
+  ];SlotTools.apply(day(),${first},${first}+1,'actual',state.actions[1].id,'فعلت بالفعل',starts()[3]);save();render();`);
+  const actualBeforePlanning = run('JSON.stringify({slots:day().slots,notes:day().actualNotes,tasks:day().actualTasks})');
+  slot(first, 'planned').click();
+  assert.equal($('#slotTasks').hidden, false);
+  assert.ok($('[data-task-choice="plan-child"]'));
+  assert.equal($('[data-task-choice="plan-other"]'), null);
+  assert.equal($('[data-task-choice="plan-unlinked"]').disabled, true);
+  $('#slotNote').value = 'خطتي';
+  $('[data-task-choice="plan-child"]').click();
+  assert.equal($('#picker').open, false, 'single planned task saves immediately');
+  assert.equal(run(`day().planned[${first}%144]`), action);
+  assert.equal(run(`day().taskSlotOwners[${first}%144]`), 'plan-child');
+  assert.equal(run(`day().taskSlotNotes[${first}%144]`), 'خطتي');
+  assert.match(slot(first, 'planned').textContent, /المهمة الرئيسية/);
+  assert.match(slot(first, 'planned').textContent, /المهمة الفرعية/);
+  assert.equal(run("outcome(findTask('plan-child',date))"), 'pending');
+  assert.equal(run("completedSlots(findTask('plan-child',date))"), 0);
+  assert.equal(run('JSON.stringify({slots:day().slots,notes:day().actualNotes,tasks:day().actualTasks})'), actualBeforePlanning);
+  slot(first, 'planned').click();
+  assert.equal($('[data-task-choice="plan-child"]').getAttribute('aria-pressed'), 'true');
+  $('#slotNote').value = 'خطة معدلة';
+  submit();
+  assert.equal(run(`day().taskSlotOwners[${first}%144]`), 'plan-child');
+  assert.equal(run(`day().plannedNotes[${first}%144]`), 'خطة معدلة');
+  slot(first, 'planned').click();
+  $(`[data-action-choice="${action}"]`).click();
+  assert.equal(run(`day().taskSlotOwners[${first}%144]`), undefined, 'ordinary actions remove planned task association');
+  assert.equal(slot(first, 'planned').querySelector('.slot-task-name'), null);
+  run(`openPicker(${first},'planned',true)`);
+  $('#slotTo').value = first + 3;
+  $('#slotTo').dispatchEvent(new w.Event('change', { bubbles: true }));
+  $('[data-task-choice="plan-child"]').click();
+  assert.equal($('#picker').open, true, 'bulk planning waits for save');
+  submit();
+  for (let i = 0; i < 3; i++) {
+    assert.equal(run(`day().taskSlotOwners[${first + i}%144]`), 'plan-child');
+    assert.equal(run(`day().taskSlotValues[${first + i}%144]`), action);
+  }
+  // Changing between actual and planned reads each kind's task separately.
+  slot(first, 'planned').click();
+  $('#slotKind').value = 'actual';
+  $('#slotKind').dispatchEvent(new w.Event('change', { bubbles: true }));
+  assert.equal($('[data-task-choice="plan-child"]').getAttribute('aria-pressed'), 'false');
+  $('#slotKind').value = 'planned';
+  $('#slotKind').dispatchEvent(new w.Event('change', { bubbles: true }));
+  assert.equal($('[data-task-choice="plan-child"]').getAttribute('aria-pressed'), 'true');
+  $('#clearSlot').click();
+  for (let i = 0; i < 3; i++) assert.equal(run(`day().taskSlotOwners[${first + i}%144]`), undefined);
+  assert.equal(run('JSON.stringify({slots:day().slots,notes:day().actualNotes,tasks:day().actualTasks})'), actualBeforePlanning);
+  // A task limited to one prayer cannot be planned across the next prayer boundary.
+  const boundary = run('range(3).at(-1)+1');
+  run(`openPicker(${boundary - 1},'planned',true)`);
+  $('#slotTo').value = boundary + 1;
+  $('#slotTo').dispatchEvent(new w.Event('change', { bubbles: true }));
+  $('[data-task-choice="plan-child"]').click();
+  const beforeRejectedPlan = run('JSON.stringify(state)');
+  submit();
+  assert.equal($('#picker').open, true);
+  assert.match($('#slotError').textContent, /لا تخص جميع فترات/);
+  assert.equal(run('JSON.stringify(state)'), beforeRejectedPlan);
+  $('#close').click();
+  run('validate(state)');
   assert.deepEqual(errors, []);
   console.log(
     'PASS: daily partial slot/range recording, independent notes, linked families, prayer outcomes, focus/scroll and responsive navigation destinations',

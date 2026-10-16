@@ -141,6 +141,11 @@ const SlotTools = (() => {
         else delete actions[i];
         if (note) notes[i] = note;
         else delete notes[i];
+        if (kind === 'planned' && task) {
+          (day.taskSlotOwners ??= {})[i] = task.id;
+          (day.taskSlotValues ??= {})[i] = action || '';
+          (day.taskSlotNotes ??= {})[i] = note;
+        }
       }
     }
   }
@@ -255,9 +260,9 @@ const SlotTools = (() => {
     };
     const taskChoices = () => {
       const root = q('#slotTasks');
-      root.hidden = q('#slotKind').value !== 'actual';
+      root.hidden = false;
       const tasks = o.tasks ? o.tasks(+q('#slotFrom').value) : [];
-      root.innerHTML = `<section class="slot-action-group"><h3>المهام</h3><p class="hint">مهام هذه الفترة · اختر المهمة لتسجيل ما فعلته بالفعل.</p><div class="slot-action-grid">${
+      root.innerHTML = `<section class="slot-action-group"><h3>المهام</h3><p class="hint">مهام هذه الفترة · ${q('#slotKind').value === 'actual' ? 'اختر المهمة لتسجيل ما فعلته بالفعل.' : 'اختر المهمة لتخطيط ما تريد فعله.'}</p><div class="slot-action-grid">${
         tasks
           .map((t) => {
             const a = o.actions.find((a) => a.id === t.actionId),
@@ -335,7 +340,7 @@ const SlotTools = (() => {
         selectedTask = v.task || null;
         q('#slotAction').value = v.action || '';
         q('#slotNote').value = v.note || '';
-      }
+      } else selectedTask = null;
       refresh();
     };
     const commit = (clear) => {
@@ -349,7 +354,7 @@ const SlotTools = (() => {
           q('#slotKind').value,
           clear ? null : q('#slotAction').value,
           clear ? '' : q('#slotNote').value,
-          clear || q('#slotKind').value !== 'actual' ? null : selectedTask,
+          clear ? null : selectedTask,
         );
         o.close();
       } catch (err) {

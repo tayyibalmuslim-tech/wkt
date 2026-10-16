@@ -118,7 +118,7 @@ assert.equal(run('JSON.stringify(day().planned)'),plannedBefore);assert.equal(ru
 // Notes keep the task snapshot; manual action replacement and clearing remove it.
 click('.slot-actual[data-slot="'+actualSlot+'"]');$('#slotNote').value='ملاحظة المهمة';submit('#slotForm');
 assert.equal(run('day().actualTasks['+actualIndex+'].id'),'actual-task');
-click('.slot-planned[data-slot="'+actualSlot+'"]');assert.equal($('#slotTasks').hidden,true);click('#close');
+click('.slot-planned[data-slot="'+actualSlot+'"]');assert.equal($('#slotTasks').hidden,false);assert.ok($('[data-task-choice="actual-task"]'));click('#close');
 // Bulk task registration covers the chosen range and survives export/import.
 click('#bulkSlots');$('#slotTo').value=String(actualSlot+2);click('[data-task-choice="actual-task"]');submit('#slotForm');
 assert.equal(run('day().actualTasks['+((actualSlot+1)%144)+'].id'),'actual-task');

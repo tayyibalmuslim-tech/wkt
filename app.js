@@ -213,6 +213,7 @@ function dailySlotMarkup(piece) {
   const { kind, start, end, pieceStart, pieceEnd, action, note } = piece;
   const a = state.actions.find((a) => a.id === action);
   const task = piece.task || (piece.owner ? findTask(piece.owner, date) : null);
+  const parentName = task?.parentName || (task?.parentId ? mainTask(task).name : '');
   const continuation = pieceStart !== start;
   const caption = kind === 'actual' ? 'ما فعلته' : 'المطلوب';
   const label =
@@ -224,11 +225,11 @@ function dailySlotMarkup(piece) {
         : '＋ الفعل المطلوب');
   const showTime =
     kind === 'actual' || action || note || task || end - start > 1;
-  const detail = [task?.parentName, task?.name, note]
+  const detail = [parentName, task?.name, note]
     .filter(Boolean)
     .join(' — ');
   const title = `${caption} من ${time(start)} إلى ${time(end)} · ${end - start} خانات${detail ? ' — ' + detail : ''}`;
-  return `<div class="slot slot-piece" data-piece-key="${kind}:${pieceStart}:${pieceEnd}" data-kind="${kind}" style="grid-column:${piece.column}/span ${pieceEnd - pieceStart};grid-row:${piece.row}"><button class="slot-${kind}" data-slot="${pieceStart}" data-piece-end="${pieceEnd}" data-kind="${kind}" data-range-start="${start}" data-range-end="${end}" title="${esc(title)}" aria-label="${esc(title)}" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}">${showTime ? `<span class="time"><bdi>${time(pieceStart)}</bdi> – <bdi>${time(pieceEnd)}</bdi>${continuation ? '<small class="slot-continuation">تابع الفترة</small>' : ''}</span>` : ''}<span class="label">${esc(label)}</span>${!continuation && task?.parentName ? `<small class="slot-task-parent">${esc(task.parentName)}</small>` : ''}${!continuation && task ? `<small class="slot-task-name">${esc(task.name)}</small>` : ''}${!continuation && note ? `<small class="slot-note">${esc(note)}</small>` : ''}</button></div>`;
+  return `<div class="slot slot-piece" data-piece-key="${kind}:${pieceStart}:${pieceEnd}" data-kind="${kind}" style="grid-column:${piece.column}/span ${pieceEnd - pieceStart};grid-row:${piece.row}"><button class="slot-${kind}" data-slot="${pieceStart}" data-piece-end="${pieceEnd}" data-kind="${kind}" data-range-start="${start}" data-range-end="${end}" title="${esc(title)}" aria-label="${esc(title)}" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}">${showTime ? `<span class="time"><bdi>${time(pieceStart)}</bdi> – <bdi>${time(pieceEnd)}</bdi>${continuation ? '<small class="slot-continuation">تابع الفترة</small>' : ''}</span>` : ''}<span class="label">${esc(label)}</span>${!continuation && parentName ? `<small class="slot-task-parent">${esc(parentName)}</small>` : ''}${!continuation && task ? `<small class="slot-task-name">${esc(task.name)}</small>` : ''}${!continuation && note ? `<small class="slot-note">${esc(note)}</small>` : ''}</button></div>`;
 }
 function slotButtonAt(n, kind) {
   return [
@@ -450,11 +451,22 @@ function openPicker(n, kind = 'actual', bulk = false, end = n + 1) {
     key = date,
     d = day(),
     first = starts()[3];
-  const read = (n, k) => ({
-    action: k === 'actual' ? d.slots[n % 144] : d.planned?.[n % 144],
-    note: d[k + 'Notes']?.[n % 144] || '',
-    task: k === 'actual' ? d.actualTasks?.[n % 144] : null,
-  });
+  const read = (n, k) => {
+    const i = n % 144,
+      plannedTask = k === 'planned' && d.taskSlotOwners?.[i]
+        ? findTask(d.taskSlotOwners[i], key)
+        : null;
+    return {
+      action: k === 'actual' ? d.slots[i] : d.planned?.[i],
+      note: d[k + 'Notes']?.[i] || '',
+      task: k === 'actual' ? d.actualTasks?.[i] : plannedTask ? {
+        id: plannedTask.id,
+        name: plannedTask.name,
+        actionId: d.planned?.[i] || '',
+        ...(plannedTask.parentId ? { parentName: mainTask(plannedTask).name } : {}),
+      } : null,
+    };
+  };
   const initial = read(n, kind);
   SlotTools.open({
     root: $('#picker'),
