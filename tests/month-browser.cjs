@@ -50,7 +50,7 @@ const server = http.createServer((req, res) => {
       document.querySelectorAll('dialog[open]').forEach((d) => d.close());
       eval(`
    state.starterIntroPending=false;date='2026-11-01';state.sunsetDays={};state.repeat=[];state.taskInbox=[];
-   taskDay(date).tasks=Array.from({length:120},(_,i)=>({id:'layout-'+i,name:i===119?'مهمة طويلة جدًا '.repeat(15):'م'+i,prayers:[3],priority:3}));
+   taskDay(date).tasks=Array.from({length:120},(_,i)=>({id:'layout-'+i,name:i===119?'مهمة طويلة جدًا '.repeat(15):'م'+i,description:'وصف لا يظهر في التقويم',prayers:[3],priority:3}));
    view='dashboard';plannerTab='month';plannerMonth='2026-11';render();
   `);
     });
@@ -88,7 +88,12 @@ const server = http.createServer((req, res) => {
         };
       });
       assert.equal(layout.count, 120);
-      assert.equal(layout.first.y, layout.second.y, 'short chips share a line');
+      if (viewport.width > 650)
+        assert.equal(
+          layout.first.y,
+          layout.second.y,
+          'short chips share a line',
+        );
       assert.ok(layout.last.y > layout.first.y, 'chips wrap into more lines');
       assert.ok(
         layout.last.bottom <= layout.day.bottom,
@@ -99,14 +104,25 @@ const server = http.createServer((req, res) => {
         layout.neighbor.height,
         'week cells have equal height',
       );
-      assert.equal(layout.overflow, false, 'long names wrap without clipping');
+      if (viewport.width > 650)
+        assert.equal(
+          layout.overflow,
+          false,
+          'long names wrap without clipping',
+        );
       assert.equal(
         layout.pageOverflow,
         false,
-        'horizontal overflow stays in calendar',
+        'calendar never overflows the page',
       );
-      if (viewport.width < 650)
-        assert.ok(layout.scrollWidth > layout.clientWidth);
+      assert.ok(
+        layout.scrollWidth <= layout.clientWidth + 1,
+        'month has no horizontal scrolling',
+      );
+      assert.equal(
+        await page.locator('.month-task .task-inline-description').count(),
+        0,
+      );
       const chip = page.locator('[data-month-task="layout-0"]');
       await chip.scrollIntoViewIfNeeded();
       const before = await chip.boundingBox();
@@ -136,6 +152,10 @@ const server = http.createServer((req, res) => {
       assert.ok(low.y >= 0 && low.y + low.height <= viewport.height);
       await page.keyboard.press('Escape');
     }
+    await require('./calendar-fit-browser.cjs')(
+      browser,
+      'http://127.0.0.1:' + server.address().port,
+    );
     await require('./task-rows-browser.cjs')(
       browser,
       'http://127.0.0.1:' + server.address().port,
@@ -152,10 +172,22 @@ const server = http.createServer((req, res) => {
       browser,
       'http://127.0.0.1:' + server.address().port,
     );
-    await require('./inline-controls-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
-    await require('./project-goals-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
-    await require('./selected-tasks-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
-    await require('./merged-slots-browser.cjs')(browser, 'http://127.0.0.1:' + server.address().port);
+    await require('./inline-controls-browser.cjs')(
+      browser,
+      'http://127.0.0.1:' + server.address().port,
+    );
+    await require('./project-goals-browser.cjs')(
+      browser,
+      'http://127.0.0.1:' + server.address().port,
+    );
+    await require('./selected-tasks-browser.cjs')(
+      browser,
+      'http://127.0.0.1:' + server.address().port,
+    );
+    await require('./merged-slots-browser.cjs')(
+      browser,
+      'http://127.0.0.1:' + server.address().port,
+    );
     await require('./accessibility-browser.cjs')(
       browser,
       'http://127.0.0.1:' + server.address().port,

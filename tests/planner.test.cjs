@@ -323,8 +323,8 @@ const sheet=w.document.createElement('style');sheet.textContent=fs.readFileSync(
 assert.equal(w.getComputedStyle($('.month-tasks')).display,'flex');
 assert.equal(w.getComputedStyle($('.month-tasks')).flexWrap,'wrap');
 assert.equal(w.getComputedStyle($('.task-month')).display,'grid');
-assert.equal(w.getComputedStyle($('.task-month')).minWidth,'1400px');
-assert.equal(w.getComputedStyle($('.task-month-scroll')).overflowX,'auto');
+assert.equal(w.getComputedStyle($('.task-month')).minWidth,'0px');
+assert.notEqual(w.getComputedStyle($('.task-month-scroll')).overflowX,'auto');
 assert.equal(w.getComputedStyle($('.month-task')).whiteSpace,'normal');
 assert.equal(w.getComputedStyle($('.month-task')).overflowWrap,'anywhere');
 assert.equal(w.getComputedStyle($('.month-task')).maxWidth,'100%');

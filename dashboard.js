@@ -384,7 +384,9 @@ function taskRow(
   const expanded =
     visibleChildren.length > 0 &&
     (expandedTaskRows.has(key) || !!context?.forced?.has(key));
-  const fullText = t.name + (t.description ? ' — ' + t.description : '');
+  const hideDescription = !!context?.hideDescription;
+  const fullText =
+    t.name + (!hideDescription && t.description ? ' — ' + t.description : '');
   const contextLabel =
     mode === 'series'
       ? taskPeriodLabel(t) +
@@ -412,7 +414,7 @@ function taskRow(
       ${visibleChildren.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
       <button type="button" class="task-row-select" data-task-select aria-expanded="false" aria-controls="taskTextPopover" title="${esc(fullText)}" data-task-context="${esc(contextLabel)}">
         <span class="task-row-status" role="img" aria-label="${mode === 'series' ? 'سلسلة متكررة' : { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[status]}">${taskIcon(mode === 'series' ? 'repeat' : status === 'done' ? 'check' : status === 'failed' ? 'cross' : 'circle')}</span>
-        <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
+        <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${hideDescription ? '' : taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
         <span class="task-row-metrics">${mode === 'series' || t.virtual ? '' : taskRowMetrics(t, children)}</span>
         ${children.length ? `<span class="task-row-count" title="الفروع المسجلة فعلتها / جميع الفروع">${children.filter((c) => outcome(c) === 'done').length}/${children.length}</span>` : ''}
       </button>
@@ -504,11 +506,13 @@ function toggleTaskRow(card) {
       );
       ancestor = ancestor.parentElement.closest('.task-row');
     }
-    const context = card.closest('#plannerResults')
-      ? dashboardRowContext
-      : typeof projectRowContext === 'function'
-        ? projectRowContext(card)
-        : null;
+    const context = card.closest('.task-week')
+      ? { hideDescription: true }
+      : card.closest('#plannerResults')
+        ? dashboardRowContext
+        : typeof projectRowContext === 'function'
+          ? projectRowContext(card)
+          : null;
     container.innerHTML = childTasks(t)
       .filter((c) => !context?.visible || context.visible.has(taskIdentity(c)))
       .map((c) =>
@@ -1362,7 +1366,7 @@ function monthTaskChip(t, entries = progressEntries()) {
     ],
     parent = t.parentId ? mainTask(t, entries) : null,
     progress = percentLabel(taskCompletion(t, entries));
-  return `<button type="button" class="month-task ${result}" data-month-task="${esc(t.id)}" data-month-date="${t.date}" title="${esc(t.name)}${t.description ? ' — ' + esc(t.description) : ''}${parent ? ' — ضمن ' + esc(parent.name) : ''} — ${label} — التقدم ${progress}" aria-haspopup="dialog" aria-expanded="false" aria-controls="monthTaskMenu" aria-label="${esc(t.name)}${parent ? '، ضمن ' + esc(parent.name) : ''}، ${label}، التقدم ${progress}"><span aria-hidden="true">${{ done: '✓', failed: '✕', pending: '○' }[result]}</span><span class="month-task-text">${esc(t.name)}${taskDescription(t)}${parent ? `<small>↳ ${esc(parent.name)}</small>` : ''}</span></button>`;
+  return `<button type="button" class="month-task ${result}" data-month-task="${esc(t.id)}" data-month-date="${t.date}" title="${esc(t.name)}${parent ? ' — ضمن ' + esc(parent.name) : ''} — ${label} — التقدم ${progress}" aria-haspopup="dialog" aria-expanded="false" aria-controls="monthTaskMenu" aria-label="${esc(t.name)}${parent ? '، ضمن ' + esc(parent.name) : ''}، ${label}، التقدم ${progress}"><span aria-hidden="true">${{ done: '✓', failed: '✕', pending: '○' }[result]}</span><span class="month-task-text">${esc(t.name)}${parent ? `<small>↳ ${esc(parent.name)}</small>` : ''}</span></button>`;
 }
 function refreshMonthTaskValues() {
   const entries = progressEntries(),
@@ -1452,7 +1456,7 @@ function renderTaskMonth() {
  <label class="field">بحث باسم المهمة<input data-month-filter="query" type="search" value="${esc(monthFilters.query)}"></label></div></details>
  <div class="month-summary" role="status" aria-live="polite"><span>المعروضة: <b>${stats.total}</b></span><span>فعلتها: <b>${stats.done}</b></span><span>لم أفعلها: <b>${stats.failed}</b></span><span>غير مسجلة: <b>${stats.pending}</b></span><span>الإنجاز من النتائج المسجلة: <b>${stats.percent === null ? 'لا نتائج مسجلة' : percentLabel(stats.percent)}</b></span></div>
  <p class="hint">الأعداد تخص المهام الظاهرة بعد التصفية وخيارات الظهور. نسبة النتائج = فعلتها ÷ (فعلتها + لم أفعلها). تقدم المشاريع العام لا يتأثر بالإخفاء أو التصفية. المهام المستقبلية غير المسجلة ليست فائتة.</p>
- <div class="task-month-scroll" tabindex="0" role="region" aria-label="التقويم الشهري، يمكن تمريره أفقيًا"><div class="task-month">${week.map((n) => `<div class="month-weekday">${n}</div>`).join('')}${Array.from({ length: offset }, () => '<div aria-hidden="true"></div>').join('')}${days
+ <div class="task-month-scroll" tabindex="0" role="region" aria-label="التقويم الشهري"><div class="task-month">${week.map((n) => `<div class="month-weekday">${n}</div>`).join('')}${Array.from({ length: offset }, () => '<div aria-hidden="true"></div>').join('')}${days
    .map(({ key, number, tasks }) => {
      const s = monthlySummary(tasks),
        d = state.sunsetDays[key],
@@ -1519,14 +1523,14 @@ function renderTaskWeek() {
                   allTasksOn(key).filter((t) => taskInPeriod(t, p)),
                 ),
                 c = capacity(key, p);
-              return `<div class="week-period"><b>${names[p]}</b><small>${c.free} متاحة / ${c.total} · تقدير ${c.estimates}</small>${list.map((t) => taskCard(t)).join('')}<button class="week-add" data-week-add="${key}" data-period="${p}" aria-label="إضافة مهمة يوم ${key} فترة ${names[p]}">＋</button></div>`;
+              return `<div class="week-period"><b>${names[p]}</b><small>${c.free} متاحة / ${c.total} · تقدير ${c.estimates}</small>${list.map((t) => taskCard(t, { hideDescription: true })).join('')}<button class="week-add" data-week-add="${key}" data-period="${p}" aria-label="إضافة مهمة يوم ${key} فترة ${names[p]}">＋</button></div>`;
             })
             .join('')}${
             allTasksOn(key).some((t) => !taskPeriods(t).length)
               ? `<div class="week-period"><b>بدون فترة محددة</b>${taskGroups(
                   allTasksOn(key).filter((t) => !taskPeriods(t).length),
                 )
-                  .map((t) => taskCard(t))
+                  .map((t) => taskCard(t, { hideDescription: true }))
                   .join('')}</div>`
               : ''
           }</section>`,

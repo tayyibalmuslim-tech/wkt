@@ -1231,9 +1231,8 @@ dialog#picker {
 }
 .task-week {
   display: grid;
-  grid-template-columns: repeat(7, minmax(145px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
   gap: 10px;
-  overflow-x: auto;
   padding-bottom: 14px;
 }
 .week-day {
@@ -1344,7 +1343,7 @@ button:focus-visible {
     left: 16px;
   }
   .task-week {
-    grid-template-columns: repeat(7, 180px);
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 /* Daily tasks: read-only summaries, with just outcome and edit controls. */
@@ -1782,11 +1781,10 @@ button:focus-visible {
 }
 .task-month-scroll {
   max-width: 100%;
-  overflow-x: auto;
-  padding: 3px 3px 14px;
+  padding: 3px 0 14px;
 }
 .task-month {
-  min-width: 1400px;
+  min-width: 0;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 5px;
   align-items: stretch;
@@ -1937,7 +1935,7 @@ button:focus-visible {
     padding: 10px;
   }
   .task-month {
-    min-width: 1400px;
+    min-width: 0;
     gap: 5px;
   }
   .month-day {
@@ -5004,5 +5002,95 @@ main > header {
 @media (max-width: 480px) {
   #selectedTasksForm {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Calendars fit the viewport; week days reflow instead of scrolling sideways. */
+.task-week,
+.week-day,
+.week-period {
+  min-width: 0;
+}
+.week-day .week-period {
+  padding: 8px;
+}
+.week-day .week-period > small {
+  padding: 4px 0;
+}
+.task-month-scroll {
+  min-width: 0;
+}
+.month-weekday,
+.month-day-heading,
+.month-prayer-checks {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.month-day-heading {
+  flex-wrap: wrap;
+}
+.month-task > span:first-child {
+  flex-shrink: 0;
+}
+@media (max-width: 650px) {
+  .monthly-panel {
+    margin-inline: -10px;
+    padding: 8px 2px;
+  }
+  .monthly-panel > :not(.task-month-scroll) {
+    margin-inline: 8px;
+  }
+  .task-month-scroll {
+    padding: 3px 0 12px;
+  }
+  .task-month {
+    gap: 1px;
+  }
+  .month-day {
+    padding: 0;
+    gap: 2px;
+    border-radius: 4px;
+  }
+  .month-day.is-today {
+    border-width: 1px;
+  }
+  .month-weekday {
+    font-size: 10px;
+    padding-block: 6px;
+  }
+  .month-day-heading {
+    padding: 2px;
+    gap: 0;
+    justify-content: center;
+  }
+  .month-day-heading strong {
+    font-size: 16px;
+  }
+  .month-day-heading span {
+    width: 100%;
+    text-align: center;
+    font-size: 9px;
+  }
+  .month-prayer-checks {
+    font-size: 9px;
+    padding-inline: 1px;
+    text-align: center;
+  }
+  .month-tasks {
+    gap: 2px;
+  }
+  .month-task {
+    padding: 2px;
+    gap: 2px;
+    min-width: 40px;
+  }
+  .month-task .month-task-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .month-task .month-task-text small {
+    display: none;
   }
 }
