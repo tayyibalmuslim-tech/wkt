@@ -52,6 +52,23 @@ const run = w.bulkRun,
     );
   };
 try {
+  // Opening Projects with no selected project must still expose bulk selection
+  // after a project is picked (selectProject does not call render()).
+  run(
+    `state.sunsetDays={};state.repeat=[];state.projects=[{id:'a',name:'أ'}];state.taskInbox=[{id:'first',name:'المهمة الأولى',projectId:'a'}];view='projects';selectedProject='';render();`,
+  );
+  assert.equal($('#toggleTaskSelection'), null);
+  $('#projectNavigation [data-project="a"]').click();
+  assert.ok(
+    $('#toggleTaskSelection'),
+    'bulk-selection button appears when first choosing a populated project',
+  );
+  $('#toggleTaskSelection').click();
+  assert.equal(
+    w.document.querySelectorAll('#projectTaskList [data-select-task]').length,
+    1,
+  );
+  $('#toggleTaskSelection').click();
   run(
     `state.sunsetDays={};state.repeat=[];state.projects=[{id:'a',name:'أ'},{id:'b',name:'ب'},{id:'c',name:'ج'}];state.taskInbox=[{id:'parent',name:'الأصل',projectIds:['a','b'],priority:3},{id:'child',name:'الفرع',parentId:'parent',parentDate:'',priority:3,expectedSlots:10,completedSlotCount:4},{id:'free',name:'مستقلة',projectId:'a',priority:4,expectedSlots:2,inboxOutcome:'done'}];view='projects';selectedProject='a';render();`,
   );
