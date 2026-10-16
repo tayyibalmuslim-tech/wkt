@@ -57,6 +57,24 @@ module.exports = async function selectedTasksBrowser(browser, url) {
         'first project pick activates selection without a page reload',
       );
       assert.equal(await toggle.textContent(), 'تحديد عدة مهام');
+      const placement = await page.evaluate(() => {
+        const search = document
+          .querySelector('#projectSearch')
+          .getBoundingClientRect();
+        const button = document
+          .querySelector('#toggleTaskSelection')
+          .getBoundingClientRect();
+        return {
+          sameRow: Math.abs(search.bottom - button.bottom) < 2,
+          gap: search.left - button.right,
+          width: search.width,
+        };
+      });
+      assert.ok(
+        placement.sameRow && placement.gap >= 0 && placement.gap <= 8,
+        'selection is beside search in the same toolbar row',
+      );
+      assert.ok(placement.width >= 120, 'search stays usable on narrow phones');
       assert.equal(
         await page.evaluate(
           () => document.documentElement.scrollWidth > innerWidth,
@@ -206,6 +224,14 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       plannerProjectTabs.inbox = 'c';
       render();
     });
+    assert.equal(
+      await page.locator('.task-selection-search #plannerSearch').count(),
+      1,
+    );
+    assert.equal(
+      await page.locator('.task-selection-search #toggleTaskSelection').count(),
+      1,
+    );
     await page.locator('#toggleTaskSelection').click();
     await page.locator('#selectVisibleTasks').click();
     assert.equal(

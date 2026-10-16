@@ -72,6 +72,18 @@ function installTaskSelection() {
       app.querySelector('.project-page-actions') || app.querySelector('.top')
     ).append(button);
   }
+  const search = app.querySelector('#projectSearch, #plannerSearch');
+  if (search) {
+    const label = search.closest('label');
+    let group = label.parentElement;
+    if (!group.classList.contains('task-selection-search')) {
+      group = document.createElement('div');
+      group.className = 'task-selection-search';
+      label.replaceWith(group);
+      group.append(label);
+    }
+    if (button.parentElement !== group) group.append(button);
+  }
   const hasTasks = !!app.querySelector('.task-row:not([data-virtual])');
   button.textContent = taskSelectionMode ? 'إنهاء التحديد' : 'تحديد عدة مهام';
   button.disabled = !hasTasks && !taskSelectionMode;
