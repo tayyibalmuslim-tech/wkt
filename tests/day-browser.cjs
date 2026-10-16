@@ -40,6 +40,21 @@ module.exports = async function dayBrowser(browser, url) {
         false,
         'daily page fits viewport',
       );
+      const navSelector =
+        viewport.width <= 900 ? '.mobile-navigation' : 'body > aside';
+      const navBar = page.locator(navSelector);
+      assert.ok((await navBar.boundingBox()).y <= 1);
+      const main = await page.locator('main').boundingBox();
+      assert.ok(
+        main.width >= viewport.width - 1,
+        'no sidebar takes workspace width',
+      );
+      await page.evaluate(() => scrollTo(0, 450));
+      assert.ok(
+        (await navBar.boundingBox()).y <= 1,
+        'navigation stays at top while scrolling',
+      );
+      await page.evaluate(() => scrollTo(0, 0));
       const slot = page.locator('#dailySlots .slot').first();
       for (const selector of ['.slot-actual', '.slot-planned']) {
         const box = await slot.locator(selector).boundingBox();
@@ -79,7 +94,7 @@ module.exports = async function dayBrowser(browser, url) {
         const nav = page.locator('.mobile-navigation');
         assert.equal(await nav.isVisible(), true);
         const box = await nav.boundingBox();
-        assert.ok(box.y + box.height >= viewport.height - 1);
+        assert.ok(box.y <= 1, 'mobile navigation is fixed at the top');
         await nav.locator('summary').click();
         await nav.locator('[data-view="repeat"]').click();
         assert.equal(

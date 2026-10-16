@@ -3290,8 +3290,8 @@ dialog#picker {
 dialog#plannerEditor {
   inset: 0;
   margin: auto;
-  width: min(780px, calc(100vw - 28px));
-  height: auto;
+  width: min(680px, calc(100vw - 28px));
+  height: fit-content;
   max-height: min(88dvh, 900px);
   overflow: auto;
   padding: 16px 20px 0;
@@ -3327,11 +3327,91 @@ dialog#plannerEditor {
   gap: 10px;
 }
 #plannerForm .planner-fields {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 8px 12px;
   align-items: start;
 }
+#plannerForm .task-project-details,
 #plannerForm .monthly-visibility {
+  grid-column: span 6;
+}
+#plannerForm .task-priority-field {
+  grid-column: span 5;
+}
+#plannerForm .task-effort-fields {
+  grid-column: span 7;
+}
+#plannerForm .planner-fields > .field {
+  grid-column: span 4;
+}
+#plannerForm .task-action-trigger {
+  min-height: 40px;
+  padding: 6px 8px;
+}
+#plannerForm .task-action-caption {
+  display: none;
+}
+#plannerForm .task-action-selected {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#plannerForm .task-effort-fields {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  min-width: 0;
+}
+#plannerForm .task-slot-field {
+  flex: 0 0 72px;
+}
+#plannerForm .task-slot-field input {
+  width: 72px;
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#plannerForm .task-slot-unit {
+  align-self: center;
+  color: var(--color-secondary);
+  font-size: var(--font-xs);
+}
+#plannerForm .task-slot-unit small {
+  display: block;
+}
+#plannerForm .editor-completion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+#plannerForm .editor-completion .task-progress-bar {
+  flex: 0 0 64px;
+}
+#plannerForm .editor-field-help {
+  flex-basis: 100%;
+}
+#plannerForm .planner-schedule-details > summary {
+  cursor: pointer;
+  min-height: 40px;
+  padding-block: 8px;
+  color: var(--color-brand);
+  font-size: var(--font-sm);
+}
+#plannerForm .planner-schedule-details[open] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px 12px;
+}
+#plannerForm .planner-schedule-details > summary,
+#plannerForm .planner-schedule-details > .hint {
   grid-column: 1/-1;
+}
+#plannerForm .planner-schedule-details .hint {
+  margin: 0;
+  font-size: var(--font-xs);
+}
+#plannerForm .monthly-visibility {
   margin: 0;
   min-height: 32px;
 }
@@ -3582,6 +3662,17 @@ dialog#plannerEditor {
     gap: 8px;
   }
   #plannerForm .planner-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #plannerForm .task-project-details,
+  #plannerForm .task-effort-fields,
+  #plannerForm .task-action-field,
+  #plannerForm .task-priority-field,
+  #plannerForm .monthly-visibility,
+  #plannerForm .planner-fields > .field {
+    grid-column: 1/-1;
+  }
+  #plannerForm .planner-schedule-details[open] {
     grid-template-columns: 1fr;
   }
   dialog#plannerEditor {
@@ -3981,5 +4072,199 @@ button > .ui-icon {
   .task-row .task-row-select,
   .task-children .task-row .task-row-select {
     padding-inline-end: 40px;
+  }
+}
+
+/* The workspace uses the screen; navigation stays in a compact top bar. */
+body > aside {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 60px;
+  padding: 8px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  z-index: 20;
+}
+body > aside > p,
+body > aside .aside-foot {
+  display: none;
+}
+body > aside .brand,
+body > aside .brand b {
+  font-size: 22px;
+  white-space: nowrap;
+}
+body > aside nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  overflow: visible;
+}
+body > aside nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  font-size: var(--font-sm);
+}
+body > main,
+body.monthly-view > main {
+  margin: 0;
+  max-width: none;
+  padding: 72px 20px 80px;
+}
+main > header {
+  padding-bottom: 8px;
+}
+.project-workspace .project-layout {
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+}
+.project-workspace .project-sidebar {
+  top: 72px;
+}
+.project-workspace .project-nav-item {
+  padding: 8px;
+  min-height: 40px;
+  gap: 2px;
+}
+.project-workspace .project-page-heading h1 {
+  margin: 0;
+  font-size: 22px;
+}
+.project-workspace .project-page-heading p {
+  display: none;
+}
+.project-workspace #projectDetails {
+  max-height: calc(100dvh - 190px);
+  padding: 12px;
+}
+.project-workspace .project-list-toolbar {
+  top: -12px;
+}
+.day-workspace .grid {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+.day-workspace .top h1 {
+  font-size: 22px;
+  margin: 0;
+}
+.day-workspace .top p {
+  margin: 4px 0;
+}
+.day-workspace .day-summary {
+  gap: 6px 16px;
+  margin-block: 6px 10px;
+  font-size: var(--font-xs);
+}
+.day-workspace .prayer-period {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 6px 8px;
+  line-height: 1.5;
+}
+.day-workspace .prayer-period > small:last-child {
+  grid-column: 1/-1;
+  font-size: 11px;
+}
+@media (max-width: 1050px) {
+  .project-workspace #projectDetails {
+    max-height: calc(100dvh - 240px);
+  }
+}
+@media (max-width: 900px) {
+  body > aside {
+    display: none;
+  }
+  body > main,
+  body.monthly-view > main {
+    padding: 72px 12px 80px;
+  }
+  .mobile-navigation {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    position: fixed;
+    inset: 0 0 auto;
+    margin: 0;
+    padding: calc(4px + env(safe-area-inset-top)) 8px 4px;
+    gap: 4px;
+    overflow: visible;
+    background: var(--color-surface);
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    z-index: 20;
+  }
+  .mobile-navigation > button,
+  .mobile-navigation summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
+    width: 100%;
+    padding: 4px 2px;
+    font-size: 11px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    list-style: none;
+  }
+  .mobile-navigation summary::-webkit-details-marker {
+    display: none;
+  }
+  #navigationMore.has-current > summary {
+    background: var(--color-brand-soft);
+    color: var(--color-brand);
+    font-weight: 700;
+  }
+  .mobile-more-items {
+    position: absolute;
+    inset-inline-end: 8px;
+    top: calc(100% + 6px);
+    bottom: auto;
+    width: min(260px, calc(100vw - 16px));
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+  .mobile-more-items button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    width: 100%;
+    font-size: var(--font-sm);
+  }
+  .quick-task {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  #toast {
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+  .project-workspace #projectDetails {
+    max-height: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+  .project-workspace .project-list-toolbar {
+    position: static;
+  }
+}
+@media (max-width: 380px) {
+  .day-workspace .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

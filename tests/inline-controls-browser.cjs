@@ -210,6 +210,46 @@ module.exports = async function inlineControlsBrowser(browser, url) {
         .count()) > 0,
       true,
     );
+    for (const width of [1440, 820, 390, 320]) {
+      await page.setViewportSize({ width, height: width > 650 ? 1080 : 844 });
+      await own(ordinary, '[data-task-edit]').click();
+      const editor = page.locator('#plannerEditor');
+      if (width === 1440)
+        assert.ok(
+          (await editor.boundingBox()).height < 700,
+          'editor fits its contents',
+        );
+      const expected = editor.locator('[name="expectedSlots"]');
+      const completed = editor.locator('[name="completedSlots"]');
+      const er = await expected.boundingBox(),
+        cr = await completed.boundingBox();
+      assert.ok(
+        er.width <= 80 && cr.width <= 80,
+        'slot inputs fit their numbers',
+      );
+      assert.ok(Math.abs(er.y - cr.y) < 2, 'slot inputs stay side by side');
+      if (width <= 650) assert.ok(er.height >= 40 && cr.height >= 40);
+      assert.equal(
+        await editor.evaluate((e) => e.scrollWidth <= e.clientWidth + 1),
+        true,
+      );
+      assert.equal(
+        await editor.locator('.planner-schedule-details').getAttribute('open'),
+        null,
+      );
+      await editor.locator('.planner-schedule-details > summary').click();
+      assert.equal(
+        await editor.locator('[name="startSlot"]').isVisible(),
+        true,
+      );
+      await editor.locator('.planner-schedule-details > summary').click();
+      await expected.fill('8');
+      await completed.fill('3');
+      await save('compact-editor-' + width);
+      await editor.locator('button.primary').click();
+      assert.equal(await editor.isVisible(), false);
+      assert.equal(await own(ordinary, '[data-progress]').inputValue(), '3');
+    }
     assert.deepEqual(errors, []);
     console.log(
       'PASS: inline five controls without selection, stable heights, 30/240 tafsir, 20 siblings, nested/shared task, direct editing and desktop/tablet/phone hit targets',
