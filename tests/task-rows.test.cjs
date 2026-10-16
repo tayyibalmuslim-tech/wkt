@@ -379,6 +379,39 @@ try {
       "validatePlanning({...state,taskInbox:[{id:'invalid-rank',name:'خطأ',subtaskPosition:0}]})",
     ),
   );
+  // Calendar summaries omit descriptions without deleting them from task data.
+  run(`state.sunsetDays={};state.repeat=[];state.taskInbox=[];date='2026-11-01';
+    taskDay(date).tasks=[{id:'calendar-root',name:'أصل التقويم',description:'وصف خاص',prayers:[3]},
+    {id:'calendar-child',name:'فرعية التقويم',description:'وصف الفرع',parentId:'calendar-root',parentDate:date,prayers:[3]}];
+    view='dashboard';plannerTab='month';plannerMonth='2026-11';Object.assign(monthFilters,{project:'all',category:'all',status:'all',priority:'all',period:'all',query:''});expandedTaskRows.clear();render();`);
+  assert.equal(w.document.querySelectorAll('.month-task').length, 2);
+  assert.equal(
+    w.document.querySelectorAll('.month-task .task-inline-description').length,
+    0,
+  );
+  assert.equal($('.task-month').textContent.includes('وصف خاص'), false);
+  assert.equal(
+    $('[data-month-task="calendar-root"]').title.includes('وصف خاص'),
+    false,
+  );
+  run(`plannerTab='week';plannerWeek=date;render();`);
+  assert.equal(w.document.querySelectorAll('.week-day').length, 7);
+  assert.equal(
+    w.document.querySelectorAll('.task-week .task-inline-description').length,
+    0,
+  );
+  $('.task-week [data-task-id="calendar-root"] [data-task-toggle]').click();
+  assert.ok($('.task-week [data-task-id="calendar-child"]'));
+  assert.equal(
+    w.document.querySelectorAll('.task-week .task-inline-description').length,
+    0,
+  );
+  assert.equal($('.task-week').textContent.includes('وصف الفرع'), false);
+  assert.equal(run(`findTask('calendar-child',date).description`), 'وصف الفرع');
+  // The same row component keeps descriptions outside calendar views.
+  assert.ok(
+    run(`taskCard(findTask('calendar-root',date)).includes('وصف خاص')`),
+  );
   assert.deepEqual(errors, []);
   console.log(
     'PASS: shared task rows, lazy multi-level families, keyboard, escaped full text, outcomes/effort without page redraw, summaries, duplicate lists and dated identities',
