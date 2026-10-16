@@ -321,8 +321,8 @@ function renderDay() {
         state.actions.some((a) => a.id === d.slots[n % 144]) ||
         !!d.actualNotes?.[n % 144],
     ).length,
-    done = Object.values(d.checks).filter(Boolean).length;
-  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / 25 من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCount(i) === 5 ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/5</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
+    done = prayerDayCount(d);
+  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / ${prayerCheckTotal()} من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCheckTasks(i).length > 0 && prayerCount(i) === prayerCheckTasks(i).length ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/${prayerCheckTasks(i).length}</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
     taskGroups(allTasksOn(date))
       .map((t) => compactTaskGroup(t))
       .join('') || '<p class="empty-note">لا توجد مهام لهذا اليوم.</p>'
@@ -372,32 +372,42 @@ function renderDay() {
   bindTaskCards($('#allDayTaskCards'));
   $('#addDetailedTask').onclick = () => openPlannerEditor();
 }
-function prayerCount(p) {
-  return checks.filter((_, i) => day().checks[p + '-' + i]).length;
+// Keep legacy numeric IDs so existing prayer outcomes stay attached to their tasks.
+function prayerCheckTasks(p) {
+  return state.prayerTasks?.[p] ?? checks.map((name, i) => ({ id: String(i), name }));
+}
+function prayerCheckTotal() {
+  return prayerOrder.reduce((n, p) => n + prayerCheckTasks(p).length, 0);
+}
+function prayerCount(p, d = day()) {
+  return prayerCheckTasks(p).filter((t) => d?.checks?.[p + '-' + t.id]).length;
+}
+function prayerDayCount(d = day()) {
+  return prayerOrder.reduce((n, p) => n + prayerCount(p, d), 0);
 }
 function refreshPrayerSummary() {
-  $('#dayPrayerChecks').textContent = Object.values(day().checks).filter(
-    Boolean,
-  ).length;
+  $('#dayPrayerChecks').textContent = prayerDayCount();
   document.querySelectorAll('.prayer-tab').forEach((tab) => {
-    const count = prayerCount(+tab.dataset.prayer),
+    const p = +tab.dataset.prayer,
+      count = prayerCount(p),
+      total = prayerCheckTasks(p).length,
       label = tab.querySelector('.prayer-count');
-    label.textContent = count + '/5';
-    label.classList.toggle('complete', count === 5);
+    label.textContent = count + '/' + total;
+    label.classList.toggle('complete', total > 0 && count === total);
   });
 }
 function openPrayer(p = prayer) {
   prayerDialogPrayer = p;
   const modal = $('#prayerDialog');
   $('#prayerTitle').textContent = 'مهام صلاة ' + names[p];
-  $('#prayerProgress').textContent = prayerCount(p) + '/5';
-  $('#prayerChecks').innerHTML = checks
-    .map((n, i) => {
-      let key = p + '-' + i,
+  $('#prayerProgress').textContent = prayerCount(p) + '/' + prayerCheckTasks(p).length;
+  $('#prayerChecks').innerHTML = prayerCheckTasks(p)
+    .map(({ id, name: n }) => {
+      let key = p + '-' + id,
         d = day();
       return `<div class="check ${d.checks[key] ? 'done' : d.checkFailed?.[key] ? 'missed' : ''}"><span class="grow">${esc(d.checkNames?.[key] || n)}</span><button class="status-button ${d.checks[key] ? 'yes' : ''}" data-check-status="${key}" data-value="done" aria-pressed="${!!d.checks[key]}" title="تمت">✓</button><button class="status-button ${d.checkFailed?.[key] ? 'no' : ''}" data-check-status="${key}" data-value="failed" aria-pressed="${!!d.checkFailed?.[key]}" title="لم أفعلها">✕</button><button data-edit-check="${key}" title="تعديل اسم المهمة لهذا اليوم">✎</button></div>`;
     })
-    .join('');
+    .join('') || '<p class="empty-note">لا توجد مهام لهذه الصلاة. أضف مهامًا من إعدادات الصلاة.</p>';
   modal.querySelectorAll('[data-check-status]').forEach(
     (b) =>
       (b.onclick = () => {
@@ -583,8 +593,41 @@ function renderRepeatLegacy(edit = null) {
       }),
   );
 }
+function mountPrayerTaskSettings(p = prayer) {
+  const panel = $('#prayerTaskSettings');
+  panel.innerHTML = `<h2>مهام الصلاة</h2><p class="hint">اختر الصلاة لإضافة مهامها أو تعديلها أو حذفها. تُحفظ التغييرات لكل الأيام، وتبقى الأسماء التي خصصتها ليوم معين مستقلة. المهام المحذوفة لا تدخل في عدّاد الإنجاز.</p><label class="field">الصلاة<select id="prayerTaskPrayer">${prayerOrder.map((i) => `<option value="${i}" ${i === p ? 'selected' : ''}>${names[i]}</option>`).join('')}</select></label><div class="prayer-task-settings-list">${prayerCheckTasks(p).map((t) => `<form class="prayer-task-setting-row" data-prayer-task="${esc(t.id)}"><input name="taskName" aria-label="اسم مهمة صلاة ${names[p]}" maxlength="150" required value="${esc(t.name)}"><button class="secondary" type="submit" aria-label="حفظ تعديل ${esc(t.name)}" title="حفظ التعديل">✓</button><button class="secondary" type="button" data-delete-prayer-task aria-label="حذف ${esc(t.name)}" title="حذف المهمة">×</button></form>`).join('') || '<p class="empty-note">لا توجد مهام لهذه الصلاة.</p>'}</div><form id="addPrayerTask" class="prayer-task-setting-row"><input name="taskName" aria-label="مهمة صلاة جديدة" placeholder="اسم المهمة الجديدة" maxlength="150" required><button class="primary" type="submit">إضافة</button></form>`;
+  $('#prayerTaskPrayer').onchange = (e) => mountPrayerTaskSettings(+e.target.value);
+  function commit(list, message) {
+    (state.prayerTasks ??= {})[p] = list;
+    save();
+    mountPrayerTaskSettings(p);
+    toast(message);
+  }
+  panel.querySelectorAll('[data-prayer-task]').forEach((form) => {
+    const id = form.dataset.prayerTask;
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const name = form.elements.taskName.value.trim();
+      if (!name) return;
+      commit(prayerCheckTasks(p).map((t) => t.id === id ? { ...t, name } : t), 'تم تعديل مهمة الصلاة');
+    };
+    form.querySelector('[data-delete-prayer-task]').onclick = () => {
+      if (!confirm('حذف هذه المهمة من قائمة صلاة ' + names[p] + '؟')) return;
+      // Retain stored outcomes; never reuse the deleted ID for a new task.
+      commit(prayerCheckTasks(p).filter((t) => t.id !== id), 'تم حذف مهمة الصلاة');
+    };
+  });
+  $('#addPrayerTask').onsubmit = (e) => {
+    e.preventDefault();
+    const name = e.target.elements.taskName.value.trim();
+    if (!name) return;
+    commit([...prayerCheckTasks(p), { id: uid(), name }], 'تمت إضافة مهمة الصلاة');
+    $('#addPrayerTask input').focus();
+  };
+}
 function renderSettings() {
-  app.innerHTML = `<h1>المواقيت والتقويم</h1><p>مواقيت تلقائية كل يوم، ويوم جديد عند المغرب.</p><section class="panel"><h2>الموقع والحساب</h2><p>الموقع الحالي: <strong>${esc(state.location.name)}</strong> · ${esc(state.location.zone)}</p><div class="form"><button class="secondary" id="locate">◎ استخدام موقعي الحالي</button><button class="secondary" id="cairo">القاهرة</button></div><p class="hint">الحساب يتم داخل جهازك. التوقيت الصيفي يُطبّق حسب المنطقة الزمنية المختارة.</p><form id="locationForm"><div class="form"><label class="field">اسم المكان<input name="place" required value="${esc(state.location.name)}"></label><label class="field">خط العرض<input name="lat" type="number" step="any" min="-60" max="60" required value="${state.location.lat}"></label><label class="field">خط الطول<input name="lon" type="number" step="any" min="-180" max="180" required value="${state.location.lon}"></label><label class="field">المنطقة الزمنية<input name="zone" required dir="ltr" value="${esc(state.location.zone)}" placeholder="Africa/Cairo"></label><label class="field">طريقة الحساب<select name="method"><option value="Egyptian" ${state.method === 'Egyptian' ? 'selected' : ''}>الهيئة المصرية للمساحة</option><option value="MuslimWorldLeague" ${state.method === 'MuslimWorldLeague' ? 'selected' : ''}>رابطة العالم الإسلامي</option><option value="Karachi" ${state.method === 'Karachi' ? 'selected' : ''}>جامعة كراتشي</option></select></label></div><button class="primary">حفظ الموقع</button></form><p class="hint">المناطق المدعومة بين خطي عرض ٦٠ جنوبًا و٦٠ شمالًا. راجع المواقيت المحسوبة مع مسجدك.</p></section><section class="panel"><h2>مواقيت اليوم المختار</h2><div class="settings-times">${prayerOrder.map((i) => `<div class="field">${names[i]}<strong>${displayTime(prayerTimes()[i])}</strong></div>`).join('')}</div><form id="offsetForm"><p>تعديل اختياري بالدقائق لمطابقة مسجدك (٠ = الوقت المحسوب)</p><div class="settings-times">${names.map((n, i) => `<label class="field">${n}<input name="o${i}" type="number" min="-30" max="30" value="${state.offsets[i]}" required></label>`).join('')}</div><label class="field">تصحيح التاريخ الهجري<select name="hijri">${[-2, -1, 0, 1, 2].map((n) => `<option value="${n}" ${state.hijriOffset === n ? 'selected' : ''}>${n === 0 ? 'بدون تعديل' : n + ' يوم'}</option>`).join('')}</select></label><p class="hint">التاريخ الهجري بحسب تقويم أم القرى الحسابي، وقد يختلف عن إعلان الرؤية المحلي. التصحيح يغيّر عرض التاريخ فقط.</p><button class="primary">حفظ التعديلات</button></form></section><section class="panel"><h2>كيف يبدأ يومك؟</h2><p>اليوم يبدأ مع المغرب وينتهي مع المغرب التالي. منتصف الليل يغيّر التاريخ الميلادي فقط؛ مهامك وعلامات إنجازك تظل في نفس اليوم. التاريخ في خانة الاختيار هو تاريخ نهار اليوم الإسلامي؛ مثلًا اختيار الجمعة يشمل مغرب الخميس.</p></section><section class="panel"><h2>نسختك الاحتياطية</h2><p>الحفظ على الجهاز دائمًا، والمزامنة تعمل بعد تسجيل الدخول. يحتوي الملف على بياناتك الحالية: المهام والمشاريع والخانات والإنجازات والإعدادات، ويمكن استعادتها لاحقًا.</p><div class="form"><button id="export" class="secondary">↓ تصدير البيانات</button><label class="secondary" style="cursor:pointer">↑ استيراد نسخة<input type="file" id="import" accept="application/json" hidden></label></div></section>`;
+  app.innerHTML = `<h1>المواقيت والتقويم</h1><p>مواقيت تلقائية كل يوم، ويوم جديد عند المغرب.</p><section id="prayerTaskSettings" class="panel"></section><section class="panel"><h2>الموقع والحساب</h2><p>الموقع الحالي: <strong>${esc(state.location.name)}</strong> · ${esc(state.location.zone)}</p><div class="form"><button class="secondary" id="locate">◎ استخدام موقعي الحالي</button><button class="secondary" id="cairo">القاهرة</button></div><p class="hint">الحساب يتم داخل جهازك. التوقيت الصيفي يُطبّق حسب المنطقة الزمنية المختارة.</p><form id="locationForm"><div class="form"><label class="field">اسم المكان<input name="place" required value="${esc(state.location.name)}"></label><label class="field">خط العرض<input name="lat" type="number" step="any" min="-60" max="60" required value="${state.location.lat}"></label><label class="field">خط الطول<input name="lon" type="number" step="any" min="-180" max="180" required value="${state.location.lon}"></label><label class="field">المنطقة الزمنية<input name="zone" required dir="ltr" value="${esc(state.location.zone)}" placeholder="Africa/Cairo"></label><label class="field">طريقة الحساب<select name="method"><option value="Egyptian" ${state.method === 'Egyptian' ? 'selected' : ''}>الهيئة المصرية للمساحة</option><option value="MuslimWorldLeague" ${state.method === 'MuslimWorldLeague' ? 'selected' : ''}>رابطة العالم الإسلامي</option><option value="Karachi" ${state.method === 'Karachi' ? 'selected' : ''}>جامعة كراتشي</option></select></label></div><button class="primary">حفظ الموقع</button></form><p class="hint">المناطق المدعومة بين خطي عرض ٦٠ جنوبًا و٦٠ شمالًا. راجع المواقيت المحسوبة مع مسجدك.</p></section><section class="panel"><h2>مواقيت اليوم المختار</h2><div class="settings-times">${prayerOrder.map((i) => `<div class="field">${names[i]}<strong>${displayTime(prayerTimes()[i])}</strong></div>`).join('')}</div><form id="offsetForm"><p>تعديل اختياري بالدقائق لمطابقة مسجدك (٠ = الوقت المحسوب)</p><div class="settings-times">${names.map((n, i) => `<label class="field">${n}<input name="o${i}" type="number" min="-30" max="30" value="${state.offsets[i]}" required></label>`).join('')}</div><label class="field">تصحيح التاريخ الهجري<select name="hijri">${[-2, -1, 0, 1, 2].map((n) => `<option value="${n}" ${state.hijriOffset === n ? 'selected' : ''}>${n === 0 ? 'بدون تعديل' : n + ' يوم'}</option>`).join('')}</select></label><p class="hint">التاريخ الهجري بحسب تقويم أم القرى الحسابي، وقد يختلف عن إعلان الرؤية المحلي. التصحيح يغيّر عرض التاريخ فقط.</p><button class="primary">حفظ التعديلات</button></form></section><section class="panel"><h2>كيف يبدأ يومك؟</h2><p>اليوم يبدأ مع المغرب وينتهي مع المغرب التالي. منتصف الليل يغيّر التاريخ الميلادي فقط؛ مهامك وعلامات إنجازك تظل في نفس اليوم. التاريخ في خانة الاختيار هو تاريخ نهار اليوم الإسلامي؛ مثلًا اختيار الجمعة يشمل مغرب الخميس.</p></section><section class="panel"><h2>نسختك الاحتياطية</h2><p>الحفظ على الجهاز دائمًا، والمزامنة تعمل بعد تسجيل الدخول. يحتوي الملف على بياناتك الحالية: المهام والمشاريع والخانات والإنجازات والإعدادات، ويمكن استعادتها لاحقًا.</p><div class="form"><button id="export" class="secondary">↓ تصدير البيانات</button><label class="secondary" style="cursor:pointer">↑ استيراد نسخة<input type="file" id="import" accept="application/json" hidden></label></div></section>`;
+  mountPrayerTaskSettings();
   function applyLocation(loc, method = state.method) {
     let prev = state.location,
       oldMethod = state.method;
@@ -726,6 +769,15 @@ function validate(s) {
     (!Number.isInteger(s.hijriOffset) || Math.abs(s.hijriOffset) > 2)
   )
     throw Error();
+  if (s.prayerTasks !== undefined) {
+    if (!s.prayerTasks || typeof s.prayerTasks !== 'object' || Array.isArray(s.prayerTasks)) throw Error();
+    for (const [p, list] of Object.entries(s.prayerTasks)) {
+      if (!/^[0-4]$/.test(p) || !Array.isArray(list) ||
+          new Set(list.map((t) => t?.id)).size !== list.length ||
+          list.some((t) => !t || typeof t.id !== 'string' || !/^[a-zA-Z0-9-]+$/.test(t.id) ||
+            typeof t.name !== 'string' || !t.name.trim() || t.name.length > 150)) throw Error();
+    }
+  }
   let m = s.times.map(minute);
   if (
     m[0] < SlotTools.minutes ||
@@ -803,7 +855,7 @@ function openCheckEditor(key) {
   taskEditTarget = { date, check: key };
   $('#taskEditTitle').textContent = 'تعديل مهمة الصلاة';
   $('#taskEditName').value =
-    day().checkNames?.[key] || checks[+key.split('-')[1]];
+    day().checkNames?.[key] || prayerCheckTasks(+key[0]).find((t) => key === key[0] + '-' + t.id)?.name || '';
   $('#taskEditPrayerField').hidden = true;
   $('#taskEditHint').textContent = 'اسم مستقل لهذه المهمة في هذا اليوم فقط.';
   $('#taskEditor').showModal();

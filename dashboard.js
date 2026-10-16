@@ -605,10 +605,12 @@ function refreshTaskRowValues(changed = null) {
       node.textContent = `${done} مكتملة · ${list.filter((t) => outcome(t) === 'failed').length} لم تُفعل · ${list.filter((t) => outcome(t) === 'pending').length} بانتظار التسجيل`;
     else if (node.dataset.summaryKind === 'count')
       node.textContent = `${done}/${list.length}`;
+    else if (node.dataset.summaryKind === 'slots')
+      node.textContent = projectSlotsLabel(id);
     else if (node.dataset.summaryKind === 'percent')
       node.textContent = percentLabel(projectCompletion(id));
     else
-      node.textContent = `${percentLabel(projectCompletion(id))} إنجاز · ${done} / ${list.length} مهام مكتملة`;
+      node.textContent = `${percentLabel(projectCompletion(id))} إنجاز · ${done} / ${list.length} مهام مكتملة · ${projectSlotsLabel(id)}`;
   });
   refreshProjectGoals();
   const all = allTasksOn(date),
@@ -892,7 +894,7 @@ function daySummary(key) {
     total: tasks.length,
     done: tasks.filter((t) => taskCompletion(t) === 100).length,
     checks: prayerOrder.reduce(
-      (n, p) => n + checks.filter((_, i) => d.checks[p + '-' + i]).length,
+      (n, p) => n + prayerCount(p, d),
       0,
     ),
   };
@@ -984,7 +986,7 @@ function renderDashboard() {
     future = entries.filter((t) => t.date > today && !t.recurrent),
     inbox = state.taskInbox || [];
   const dashboardHTML = `<div class="dashboard-workspace"><div class="top"><h1>لوحة المهام</h1>${dateControls()}</div>
- <div class="dashboard-summary" aria-label="ملخص اليوم"><span>${hijriLabel(date)}</span><span>${dayRangeLabel()}</span><span><strong id="dashboardDone">${done}/${taskGroups(all).length}</strong> مكتملة</span><span><strong id="dashboardPending">${pending}</strong> بانتظار التسجيل</span><span>${daySummary(date).checks}/25 من مهام الصلوات</span></div>
+ <div class="dashboard-summary" aria-label="ملخص اليوم"><span>${hijriLabel(date)}</span><span>${dayRangeLabel()}</span><span><strong id="dashboardDone">${done}/${taskGroups(all).length}</strong> مكتملة</span><span><strong id="dashboardPending">${pending}</strong> بانتظار التسجيل</span><span>${daySummary(date).checks}/${prayerCheckTotal()} من مهام الصلوات</span></div>
  <div class="planner-toolbar"><button id="newPlannedTask" class="primary">${taskIcon('plus')} إضافة مهمة وتوزيعها</button><button id="plannerRepeats" class="secondary">${taskIcon('repeat')} المهام المتكررة</button></div>
  <div class="planner-tabs" role="group" aria-label="عروض المهام">${[
    ['day', 'اليوم'],
@@ -1091,7 +1093,7 @@ function renderDashboard() {
                       .map((t) => dashboardTaskCard(t))
                       .join('') ||
                     '<p class="empty-note">لا توجد مهام مطابقة في هذه الفترة.</p>'
-                  }<details><summary>قائمة صلاة ${names[p]} · ${checks.filter((_, i) => taskDay(date).checks[p + '-' + i]).length}/5</summary><button class="secondary" data-open-prayer="${p}">عرض وتسجيل مهام الصلاة</button></details></section>`,
+                  }<details><summary>قائمة صلاة ${names[p]} · ${prayerCount(p, taskDay(date))}/${prayerCheckTasks(p).length}</summary><button class="secondary" data-open-prayer="${p}">عرض وتسجيل مهام الصلاة</button></details></section>`,
               )
               .join('') +
             (list.some((t) => !taskPeriods(t).length)
@@ -1459,12 +1461,12 @@ function renderTaskMonth() {
  <div class="task-month-scroll" tabindex="0" role="region" aria-label="التقويم الشهري"><div class="task-month">${week.map((n) => `<div class="month-weekday">${n}</div>`).join('')}${Array.from({ length: offset }, () => '<div aria-hidden="true"></div>').join('')}${days
    .map(({ key, number, tasks }) => {
      const s = monthlySummary(tasks),
-       d = state.sunsetDays[key],
+       d = state.sunsetDays[key] || emptyDay(),
        prayerChecks = prayerOrder.reduce(
-         (n, p) => n + checks.filter((_, i) => d?.checks?.[p + '-' + i]).length,
+         (n, p) => n + prayerCount(p, d),
          0,
        );
-     return `<section class="month-day ${key === today ? 'is-today' : ''}" aria-label="يوم ${key}"><button type="button" data-calendar-day="${key}" class="month-day-heading" ${key === today ? 'aria-current="date"' : ''} aria-label="${key}: ${s.total} مهام ظاهرة، ${s.done} تمت"><strong>${number}</strong><span>${s.done}/${s.total} تمت</span></button>${key <= today ? `<small class="month-prayer-checks">الصلاة ${prayerChecks}/25</small>` : ''}<div class="month-tasks">${tasks.map(chip).join('')}</div></section>`;
+     return `<section class="month-day ${key === today ? 'is-today' : ''}" aria-label="يوم ${key}"><button type="button" data-calendar-day="${key}" class="month-day-heading" ${key === today ? 'aria-current="date"' : ''} aria-label="${key}: ${s.total} مهام ظاهرة، ${s.done} تمت"><strong>${number}</strong><span>${s.done}/${s.total} تمت</span></button>${key <= today ? `<small class="month-prayer-checks">الصلاة ${prayerChecks}/${prayerCheckTotal()}</small>` : ''}<div class="month-tasks">${tasks.map(chip).join('')}</div></section>`;
    })
    .join(
      '',

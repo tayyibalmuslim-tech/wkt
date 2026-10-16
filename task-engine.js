@@ -213,15 +213,9 @@ function effectiveProjectId(t) {
   return effectiveProjectIds(t)[0] || '';
 }
 function taskInProject(t, id, entries = progressEntries()) {
-  if (effectiveProjectIds(t, entries).includes(id)) return true;
-  const seen = new Set();
-  let current = t.parentId ? parentTask(t, entries) : null;
-  while (current && !seen.has(taskIdentity(current))) {
-    seen.add(taskIdentity(current));
-    if (effectiveProjectIds(current, entries).includes(id)) return true;
-    current = current.parentId ? parentTask(current, entries) : null;
-  }
-  return false;
+  // effectiveProjectIds already handles inheritance. An explicit child override
+  // must not be undone by also adding all of its ancestors' projects.
+  return effectiveProjectIds(t, entries).includes(id);
 }
 function setTaskProjects(t, ids) {
   const unique = [...new Set(ids.filter(Boolean))];
@@ -328,12 +322,13 @@ function taskCompletion(t, entries) {
     ? 100
     : averageCompletion(progressLeaves([t], entries));
 }
-function projectCompletion(id) {
-  return cachedTaskRead('projectCompletion:' + id, () => {
+function projectSlotTotals(id) {
+  return cachedTaskRead('projectSlotTotals:' + id, () => {
     const entries = progressEntries();
     const leaves = progressLeaves(
       entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
       entries,
+      id,
     );
     let expected = 0,
       completed = 0;
@@ -346,8 +341,16 @@ function projectCompletion(id) {
           ? slots
           : Math.min(slots, completedSlots(task));
     }
-    return expected ? (completed / expected) * 100 : 0;
+    return { expected, completed };
   });
+}
+function projectCompletion(id) {
+  const { expected, completed } = projectSlotTotals(id);
+  return expected ? (completed / expected) * 100 : 0;
+}
+function projectSlotsLabel(id) {
+  const { expected, completed } = projectSlotTotals(id);
+  return `${completed}/${expected} خانة`;
 }
 function percentLabel(value) {
   return Number(value.toFixed(1)) + '٪';

@@ -351,8 +351,8 @@ try {
   assert.equal(run(`projectCompletion('c')`), 0);
   assert.equal(
     run(`projectCompletion('a')`),
-    12.5,
-    'the parent project keeps the full family rollup without counting its own estimate',
+    0,
+    'independently linked descendants do not contribute slots to their parent project',
   );
   run(`selectedProject='b';render();expandProjectTasks(true);`);
   assert.ok(row('ind-parent') && row('ind-b') && row('ind-deep'));

@@ -519,6 +519,7 @@
       days: 'أيام التكرار',
       prayers: 'الفترات',
       checks: 'تسجيل الصلاة',
+      prayerTasks: 'مهام الصلاة',
       offsets: 'تعديل المواقيت',
       times: 'المواقيت',
       sunsetDays: 'اليوم',

@@ -5094,3 +5094,8 @@ main > header {
     display: none;
   }
 }
+
+.prayer-task-settings-list { margin: 12px 0; }
+.prayer-task-setting-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.prayer-task-setting-row input { flex: 1; min-width: 0; width: 0; }
+.prayer-task-setting-row button { flex-shrink: 0; padding: 7px 12px; }

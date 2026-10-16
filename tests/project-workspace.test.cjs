@@ -51,6 +51,12 @@ try {
   run(
     `state.sunsetDays={};state.repeat=[];state.projects=[{id:'work-a',name:'المشروع الأول'},{id:'work-b',name:'المشروع الثاني'}];state.taskInbox=[{id:'work-root',name:'الجزء الأول',projectId:'work-a'},{id:'work-child',name:'فرعية',description:'فَقْرَة 123',parentId:'work-root',parentDate:'',expectedSlots:4},{id:'work-grand',name:'فرعية عميقة',parentId:'work-child',parentDate:'',expectedSlots:2},{id:'work-other',name:'مهمة أخرى',projectId:'work-a',expectedSlots:2},{id:'work-b-root',name:'مهمة المشروع الثاني',projectId:'work-b'}];expandedTaskRows.clear();projectViews.clear();view='projects';selectedProject='work-a';render();window.workspacePageRenders=0;const projectRealRender=render;render=(...args)=>{window.workspacePageRenders++;return projectRealRender(...args)};`,
   );
+  assert.equal($('[data-summary-kind="slots"]').textContent, '0/4 خانة');
+  assert.match($('[data-project="work-a"] small').textContent, /0\/4 خانة/);
+  run("state.taskInbox.find(t=>t.id==='work-grand').completedSlotCount=1;save();refreshTaskRowValues();");
+  assert.equal($('[data-summary-kind="slots"]').textContent, '1/4 خانة');
+  assert.match($('[data-project="work-a"] small').textContent, /1\/4 خانة/);
+  run("state.taskInbox.find(t=>t.id==='work-grand').completedSlotCount=0;save();refreshTaskRowValues();");
   const shell = $('.project-workspace'),
     navigation = $('#projectNavigation'),
     projectA = $('[data-project="work-a"]');
@@ -275,6 +281,35 @@ try {
   assert.equal($('#plannerResults [data-task-id="hide-done"]').hidden, true);
   $('#toggleCompletedWork').click();
   assert.equal($('#plannerResults [data-task-id="hide-done"]').hidden, false);
+  // A shared surah contains independent memorization and revision branches.
+  run(`hideCompletedWork=false;state.sunsetDays={};state.repeat=[];state.projects=[{id:'memorize',name:'الحفظ'},{id:'revise',name:'المراجعة'}];state.taskInbox=[
+    {id:'surah',name:'سورة مشتركة',projectIds:['memorize','revise'],expectedSlots:99},
+    {id:'mem',name:'حفظ المقطع',parentId:'surah',parentDate:'',projectOverride:true,projectIds:['memorize'],expectedSlots:3,inboxOutcome:'done'},
+    {id:'rev',name:'مراجعة المقطع',parentId:'surah',parentDate:'',projectOverride:true,projectIds:['revise']},
+    {id:'rev-deep',name:'تثبيت المراجعة',parentId:'rev',parentDate:'',expectedSlots:6,completedSlotCount:2},
+    {id:'shared-leaf',name:'فرع مشترك',parentId:'surah',parentDate:'',expectedSlots:1}
+  ];save();projectViews.clear();view='projects';selectedProject='revise';render();expandProjectTasks(true);`);
+  assert.ok(row('surah') && row('rev') && row('rev-deep') && row('shared-leaf'));
+  assert.equal(row('mem'), null, 'memorization must not leak into revision');
+  assert.equal(run("projectTasks('revise').some(t=>t.id==='mem')"), false);
+  assert.equal(run("projectTaskRecords(state,'revise').some(r=>r.task.id==='mem')"), false, 'bulk edits must also respect independent memberships');
+  assert.equal($('[data-summary-kind="slots"]').textContent, '2/7 خانة');
+  assert.ok(Math.abs(run("projectCompletion('revise')") - 200/7) < 1e-10);
+  input('#projectSearch', 'حفظ المقطع');
+  assert.equal(row('mem'), null);
+  assert.equal(row('surah'), null, 'search cannot reintroduce excluded branches');
+  input('#projectSearch', '');
+  run("selectProject('memorize');expandProjectTasks(true)");
+  assert.ok(row('surah') && row('mem') && row('shared-leaf'));
+  assert.equal(row('rev'), null);
+  assert.equal(row('rev-deep'), null);
+  assert.equal($('[data-summary-kind="slots"]').textContent, '3/4 خانة');
+  assert.equal(run("projectCompletion('memorize')"), 75);
+  const independentBackup = run('JSON.stringify(state)');
+  run('state=JSON.parse('+JSON.stringify(independentBackup)+');save();validate(state);render();expandProjectTasks(true)');
+  assert.equal(row('rev'), null, 'independent membership survives restoring a backup');
+  run("selectProject('revise');expandProjectTasks(true)");
+  assert.equal(row('mem'), null);
   assert.deepEqual(errors, []);
   console.log(
     'PASS: project workspace navigation, searchable nested paths, session expansion/scroll, local reorder, CRUD/import preservation and safe unlink deletion',
