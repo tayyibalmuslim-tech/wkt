@@ -636,6 +636,29 @@ dialog::backdrop {
 .conflict-box button {
   margin: 5px;
 }
+.sync-conflicts {
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+}
+.sync-conflicts section {
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+.sync-conflicts h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.sync-conflicts button {
+  min-height: 40px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+  font-size: 12px;
+}
 .sync-message {
   color: var(--color-brand);
   overflow-wrap: anywhere;

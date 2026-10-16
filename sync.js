@@ -1,6 +1,6 @@
 /* Firebase Authentication + per-account Realtime Database snapshots.
    Account-scoped local queues survive offline reloads. Transactions compare
-   revisions so concurrent edits require an explicit user choice. */
+   revisions and merge independent edits; choices concern overlapping fields only. */
 (() => {
   const config = {
     apiKey: 'AIzaSyD8jxpVrvicStETloL8tk5s865dmNatIqE',
@@ -35,6 +35,12 @@
     editSequence = 0,
     conflict = false,
     hasCachedData = false;
+  let baseState = null,
+    baseKnown = false,
+    deferred = false,
+    retryDelay = 500,
+    conflicts = [];
+  const mergeChoices = new Map();
   const cacheKey = (id) => 'waqti-account-' + id;
   function fresh() {
     return {
@@ -57,12 +63,18 @@
   }
   function persist() {
     try {
-      if (user)
-        localStorage.setItem(
-          cacheKey(user.uid),
-          JSON.stringify({ state, baseRevision, dirty }),
-        );
-      else localStorage.setItem('waqti-v1', JSON.stringify(state));
+      if (user) {
+        const cached = { state, baseRevision, dirty };
+        if (dirty && baseKnown)
+          cached.basePatch = WaqtiSyncMerge.diff(state, baseState);
+        try {
+          localStorage.setItem(cacheKey(user.uid), JSON.stringify(cached));
+        } catch (error) {
+          // Keep the current edits even when there is no space for a reverse base.
+          delete cached.basePatch;
+          localStorage.setItem(cacheKey(user.uid), JSON.stringify(cached));
+        }
+      } else localStorage.setItem('waqti-v1', JSON.stringify(state));
       return true;
     } catch {
       error = 'تعذر الحفظ على الجهاز. صدّر نسخة احتياطية الآن.';
@@ -145,33 +157,98 @@
     validate(s);
     return s;
   }
+  function normalized(s) {
+    const next = structuredClone(s);
+    SlotTools.migrate(next);
+    return next;
+  }
+  function reconciliation(
+    cloud,
+    local = state,
+    base = baseState,
+    known = baseKnown,
+  ) {
+    const result = WaqtiSyncMerge.merge(
+      known ? normalized(base) : null,
+      normalized(local),
+      normalized(cloud),
+      { known, choices: mergeChoices },
+    );
+    validate(result.state);
+    return result;
+  }
+  function editing() {
+    return (
+      !!document.querySelector('dialog[open]') ||
+      !!document.activeElement?.matches(
+        'textarea, input:not([type=search]):not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]), select:not(#projectSelect)',
+      )
+    );
+  }
+  function acknowledge(cloud, revision, next) {
+    baseState = structuredClone(cloud);
+    baseKnown = true;
+    baseRevision = revision;
+    conflict = false;
+    conflicts = [];
+    mergeChoices.clear();
+    error = '';
+    deferred = false;
+    if (!WaqtiSyncMerge.same(state, next)) apply(next);
+    // Migrated slot indices/markers must still be published to the server.
+    dirty = !WaqtiSyncMerge.same(state, cloud);
+    persist();
+    report(
+      dirty
+        ? 'جاري مزامنة التغييرات…'
+        : online
+          ? '● تمت المزامنة'
+          : 'نسخة الحساب محفوظة على الجهاز',
+    );
+    schedule();
+  }
   function receive(r) {
+    if ((r?.revision || 0) < Math.max(baseRevision, remote?.revision || 0))
+      return;
+    const initialLoad = !ready && !hasCachedData;
     remote = r;
     ready = true;
     $('#app').inert = false;
     let rev = r?.revision || 0;
     if (writing) return;
-    if (dirty) {
-      if (rev !== baseRevision) {
-        conflict = true;
-        report('توجد نسختان مختلفتان؛ اختر من الحساب والمزامنة.');
+    try {
+      const cloud = decode(r) || fresh();
+      if (WaqtiSyncMerge.same(state, cloud)) {
+        acknowledge(cloud, rev, cloud);
         return;
       }
-      error = '';
-      report(online ? 'جاري المزامنة…' : 'محفوظ محليًا؛ في انتظار الاتصال');
-      schedule();
-      return;
-    }
-    try {
-      let s = decode(r);
-      baseRevision = rev;
-      conflict = false;
-      error = '';
-      if (apply(s || fresh())) changed();
-      else {
-        persist();
-        report(online ? '● تمت المزامنة' : 'نسخة الحساب محفوظة على الجهاز');
+      if (editing() && !initialLoad) {
+        deferred = true;
+        report('وصلت تحديثات؛ ستُدمج بعد إنهاء التعديل المفتوح');
+        return;
       }
+      if (!dirty) {
+        acknowledge(cloud, rev, cloud);
+        return;
+      }
+      // Old dirty caches have no base. The matching revision recovers it safely;
+      // otherwise only explicit per-field choices can reconcile unknown edits.
+      if (!baseKnown && rev === baseRevision) {
+        baseState = structuredClone(cloud);
+        baseKnown = true;
+      }
+      const merged = reconciliation(cloud);
+      if (merged.conflicts.length) {
+        conflicts = merged.conflicts;
+        conflict = true;
+        deferred = false;
+        persist();
+        report(
+          `تعديلان على ${conflicts.length} بند؛ اختر لكل بند من الحساب والمزامنة.`,
+        );
+        return;
+      }
+      acknowledge(cloud, rev, merged.state);
     } catch {
       error =
         'تعذر قراءة نسخة الحساب. احتفظ بنسختك المحلية وراجع ملف البيانات.';
@@ -179,20 +256,22 @@
       if (view === 'account') renderAccount();
     }
   }
-  function schedule() {
+  function schedule(delay = 180) {
     clearTimeout(timer);
-    if (user && ready && dirty && !conflict && online && !writing)
-      timer = setTimeout(flush, 500);
+    if (user && ready && dirty && !conflict && online && !writing && !deferred)
+      timer = setTimeout(flush, delay);
   }
   async function flush() {
-    if (!user || !ready || !dirty || conflict || !online || writing)
+    if (!user || !ready || !dirty || conflict || !online || writing || deferred)
       return false;
     const ticket = epoch,
       uid = user.uid,
       ref = recordRef,
       expected = baseRevision,
-      sequence = editSequence,
-      payload = JSON.stringify(state);
+      local = structuredClone(state),
+      base = baseState,
+      known = baseKnown;
+    const payload = JSON.stringify(local);
     if (payload.length > 4000000) {
       error = 'البيانات تجاوزت حد المزامنة (٤ ملايين حرف). صدّر نسخة احتياطية.';
       badge();
@@ -204,10 +283,20 @@
     try {
       const result = await ref.transaction(
         (current) => {
-          if ((current?.revision || 0) !== expected) return;
+          if (!current && expected > 0) return;
+          const revision = current?.revision || 0;
+          const cloud = decode(current) || fresh();
+          if (editing() && revision !== expected) return;
+          const merged =
+            !known && revision === expected
+              ? { state: local, conflicts: [] }
+              : reconciliation(cloud, local, base, known);
+          if (merged.conflicts.length) return;
+          const mergedPayload = JSON.stringify(merged.state);
+          if (mergedPayload.length > 4000000) throw Error('sync-payload-limit');
           return {
-            payload,
-            revision: expected + 1,
+            payload: mergedPayload,
+            revision: revision + 1,
             updatedAt: firebase.database.ServerValue.TIMESTAMP,
           };
         },
@@ -217,20 +306,30 @@
       if (ticket !== epoch || user?.uid !== uid) return false;
       writing = false;
       if (!result.committed) {
-        remote = result.snapshot.val();
-        conflict = true;
-        report('تعديل من جهاز آخر؛ اختر النسخة التي تريد الاحتفاظ بها.');
+        const current = result.snapshot.val();
+        if (!current && expected > 0) {
+          refreshRemote();
+          return false;
+        }
+        receive(current);
         return false;
       }
-      baseRevision = result.snapshot.val().revision;
-      dirty = sequence !== editSequence;
+      const committed = result.snapshot.val();
+      // Rebase edits made while the transaction was in flight onto its exact
+      // submitted local state, not onto an older server snapshot.
+      baseState = local;
+      baseKnown = true;
+      baseRevision = committed.revision;
+      dirty = !WaqtiSyncMerge.same(state, decode(committed));
+      retryDelay = 500;
       persist();
       let latest = remote;
       if (latest && (latest.revision || 0) > baseRevision) {
+        // Integrate our commit first, then a newer event; this preserves the tail.
+        receive(committed);
         receive(latest);
       } else {
-        report(dirty ? 'جاري حفظ تعديلاتك الأخيرة…' : '● تمت المزامنة');
-        schedule();
+        receive(committed);
       }
       return true;
     } catch (e) {
@@ -240,6 +339,8 @@
         persist();
         badge();
         if (view === 'account') renderAccount();
+        schedule(retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
       }
       return false;
     }
@@ -247,17 +348,22 @@
   function changed() {
     if (applying) return;
     if (user) {
-      dirty = true;
+      dirty = !baseKnown || !WaqtiSyncMerge.same(state, baseState);
       editSequence++;
       persist();
       report(
-        conflict
-          ? 'يوجد تعارض؛ اختر نسخة من الحساب والمزامنة'
-          : online
-            ? 'جاري المزامنة…'
-            : 'محفوظ محليًا؛ في انتظار الاتصال',
+        !dirty
+          ? online
+            ? '● تمت المزامنة'
+            : 'نسخة الحساب محفوظة على الجهاز'
+          : conflict
+            ? 'يوجد تعارض؛ اختر نسخة من الحساب والمزامنة'
+            : online
+              ? 'جاري المزامنة…'
+              : 'محفوظ محليًا؛ في انتظار الاتصال',
       );
       schedule();
+      if (conflict) setTimeout(drain, 0);
     } else {
       persist();
       report('● محفوظ على هذا الجهاز — دون حساب');
@@ -276,6 +382,11 @@
     connectionHandler = null;
     user = u;
     baseRevision = 0;
+    baseState = null;
+    baseKnown = false;
+    deferred = false;
+    conflicts = [];
+    mergeChoices.clear();
     dirty = false;
     ready = false;
     writing = false;
@@ -300,11 +411,26 @@
           throw Error();
         baseRevision = cached.baseRevision;
         dirty = !!cached.dirty;
+        if (!dirty) {
+          baseState = structuredClone(cached.state);
+          baseKnown = true;
+        } else if (Array.isArray(cached.basePatch)) {
+          try {
+            baseState = WaqtiSyncMerge.patch(cached.state, cached.basePatch);
+            validate(baseState);
+            baseKnown = true;
+          } catch {
+            baseState = null;
+            baseKnown = false;
+          }
+        }
       }
     } catch {
       cached = null;
       baseRevision = 0;
       dirty = false;
+      baseState = null;
+      baseKnown = false;
     }
     apply(cached?.state || fresh());
     hasCachedData = !!cached;
@@ -342,6 +468,114 @@
     };
     connectionRef.on('value', connectionHandler);
   }
+  async function refreshRemote() {
+    if (!user || !recordRef) return;
+    const ticket = epoch,
+      ref = recordRef;
+    try {
+      const snapshot = await (ref.get ? ref.get() : ref.once('value'));
+      if (ticket === epoch) receive(snapshot.val());
+    } catch (e) {
+      if (ticket === epoch) {
+        error = message(e);
+        badge();
+        schedule(retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
+      }
+    }
+  }
+  function drain() {
+    if (!user || writing || editing()) return;
+    if (deferred || conflict) receive(remote);
+    schedule();
+  }
+  function conflictPanel() {
+    const names = new Map(
+      [
+        ...(state.projects || []),
+        ...(state.actions || []),
+        ...(state.repeat || []),
+        ...(state.taskInbox || []),
+        ...Object.values(state.sunsetDays || {}).flatMap((day) => [
+          ...(day.tasks || []),
+          ...(day.repeatSnapshot || []),
+        ]),
+      ].map((item) => [item.id, item.name]),
+    );
+    const labels = {
+      taskInbox: 'مهمة',
+      repeat: 'مهمة متكررة',
+      projects: 'مشروع',
+      actions: 'فعل',
+      name: 'الاسم',
+      description: 'الوصف',
+      priority: 'الأولوية',
+      expectedSlots: 'الخانات المتوقعة',
+      completedSlotCount: 'الخانات المنجزة',
+      taskProgress: 'الخانات المنجزة',
+      projectIds: 'المشاريع',
+      taskOrder: 'الترتيب',
+      subtaskPosition: 'الترتيب',
+      days: 'أيام التكرار',
+      prayers: 'الفترات',
+      checks: 'تسجيل الصلاة',
+      offsets: 'تعديل المواقيت',
+      times: 'المواقيت',
+      sunsetDays: 'اليوم',
+      tasks: 'المهمة',
+    };
+    const label = (entry) =>
+      entry.path
+        .map((part) => {
+          if (typeof part === 'object') return names.get(part.id) || 'مهمة';
+          if (part === '$actual') return 'ما فعلته';
+          if (part === '$planned') return 'الفعل المطلوب';
+          if (part === '$outcome') return 'نتيجة المهمة';
+          if (part === '$order') return 'ترتيب المهام';
+          const index = entry.path.indexOf(part);
+          if (['$actual', '$planned'].includes(entry.path[index - 1]))
+            return time(+part);
+          return (
+            names.get(part) ||
+            labels[part] ||
+            (/^\d{4}-\d{2}-\d{2}$/.test(part) ? part : '')
+          );
+        })
+        .filter(Boolean)
+        .join(' · ');
+    const value = (entry) => {
+      if (!entry.exists) return 'محذوف / غير مسجل';
+      const v = entry.value;
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        if ('done' in v || 'failed' in v)
+          return v.done ? 'فعلتها' : v.failed ? 'لم أفعلها' : 'غير مسجلة';
+        if (
+          'slots' in v ||
+          'planned' in v ||
+          'actualNotes' in v ||
+          'plannedNotes' in v
+        )
+          return (
+            [
+              names.get(v.slots || v.planned) || '',
+              v.actualNotes || v.plannedNotes || '',
+              v.actualTasks?.name || '',
+            ]
+              .filter(Boolean)
+              .join(' · ') || 'بدون فعل'
+          );
+        return v.name || 'تعديل مختلف';
+      }
+      if (Array.isArray(v))
+        return (
+          v
+            .map((item) => names.get(item) || item?.name || String(item))
+            .join('، ') || 'بدون اختيار'
+        );
+      return typeof v === 'boolean' ? (v ? 'نعم' : 'لا') : String(v);
+    };
+    return `<div class="conflict-box"><h2>تعديلان على نفس البند</h2><p>اختر لكل بند ما تريد الاحتفاظ به. بقية تسجيلات الجهازين تُدمج تلقائيًا.</p><button id="backupConflict" class="secondary">تنزيل نسختي الحالية</button><div class="sync-conflicts">${conflicts.map((entry, index) => `<section><h3>${esc(label(entry) || 'بيانات الحساب')}</h3><button type="button" class="secondary" data-sync-choice="local" data-sync-index="${index}">هذا الجهاز: ${esc(value(entry.local).slice(0, 200))}</button><button type="button" class="secondary" data-sync-choice="remote" data-sync-index="${index}">الحساب: ${esc(value(entry.remote).slice(0, 200))}</button></section>`).join('')}</div><details><summary>استبدال نسخة كاملة (خيارات متقدمة)</summary><button id="useCloud" class="secondary">استخدام نسخة الحساب بالكامل</button><button id="useLocal" class="secondary">اعتماد نسختي الحالية بالكامل</button></details></div>`;
+  }
   function backupCurrent() {
     let a = document.createElement('a'),
       url = URL.createObjectURL(
@@ -355,7 +589,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function renderAccount() {
-    app.innerHTML = `<h1>الحساب والمزامنة</h1><p>نفس يومك ومهامك على أجهزتك، بإيميل وباسورد.</p><section class="panel"><p class="sync-message" role="status">${esc(error || status)}</p>${!user ? `<div class="auth-tabs"><button id="loginMode" class="${mode === 'login' ? 'primary' : 'secondary'}">تسجيل الدخول</button><button id="registerMode" class="${mode === 'register' ? 'primary' : 'secondary'}">إنشاء حساب</button></div><form id="authForm" class="auth-form"><label class="field">الإيميل<input name="email" type="email" autocomplete="email" dir="ltr" required placeholder="name@example.com"></label><label class="field">كلمة المرور<input name="password" type="password" autocomplete="${mode === 'register' ? 'new-password' : 'current-password'}" ${mode === 'register' ? 'minlength="8"' : ''} required dir="ltr"></label>${mode === 'register' ? '<label class="field">تأكيد كلمة المرور<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required dir="ltr"></label>' : ''}<button class="primary" ${busy || !authReady ? 'disabled' : ''}>${busy ? 'جاري التنفيذ…' : mode === 'register' ? 'إنشاء الحساب' : 'دخول'}</button><button type="button" id="resetPassword" class="secondary" ${busy || !authReady ? 'disabled' : ''}>نسيت كلمة المرور</button><p id="authFeedback" role="status"></p></form><p class="hint">بياناتك الحالية تظل على الجهاز. بعد الدخول يمكنك نقلها إلى حسابك من هنا.</p>` : `<h2 dir="ltr" style="overflow-wrap:anywhere">${esc(user.email || '')}</h2><p>تسجيل الدخول محفوظ على هذا المتصفح. كلمة المرور تُدار بواسطة Firebase Authentication ولا تُحفظ داخل بياناتك.</p>${conflict ? '<div class="conflict-box"><h2>هناك تعديل مختلف من جهاز آخر</h2><p>يمكنك تنزيل النسخة الحالية قبل اختيار نسخة واحدة للمزامنة.</p><button id="backupConflict" class="secondary">تنزيل نسختي الحالية</button><button id="useCloud" class="primary">استخدام نسخة الحساب</button><button id="useLocal" class="secondary">اعتماد نسختي الحالية</button></div>' : ''}<div class="form"><button id="retrySync" class="primary">إعادة الاتصال والمزامنة</button><button id="importGuest" class="secondary" ${!ready || writing ? 'disabled' : ''}>نقل بيانات الجهاز السابقة للحساب</button><button id="logout" class="secondary" ${writing ? 'disabled' : ''}>تسجيل الخروج</button></div><p class="hint">نقل بيانات الجهاز يستبدل محتوى الحساب بعد تأكيدك. التعديلات غير المرسلة تبقى محفوظة لهذا الحساب على هذا الجهاز.</p>`}</section><section class="panel"><h2>تشغيل المزامنة لأول مرة</h2><p>فعّل Email/Password في Firebase Authentication، وانشر قواعد Realtime Database المرفقة. كل حساب يصل إلى بياناته فقط.</p></section>`;
+    app.innerHTML = `<h1>الحساب والمزامنة</h1><p>نفس يومك ومهامك على أجهزتك، بإيميل وباسورد.</p><section class="panel"><p class="sync-message" role="status">${esc(error || status)}</p>${!user ? `<div class="auth-tabs"><button id="loginMode" class="${mode === 'login' ? 'primary' : 'secondary'}">تسجيل الدخول</button><button id="registerMode" class="${mode === 'register' ? 'primary' : 'secondary'}">إنشاء حساب</button></div><form id="authForm" class="auth-form"><label class="field">الإيميل<input name="email" type="email" autocomplete="email" dir="ltr" required placeholder="name@example.com"></label><label class="field">كلمة المرور<input name="password" type="password" autocomplete="${mode === 'register' ? 'new-password' : 'current-password'}" ${mode === 'register' ? 'minlength="8"' : ''} required dir="ltr"></label>${mode === 'register' ? '<label class="field">تأكيد كلمة المرور<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required dir="ltr"></label>' : ''}<button class="primary" ${busy || !authReady ? 'disabled' : ''}>${busy ? 'جاري التنفيذ…' : mode === 'register' ? 'إنشاء الحساب' : 'دخول'}</button><button type="button" id="resetPassword" class="secondary" ${busy || !authReady ? 'disabled' : ''}>نسيت كلمة المرور</button><p id="authFeedback" role="status"></p></form><p class="hint">بياناتك الحالية تظل على الجهاز. بعد الدخول يمكنك نقلها إلى حسابك من هنا.</p>` : `<h2 dir="ltr" style="overflow-wrap:anywhere">${esc(user.email || '')}</h2><p>تسجيل الدخول محفوظ على هذا المتصفح. كلمة المرور تُدار بواسطة Firebase Authentication ولا تُحفظ داخل بياناتك.</p>${conflict ? conflictPanel() : ''}<div class="form"><button id="retrySync" class="primary">إعادة الاتصال والمزامنة</button><button id="importGuest" class="secondary" ${!ready || writing ? 'disabled' : ''}>نقل بيانات الجهاز السابقة للحساب</button><button id="logout" class="secondary" ${writing ? 'disabled' : ''}>تسجيل الخروج</button></div><p class="hint">نقل بيانات الجهاز يستبدل محتوى الحساب بعد تأكيدك. التعديلات غير المرسلة تبقى محفوظة لهذا الحساب على هذا الجهاز.</p>`}</section><section class="panel"><h2>تشغيل المزامنة لأول مرة</h2><p>فعّل Email/Password في Firebase Authentication، وانشر قواعد Realtime Database المرفقة. كل حساب يصل إلى بياناته فقط.</p></section>`;
     if (!user) {
       $('#loginMode').onclick = () => {
         mode = 'login';
@@ -453,18 +687,20 @@
       };
       if (conflict) {
         $('#backupConflict').onclick = backupCurrent;
+        app.querySelectorAll('[data-sync-choice]').forEach(
+          (button) =>
+            (button.onclick = () => {
+              const item = conflicts[+button.dataset.syncIndex];
+              if (!item) return;
+              mergeChoices.set(item.token, button.dataset.syncChoice);
+              receive(remote);
+            }),
+        );
         $('#useCloud').onclick = () => {
           if (!confirm('استخدام نسخة الحساب بدل تعديلات هذا الجهاز؟')) return;
           try {
             const s = decode(remote) || fresh();
-            dirty = false;
-            conflict = false;
-            baseRevision = remote?.revision || 0;
-            if (apply(s)) changed();
-            else {
-              persist();
-              report('● تم استخدام نسخة الحساب');
-            }
+            acknowledge(s, remote?.revision || 0, s);
           } catch {
             error = 'نسخة الحساب غير صالحة';
             badge();
@@ -473,7 +709,12 @@
         $('#useLocal').onclick = () => {
           if (!confirm('اعتماد نسخة هذا الجهاز بدل نسخة الحساب؟')) return;
           baseRevision = remote?.revision || 0;
+          baseState = decode(remote) || fresh();
+          baseKnown = true;
           conflict = false;
+          conflicts = [];
+          mergeChoices.clear();
+          deferred = false;
           dirty = true;
           persist();
           report('جاري المزامنة…');
@@ -504,7 +745,28 @@
     error = 'تعذر تشغيل Firebase. حدّث الصفحة وحاول مجددًا.';
     badge();
   }
-  window.addEventListener('online', schedule);
+  const resume = () => {
+    if (!document.hidden) {
+      refreshRemote();
+      drain();
+    }
+  };
+  window.addEventListener('online', resume);
+  window.addEventListener('focus', resume);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      persist();
+      flush();
+    } else resume();
+  });
+  document.addEventListener('close', () => setTimeout(drain, 0), true);
+  document.addEventListener('focusout', () => {
+    if (deferred) setTimeout(drain, 0);
+  });
+  window.addEventListener('pagehide', () => {
+    persist();
+    flush();
+  });
   window.addEventListener('beforeunload', (e) => {
     if (dirty) {
       persist();
