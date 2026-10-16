@@ -8,6 +8,119 @@ let plannerTab = 'day',
   plannerWeek = '';
 // Presentation preference only: outcomes, estimates and project totals stay intact.
 let hideCompletedWork = false;
+let taskSelectionMode = false,
+  taskSelectionState = null;
+const selectedTaskRefs = new Map();
+function refreshTaskSelection() {
+  app.classList.toggle('task-selection-mode', taskSelectionMode);
+  if (!taskSelectionMode) {
+    app.querySelectorAll('.task-bulk-check').forEach((label) => label.remove());
+    return;
+  }
+  app.querySelectorAll('.task-row:not([data-virtual])').forEach((card) => {
+    if (card.dataset.rowMode === 'series') return;
+    const task = { id: card.dataset.taskId, date: card.dataset.taskDate };
+    const heading = card.querySelector(':scope > .task-row-heading');
+    let label = heading.querySelector(':scope > .task-bulk-check');
+    if (!label) {
+      label = document.createElement('label');
+      label.className = 'task-bulk-check';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset.selectTask = '';
+      input.setAttribute(
+        'aria-label',
+        'تحديد ' + heading.querySelector('.daily-task-name').textContent,
+      );
+      label.append(input);
+      heading.insertBefore(label, heading.querySelector('[data-task-select]'));
+    }
+    label.querySelector('input').checked = selectedTaskRefs.has(
+      taskIdentity(task),
+    );
+  });
+  const count = $('#selectedTaskCount');
+  if (count) count.textContent = `${selectedTaskRefs.size} محددة`;
+  const edit = $('#editSelectedTasks');
+  if (edit) edit.disabled = !selectedTaskRefs.size;
+}
+function installTaskSelection() {
+  if (
+    taskSelectionState !== state ||
+    !['projects', 'dashboard'].includes(view)
+  ) {
+    selectedTaskRefs.clear();
+    taskSelectionMode = false;
+    taskSelectionState = state;
+  }
+  if (
+    !['projects', 'dashboard'].includes(view) ||
+    !app.querySelector('.task-row')
+  ) {
+    refreshTaskSelection();
+    return;
+  }
+  let button = $('#toggleTaskSelection');
+  if (!button) {
+    button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'toggleTaskSelection';
+    button.className = 'secondary';
+    (
+      app.querySelector('.project-page-actions') || app.querySelector('.top')
+    ).append(button);
+  }
+  button.textContent = taskSelectionMode ? 'إنهاء التحديد' : 'تحديد مهام';
+  button.setAttribute('aria-pressed', String(taskSelectionMode));
+  button.onclick = () => {
+    taskSelectionMode = !taskSelectionMode;
+    if (!taskSelectionMode) selectedTaskRefs.clear();
+    installTaskSelection();
+  };
+  let toolbar = $('#taskSelectionToolbar');
+  if (taskSelectionMode && !toolbar) {
+    toolbar = document.createElement('div');
+    toolbar.id = 'taskSelectionToolbar';
+    toolbar.className = 'task-selection-toolbar';
+    toolbar.innerHTML =
+      '<span id="selectedTaskCount" role="status"></span><button type="button" id="selectVisibleTasks">تحديد الظاهر</button><button type="button" id="clearSelectedTasks">مسح التحديد</button><button type="button" id="editSelectedTasks" class="primary">تعديل المحدد</button>';
+    app.querySelector('.top').after(toolbar);
+    $('#selectVisibleTasks').onclick = () => {
+      app.querySelectorAll('[data-select-task]').forEach((input) => {
+        if (input.closest('[hidden]')) return;
+        const card = input.closest('.task-row');
+        const ref = {
+          id: card.dataset.taskId,
+          date: card.dataset.taskDate || '',
+        };
+        selectedTaskRefs.set(taskIdentity(ref), ref);
+      });
+      refreshTaskSelection();
+    };
+    $('#clearSelectedTasks').onclick = () => {
+      selectedTaskRefs.clear();
+      refreshTaskSelection();
+    };
+    $('#editSelectedTasks').onclick = openSelectedTaskEditor;
+  }
+  if (!taskSelectionMode) toolbar?.remove();
+  if (!app.taskSelectionBound) {
+    app.taskSelectionBound = true;
+    app.addEventListener('change', (event) => {
+      if (!event.target.matches('[data-select-task]')) return;
+      const task = rowTask(event.target.closest('.task-row'));
+      if (!task) return;
+      if (event.target.checked)
+        selectedTaskRefs.set(taskIdentity(task), {
+          id: task.id,
+          date: task.date || '',
+        });
+      else selectedTaskRefs.delete(taskIdentity(task));
+      refreshTaskSelection();
+    });
+  }
+  refreshTaskSelection();
+}
 try {
   hideCompletedWork = sessionStorage.getItem('wkt-hide-completed') === 'true';
 } catch {}
@@ -356,6 +469,7 @@ function toggleTaskRow(card) {
   }
   container.hidden = !opening;
   applyCompletedVisibility();
+  if (taskSelectionMode) refreshTaskSelection();
 }
 function refreshTaskRowValues(changed = null) {
   const affected = new Set();
@@ -524,6 +638,7 @@ function taskRowChanged(t, progressEdit = false) {
 }
 function bindTaskCards(root = app, insideManager = false) {
   applyCompletedVisibility();
+  if (taskSelectionMode && root.closest('#app')) refreshTaskSelection();
   root.dataset.taskList = '';
   if (!root.inlineMenuBound) {
     root.inlineMenuBound = true;
