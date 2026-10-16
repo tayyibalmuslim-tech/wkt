@@ -3155,8 +3155,12 @@ dialog#taskActionPicker {
   max-height: calc(100dvh - 32px);
   padding: 20px;
 }
+dialog#picker {
+  inset: 0;
+  margin: auto;
+  height: auto;
+}
 @media (min-width: 900px) {
-  dialog#picker,
   dialog#plannerEditor {
     margin-block: 16px;
     margin-inline: auto 16px;

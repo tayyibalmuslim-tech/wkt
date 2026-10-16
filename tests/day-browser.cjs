@@ -7,6 +7,18 @@ module.exports = async function dayBrowser(browser, url) {
   await page.route(/\/(?:sync\.js|vendor\/firebase-[^/]+\.js)$/, (route) =>
     route.fulfill({ body: '', contentType: 'text/javascript' }),
   );
+  const assertCentred = async () => {
+    const bounds = await page.locator('#picker').boundingBox(),
+      viewport = page.viewportSize();
+    assert.ok(
+      Math.abs(bounds.x + bounds.width / 2 - viewport.width / 2) <= 1,
+      'slot recorder is horizontally centred',
+    );
+    assert.ok(
+      Math.abs(bounds.y + bounds.height / 2 - viewport.height / 2) <= 1,
+      'slot recorder is vertically centred',
+    );
+  };
   try {
     await page.goto(url);
     await page.evaluate(() => {
@@ -17,6 +29,7 @@ module.exports = async function dayBrowser(browser, url) {
     });
     for (const viewport of [
       { width: 1920, height: 1080 },
+      { width: 820, height: 1180 },
       { width: 390, height: 844 },
     ]) {
       await page.setViewportSize(viewport);
@@ -43,6 +56,7 @@ module.exports = async function dayBrowser(browser, url) {
           picker.x + picker.width <= viewport.width &&
           picker.y + picker.height <= viewport.height,
       );
+      await assertCentred();
       await page.locator('#slotNote').fill('ملاحظة تجربة');
       await page.locator('#picker [data-action-choice]').first().click();
       assert.equal(
@@ -55,6 +69,12 @@ module.exports = async function dayBrowser(browser, url) {
         ),
         true,
       );
+      await slot.locator('.slot-planned').click();
+      await assertCentred();
+      await page.keyboard.press('Escape');
+      await page.locator('#bulkSlots').click();
+      await assertCentred();
+      await page.keyboard.press('Escape');
       if (viewport.width < 650) {
         const nav = page.locator('.mobile-navigation');
         assert.equal(await nav.isVisible(), true);
