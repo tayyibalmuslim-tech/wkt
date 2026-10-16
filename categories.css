@@ -5,9 +5,9 @@
   line-height: 1.8;
 }
 .ac-panel {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 20px;
   margin: 18px 0;
 }
@@ -25,10 +25,10 @@
 .ac-root select {
   font: inherit;
   padding: 10px;
-  border: 1px solid #d6dcd3;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   max-width: 100%;
-  background: white;
+  background: var(--color-surface);
   color: var(--color-text);
 }
 .ac-root input[type='color'] {
@@ -38,10 +38,10 @@
 }
 .ac-root button {
   font: inherit;
-  border: 1px solid #d6dcd3;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px;
-  background: white;
+  background: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
 }
@@ -57,7 +57,7 @@
   gap: 10px;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #e6e8e3;
+  border-bottom: 1px solid var(--color-border);
 }
 .ac-row span {
   flex: 1;
@@ -115,22 +115,22 @@
 .ac-root textarea {
   font: inherit;
   padding: 10px;
-  border: 1px solid #d6dcd3;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   resize: vertical;
   min-width: 220px;
   max-width: 100%;
-  background: white;
+  background: var(--color-surface);
   color: var(--color-text);
 }
 .ac-welcome {
   width: min(620px, 92vw);
   max-height: 88vh;
   overflow: auto;
-  border: 1px solid #d6dcd3;
+  border: 1px solid var(--color-border);
   border-radius: 18px;
   padding: 24px;
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-text);
   font-family: inherit;
 }

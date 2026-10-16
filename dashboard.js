@@ -66,8 +66,11 @@ function taskStatus(t) {
 const expandedTaskRows = new Set();
 let plannerListRefresh = null,
   taskRowSerial = 0;
+const taskIconMarkup = new Map();
 function taskIcon(name) {
+  if (taskIconMarkup.has(name)) return taskIconMarkup.get(name);
   const paths = {
+    plus: '<path d="M12 5v14M5 12h14"/>',
     check: '<path d="m5 12 4 4L19 6"/>',
     cross: '<path d="m6 6 12 12M18 6 6 18"/>',
     circle: '<circle cx="12" cy="12" r="8"/>',
@@ -81,7 +84,9 @@ function taskIcon(name) {
     repeat:
       '<path d="M18 8a7 7 0 0 0-12-2L3 9m0-5v5h5m-2 7a7 7 0 0 0 12 2l3-3m0 5v-5h-5"/>',
   };
-  return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name] || paths.circle}</svg>`;
+  const markup = `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name] || paths.circle}</svg>`;
+  taskIconMarkup.set(name, markup);
+  return markup;
 }
 function taskRowMetrics(t, children = childTasks(t)) {
   const expected = taskExpectedSlots(t),
@@ -621,7 +626,7 @@ function renderDashboard() {
     inbox = state.taskInbox || [];
   const dashboardHTML = `<div class="dashboard-workspace"><div class="top"><h1>لوحة المهام</h1>${dateControls()}</div>
  <div class="dashboard-summary" aria-label="ملخص اليوم"><span>${hijriLabel(date)}</span><span>${dayRangeLabel()}</span><span><strong id="dashboardDone">${done}/${taskGroups(all).length}</strong> مكتملة</span><span><strong id="dashboardPending">${pending}</strong> بانتظار التسجيل</span><span>${daySummary(date).checks}/25 من مهام الصلوات</span></div>
- <div class="planner-toolbar"><button id="newPlannedTask" class="primary">＋ إضافة مهمة وتوزيعها</button><button id="plannerRepeats" class="secondary">↻ المهام المتكررة</button></div>
+ <div class="planner-toolbar"><button id="newPlannedTask" class="primary">${taskIcon('plus')} إضافة مهمة وتوزيعها</button><button id="plannerRepeats" class="secondary">${taskIcon('repeat')} المهام المتكررة</button></div>
  <div class="planner-tabs" role="group" aria-label="عروض المهام">${[
    ['day', 'اليوم'],
    ['missed', `الفائتة (${taskGroups(missed).length})`],
