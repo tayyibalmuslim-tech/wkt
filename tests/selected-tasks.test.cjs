@@ -65,6 +65,10 @@ try {
     'bulk-selection button appears when first choosing a populated project',
   );
   assert.equal($('#toggleTaskSelection').disabled, false);
+  assert.equal(
+    $('#projectSearch').closest('.task-selection-search'),
+    $('#toggleTaskSelection').parentElement,
+  );
   $('#projectSearch').value = 'بحث لا يطابق أي مهمة';
   $('#projectSearch').dispatchEvent(new w.Event('input', { bubbles: true }));
   assert.equal($('#toggleTaskSelection').disabled, true);
