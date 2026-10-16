@@ -511,6 +511,70 @@ module.exports = async function selectedTasksBrowser(browser, url) {
         false,
       );
     }
+    // Exercise every new opt-in field through the real dialog on desktop and phone.
+    for (const width of [1366, 390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(() =>
+        eval(
+          `state.repeat=[];state.sunsetDays={};state.projects=[{id:'fields-project',name:'مشروع الحقول'}];state.taskInbox=[{id:'fields-task',name:'مهمة للحقول',projectId:'fields-project',priority:4,expectedSlots:8,completedSlotCount:3,inboxOutcome:'done'}];view='projects';selectedProject='fields-project';save();render();`,
+        ),
+      );
+      await page.locator('#toggleTaskSelection').click();
+      await page.locator('#selectVisibleTasks').click();
+      await page.locator('#editSelectedTasks').click();
+      const form = page.locator('#selectedTasksForm');
+      for (const key of [
+        'date',
+        'prayers',
+        'priority',
+        'actionId',
+        'showInMonthlyCalendar',
+      ])
+        await form.locator(`[data-edit-selected="${key}"]`).check();
+      const target = await page.evaluate(() => addDate(activeDay(), 3));
+      await form.locator('[name=date]').fill(target);
+      await form.locator('[name=taskPeriods][value="3"]').check();
+      await form.locator('[name=priority][value="1"]').check();
+      await form.locator('[name=showInMonthlyCalendar]').selectOption('false');
+      await form.locator('[data-task-action-trigger]').click();
+      await page
+        .locator('#taskActionPicker [data-action-choice]:not([data-action-choice=""])')
+        .first()
+        .click();
+      const action = await form.locator('[name=actionId]').inputValue();
+      assert.ok(action);
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+      const bounds = await page.locator('#selectedTasksEditor').boundingBox();
+      assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1);
+      await shot('selected-task-fields-' + width);
+      await form.locator('button.primary').click();
+      const saved = await page.evaluate((target) => {
+        const t = findTask('fields-task', target);
+        return {
+          priority: t.priority,
+          periods: taskPeriods(t),
+          action: t.actionId,
+          calendar: t.showInMonthlyCalendar,
+          outcome: outcome(t),
+          slots: completedSlots(t),
+          inbox: findTask('fields-task', ''),
+        };
+      }, target);
+      assert.deepEqual(saved, {
+        priority: 1,
+        periods: [3],
+        action,
+        calendar: false,
+        outcome: 'done',
+        slots: 3,
+        inbox: undefined,
+      });
+    }
     assert.deepEqual(errors, []);
     console.log(
       'PASS: desktop/phone selection, visible-only lazy children, unchanged row height, bulk priority and project add/replace, family inheritance, dashboard, saved results and reload',

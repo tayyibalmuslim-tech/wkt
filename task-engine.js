@@ -595,7 +595,7 @@ function scheduleTask(t, start) {
     d.taskSlotNotes[slot] = d.plannedNotes[slot];
   }
 }
-function savePlannedTask(original, next, progress = null) {
+function savePlannedTask(original, next, progress = null, persist = true) {
   if (
     next.completionPercent !== undefined &&
     (!Number.isFinite(next.completionPercent) ||
@@ -674,7 +674,7 @@ function savePlannedTask(original, next, progress = null) {
           child.parentName = item.name;
           child.parentDate = item.date || '';
         }
-    save();
+    if (persist) save();
     return item;
   } catch (error) {
     for (const key of Object.keys(state)) delete state[key];
