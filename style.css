@@ -4575,3 +4575,90 @@ dialog#selectedTasksEditor {
     min-height: 40px;
   }
 }
+
+/* Each recorded range occupies the columns of all its ten-minute slots. */
+.day-workspace #dailySlots {
+  min-width: 0;
+  row-gap: 0;
+  scroll-margin-top: 72px;
+}
+.day-workspace #dailySlots .slot-piece {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.day-workspace #dailySlots .slot-piece[data-kind='planned'] {
+  margin-bottom: 8px;
+}
+.day-workspace #dailySlots .slot-piece button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+  scroll-margin-top: 72px;
+}
+.day-workspace #dailySlots .slot-actual {
+  min-height: 80px;
+  border-radius: 6px 6px 0 0;
+}
+.day-workspace #dailySlots .slot-planned {
+  min-height: 40px;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
+.day-workspace #dailySlots .time {
+  display: block;
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+}
+.day-workspace #dailySlots .slot-continuation {
+  display: inline;
+  margin-inline-start: 5px;
+  font-size: 10px;
+}
+#singleSlotOnly {
+  min-height: 40px;
+  margin-block: 6px;
+}
+/* The document owns project-content scrolling; only the project index scrolls. */
+.project-workspace #projectDetails {
+  max-height: none;
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+.project-workspace .project-sidebar {
+  align-self: start;
+  position: sticky;
+  top: 72px;
+  max-height: calc(100dvh - 84px);
+}
+.project-workspace .project-sidebar .project-list {
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.project-workspace .project-list-toolbar {
+  position: sticky;
+  top: 60px;
+}
+#app.task-selection-mode .project-list-toolbar {
+  position: static;
+}
+#app.task-selection-mode .project-sidebar {
+  top: 128px;
+  max-height: calc(100dvh - 140px);
+}
+#app.task-selection-mode .project-sidebar .project-list {
+  max-height: calc(100dvh - 180px);
+}

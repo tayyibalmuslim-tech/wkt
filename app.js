@@ -188,10 +188,131 @@ function render() {
   installTaskSelection();
   ActionCategories.showIntro(state, save);
 }
-function dailySlotMarkup(n, d = day()) {
-  let a = state.actions.find((a) => a.id === d.slots[n % 144]),
-    planned = state.actions.find((a) => a.id === d.planned?.[n % 144]);
-  return `<div class="slot split-slot"><button class="slot-actual" data-slot="${n}" data-kind="actual" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}" aria-label="ما فعلته من ${time(n)} إلى ${time(n + 1)}"><span class="time"><bdi>${time(n)}</bdi> – <bdi>${time(n + 1)}</bdi></span><span class="label">${a ? esc(a.name) : '＋ ما فعلته'}</span>${d.actualTasks?.[n % 144] ? `${d.actualTasks[n % 144].parentName ? `<small class="slot-task-parent">${esc(d.actualTasks[n % 144].parentName)}</small>` : ''}<small class="slot-task-name">${esc(d.actualTasks[n % 144].name)}</small>` : ''}${d.actualNotes?.[n % 144] ? `<small class="slot-note">${esc(d.actualNotes[n % 144])}</small>` : ''}</button><button class="slot-planned" data-slot="${n}" data-kind="planned" style="${planned ? `background:${ActionCategories.color(state, planned)};color:${colorText(ActionCategories.color(state, planned))}` : ''}" aria-label="المطلوب من ${time(n)} إلى ${time(n + 1)}">${planned ? 'المطلوب: ' + esc(planned.name) : '＋ الفعل المطلوب'}${d.plannedNotes?.[n % 144] ? `<small class="slot-note">${esc(d.plannedNotes[n % 144])}</small>` : ''}</button></div>`;
+let dailySlotsObserver;
+function dailySlotPieces(indices, d, columns) {
+  const pieces = [];
+  for (const kind of ['actual', 'planned']) {
+    for (const group of SlotTools.groups(d, indices, kind)) {
+      for (let start = group.start; start < group.end; ) {
+        const offset = start - indices[0];
+        const end = Math.min(group.end, start + columns - (offset % columns));
+        pieces.push({
+          ...group,
+          pieceStart: start,
+          pieceEnd: end,
+          column: (offset % columns) + 1,
+          row: Math.floor(offset / columns) * 2 + (kind === 'actual' ? 1 : 2),
+        });
+        start = end;
+      }
+    }
+  }
+  return pieces.sort((a, b) => a.row - b.row || a.column - b.column);
+}
+function dailySlotMarkup(piece) {
+  const { kind, start, end, pieceStart, pieceEnd, action, note } = piece;
+  const a = state.actions.find((a) => a.id === action);
+  const task = piece.task || (piece.owner ? findTask(piece.owner, date) : null);
+  const continuation = pieceStart !== start;
+  const caption = kind === 'actual' ? 'ما فعلته' : 'المطلوب';
+  const label =
+    a?.name ||
+    (action
+      ? 'فعل غير موجود'
+      : kind === 'actual'
+        ? '＋ ما فعلته'
+        : '＋ الفعل المطلوب');
+  const showTime =
+    kind === 'actual' || action || note || task || end - start > 1;
+  const detail = [task?.parentName, task?.name, note]
+    .filter(Boolean)
+    .join(' — ');
+  const title = `${caption} من ${time(start)} إلى ${time(end)} · ${end - start} خانات${detail ? ' — ' + detail : ''}`;
+  return `<div class="slot slot-piece" data-piece-key="${kind}:${pieceStart}:${pieceEnd}" data-kind="${kind}" style="grid-column:${piece.column}/span ${pieceEnd - pieceStart};grid-row:${piece.row}"><button class="slot-${kind}" data-slot="${pieceStart}" data-piece-end="${pieceEnd}" data-kind="${kind}" data-range-start="${start}" data-range-end="${end}" title="${esc(title)}" aria-label="${esc(title)}" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}">${showTime ? `<span class="time"><bdi>${time(pieceStart)}</bdi> – <bdi>${time(pieceEnd)}</bdi>${continuation ? '<small class="slot-continuation">تابع الفترة</small>' : ''}</span>` : ''}<span class="label">${esc(label)}</span>${!continuation && task?.parentName ? `<small class="slot-task-parent">${esc(task.parentName)}</small>` : ''}${!continuation && task ? `<small class="slot-task-name">${esc(task.name)}</small>` : ''}${!continuation && note ? `<small class="slot-note">${esc(note)}</small>` : ''}</button></div>`;
+}
+function slotButtonAt(n, kind) {
+  return [
+    ...($('#dailySlots')?.querySelectorAll(
+      `[data-slot][data-kind="${kind}"]`,
+    ) || []),
+  ].find((button) => +button.dataset.slot <= n && n < +button.dataset.pieceEnd);
+}
+function renderDailySlotGrid() {
+  const grid = $('#dailySlots');
+  if (!grid) return;
+  const columns = grid.clientWidth
+    ? Math.max(2, Math.floor((grid.clientWidth + 8) / 168))
+    : 4;
+  grid.style.gridTemplateColumns = `repeat(${columns},minmax(0,1fr))`;
+  const focused = document.activeElement;
+  const focusSlot = focused?.closest('#dailySlots')
+    ? { n: +focused.dataset.slot, kind: focused.dataset.kind }
+    : null;
+  const page = document.scrollingElement,
+    pageScroll = page?.scrollTop || 0,
+    appScroll = app.scrollTop;
+  const pieces = dailySlotPieces(range(prayer), day(), columns);
+  if (!grid.firstElementChild) {
+    const markup = pieces.map(dailySlotMarkup);
+    grid.innerHTML = markup.join('');
+    [...grid.children].forEach((node, i) => {
+      node.slotMarkup = markup[i];
+    });
+    grid.dataset.columns = columns;
+    app.scrollTop = appScroll;
+    if (page) page.scrollTop = pageScroll;
+    return;
+  }
+  const existing = new Map(
+    [...grid.children].map((node) => [node.dataset.pieceKey, node]),
+  );
+  const used = new Set();
+  let cursor = grid.firstElementChild;
+  const template = document.createElement('template');
+  for (const piece of pieces) {
+    const key = `${piece.kind}:${piece.pieceStart}:${piece.pieceEnd}`,
+      markup = dailySlotMarkup(piece);
+    let node = existing.get(key);
+    if (!node || node.slotMarkup !== markup) {
+      template.innerHTML = markup;
+      const replacement = template.content.firstElementChild;
+      replacement.slotMarkup = markup;
+      if (node) {
+        if (node === cursor) cursor = node.nextElementSibling;
+        node.replaceWith(replacement);
+      }
+      node = replacement;
+    }
+    used.add(node);
+    if (node === cursor) cursor = cursor.nextElementSibling;
+    else grid.insertBefore(node, cursor);
+  }
+  [...grid.children].forEach((node) => {
+    if (!used.has(node)) node.remove();
+  });
+  grid.dataset.columns = columns;
+  if (focusSlot)
+    slotButtonAt(focusSlot.n, focusSlot.kind)?.focus({ preventScroll: true });
+  app.scrollTop = appScroll;
+  if (page) page.scrollTop = pageScroll;
+}
+function observeDailySlotGrid() {
+  dailySlotsObserver?.disconnect();
+  renderDailySlotGrid();
+  if (typeof ResizeObserver === 'undefined') return;
+  const grid = $('#dailySlots');
+  const observer = new ResizeObserver(() => {
+    if (!grid.isConnected) {
+      observer.disconnect();
+      return;
+    }
+    const columns = grid.clientWidth
+      ? Math.max(2, Math.floor((grid.clientWidth + 8) / 168))
+      : 4;
+    if (columns !== +grid.dataset.columns) taskReadScope(renderDailySlotGrid)();
+  });
+  dailySlotsObserver = observer;
+  observer.observe(grid);
 }
 function renderDay() {
   let d = day(),
@@ -201,17 +322,12 @@ function renderDay() {
         !!d.actualNotes?.[n % 144],
     ).length,
     done = Object.values(d.checks).filter(Boolean).length;
-  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / 25 من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCount(i) === 5 ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/5</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots">${range(
-    prayer,
-  )
-    .map((n) => dailySlotMarkup(n, d))
-    .join(
-      '',
-    )}</div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
+  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / 25 من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCount(i) === 5 ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/5</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
     taskGroups(allTasksOn(date))
       .map((t) => compactTaskGroup(t))
       .join('') || '<p class="empty-note">لا توجد مهام لهذا اليوم.</p>'
   }</div></section></div>`;
+  observeDailySlotGrid();
   $('#bulkSlots').onclick = () => openPicker(range(prayer)[0], 'actual', true);
   $('#date').onchange = (e) => {
     if (e.target.value) {
@@ -246,7 +362,11 @@ function renderDay() {
   );
   $('#dailySlots').onclick = (e) => {
     const button = e.target.closest('[data-slot]');
-    if (button) openPicker(+button.dataset.slot, button.dataset.kind);
+    if (button) {
+      const start = +button.dataset.rangeStart,
+        end = +button.dataset.rangeEnd;
+      openPicker(start, button.dataset.kind, end - start > 1, end);
+    }
   };
   bindTaskCards($('#dailyTaskCards'));
   bindTaskCards($('#allDayTaskCards'));
@@ -313,7 +433,7 @@ $('#prayerDialog').addEventListener('close', () =>
     .querySelector(`[data-prayer-tasks="${prayerDialogPrayer}"]`)
     ?.focus(),
 );
-function openPicker(n, kind = 'actual', bulk = false) {
+function openPicker(n, kind = 'actual', bulk = false, end = n + 1) {
   slot = n;
   slotKind = kind;
   const captured = state,
@@ -330,9 +450,11 @@ function openPicker(n, kind = 'actual', bulk = false) {
     root: $('#picker'),
     first,
     start: n,
-    end: n + 1,
+    end,
     kind,
     bulk,
+    immediate: end > n + 1,
+    readOnKindChange: end > n + 1,
     ...initial,
     tasks: (n) => actualTasksForSlot(key, n),
     actions: state.actions.filter((a) => !a.archived),
@@ -344,9 +466,7 @@ function openPicker(n, kind = 'actual', bulk = false) {
     show: () => $('#picker').showModal(),
     close: () => {
       $('#picker').close();
-      app
-        .querySelector(`[data-slot="${n}"][data-kind="${kind}"]`)
-        ?.focus({ preventScroll: true });
+      slotButtonAt(n, kind)?.focus({ preventScroll: true });
     },
     commit: (from, to, k, a, note, task) => {
       if (state !== captured || date !== key)
@@ -354,8 +474,8 @@ function openPicker(n, kind = 'actual', bulk = false) {
       if (
         task &&
         !(
-          from === n &&
-          to === n + 1 &&
+          from >= n &&
+          to <= end &&
           JSON.stringify(task) === JSON.stringify(initial.task)
         )
       ) {
@@ -380,14 +500,8 @@ function openPicker(n, kind = 'actual', bulk = false) {
 function refreshDailySlots(from, to) {
   const scroll = app.scrollTop,
     pageScroll = document.scrollingElement?.scrollTop || 0;
-  const d = day(),
-    template = document.createElement('template');
-  for (let n = from; n < to; n++) {
-    const current = app.querySelector(`[data-slot="${n}"]`)?.closest('.slot');
-    if (!current) continue;
-    template.innerHTML = dailySlotMarkup(n, d);
-    current.replaceWith(template.content.firstElementChild);
-  }
+  const d = day();
+  renderDailySlotGrid();
   const filled = Array.from({ length: 144 }, (_, i) => i).filter(
     (i) =>
       state.actions.some((a) => a.id === d.slots[i]) || !!d.actualNotes?.[i],
