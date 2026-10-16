@@ -412,6 +412,168 @@ function projectTaskRecords(snapshot, projectId) {
     ),
   )();
 }
+// Build an atomic edit of selected occurrences; never modify another day in a series.
+function bulkUpdateSelectedTasks(snapshot, references, patch) {
+  const fields = Object.keys(patch);
+  if (
+    !references.length ||
+    !fields.length ||
+    fields.some((key) => !['priority', 'projects'].includes(key))
+  )
+    throw Error('حدد مهام وحقلًا واحدًا على الأقل.');
+  if (
+    'priority' in patch &&
+    (!Number.isInteger(patch.priority) ||
+      patch.priority < 1 ||
+      patch.priority > 5)
+  )
+    throw Error('الأولوية من 1 إلى 5.');
+  if (
+    'projects' in patch &&
+    (!patch.projects ||
+      !['add', 'remove', 'replace'].includes(patch.projects.mode) ||
+      !Array.isArray(patch.projects.ids) ||
+      patch.projects.ids.some(
+        (id) => !snapshot.projects?.some((p) => p.id === id),
+      ) ||
+      (patch.projects.mode !== 'replace' && !patch.projects.ids.length))
+  )
+    throw Error('اختر المشاريع وطريقة التعديل.');
+  const next = structuredClone(snapshot),
+    previous = state;
+  try {
+    state = next;
+    invalidateTaskReads();
+    return taskReadScope(() => {
+      const unique = new Map(references.map((ref) => [taskIdentity(ref), ref]));
+      const selected = [...unique.values()].map((ref) =>
+        findTask(ref.id, ref.date),
+      );
+      if (selected.some((t) => !t))
+        throw Error('تغيرت بعض المهام أو حُذفت. أعد تحديدها.');
+      const entries = [
+        ...new Map(
+          [
+            ...progressEntries(),
+            ...[
+              ...new Set(references.map((ref) => ref.date).filter(Boolean)),
+            ].flatMap(allTasksOn),
+          ].map((task) => [taskIdentity(task), task]),
+        ).values(),
+      ];
+      const record = (task) => {
+        if (!task.date) return next.taskInbox.find((t) => t.id === task.id);
+        const day = taskDay(task.date),
+          stored = day.tasks.find((t) => t.id === task.id);
+        if (stored) return stored;
+        if (
+          !task.recurrent &&
+          !day.repeatSnapshot?.some((t) => t.id === task.id)
+        )
+          throw Error('المهمة لم تعد موجودة.');
+        const occurrence = { ...structuredClone(task), detachedFrom: task.id };
+        delete occurrence.recurrent;
+        (day.excludedRepeat ??= {})[task.id] = true;
+        day.tasks.push(occurrence);
+        return occurrence;
+      };
+      if ('priority' in patch)
+        selected.forEach((task) => {
+          record(task).priority = patch.priority;
+        });
+      if (patch.projects) {
+        const roots = new Map(
+          selected.map((task) => {
+            const root = mainTask(task, entries);
+            return [taskIdentity(root), root];
+          }),
+        );
+        for (const root of roots.values()) {
+          if (root.virtual)
+            throw Error(
+              'لا يمكن تغيير مشاريع فرع أصله محذوف؛ عدّل المهمة الأصلية أولًا.',
+            );
+          const target = record(root),
+            current = taskProjectIds(target),
+            { mode, ids } = patch.projects;
+          setTaskProjects(
+            target,
+            mode === 'replace'
+              ? ids
+              : mode === 'add'
+                ? [...current, ...ids]
+                : current.filter((id) => !ids.includes(id)),
+          );
+        }
+      }
+      invalidateTaskReads();
+      validatePlanning(next);
+      return next;
+    })();
+  } finally {
+    state = previous;
+    invalidateTaskReads();
+  }
+}
+function openSelectedTaskEditor() {
+  const references = [...selectedTaskRefs.values()],
+    originalState = state;
+  if (!references.length) return;
+  let dialog = $('#selectedTasksEditor');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'selectedTasksEditor';
+    document.body.append(dialog);
+  }
+  dialog.setAttribute('aria-labelledby', 'selectedTasksTitle');
+  dialog.innerHTML = `<div class="dialog-head"><h2 id="selectedTasksTitle">تعديل ${references.length} مهمة</h2><button type="button" data-close-selected aria-label="إغلاق">×</button></div><form id="selectedTasksForm"><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="priority">تعديل الأولوية</label><fieldset data-selected-value="priority" disabled>${priorityButtons(3)}</fieldset></section><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="projects">تعديل المشاريع المرتبطة</label><fieldset data-selected-value="projects" disabled><label class="field">الطريقة<select name="projectMode"><option value="add">إضافة للمشاريع المختارة</option><option value="remove">إزالة من المشاريع المختارة</option><option value="replace">استبدال جميع المشاريع</option></select></label><div class="task-project-options">${(state.projects || []).map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div><p class="hint">الفروع تتبع أصلها؛ تغيير المشاريع يشمل الأصل وفروعه. استبدال المشاريع دون اختيار يزيل كل الروابط.</p></fieldset></section><p class="hint">الأولوية للمهام المحددة فقط. النسخة المتكررة تُعدّل في يومها وحده.</p><p id="selectedTasksError" role="alert"></p><div class="selected-tasks-actions"><button class="primary">تطبيق التعديل</button><button type="button" class="secondary" data-close-selected>إلغاء</button></div></form>`;
+  dialog
+    .querySelectorAll('[data-close-selected]')
+    .forEach((button) => (button.onclick = () => dialog.close()));
+  dialog.querySelectorAll('[data-edit-selected]').forEach(
+    (input) =>
+      (input.onchange = () => {
+        dialog.querySelector(
+          `[data-selected-value="${input.dataset.editSelected}"]`,
+        ).disabled = !input.checked;
+      }),
+  );
+  $('#selectedTasksForm').onsubmit = (event) => {
+    event.preventDefault();
+    try {
+      if (state !== originalState)
+        throw Error(
+          'تغيرت البيانات أو الحساب. أغلق النافذة وأعد تحديد المهام.',
+        );
+      const patch = {},
+        form = event.target;
+      if (form.querySelector('[data-edit-selected="priority"]').checked)
+        patch.priority = +form.elements.priority.value;
+      if (form.querySelector('[data-edit-selected="projects"]').checked)
+        patch.projects = {
+          mode: form.elements.projectMode.value,
+          ids: [...form.querySelectorAll('[name="projectIds"]:checked')].map(
+            (input) => input.value,
+          ),
+        };
+      const next = bulkUpdateSelectedTasks(state, references, patch);
+      rememberDashboardPosition();
+      rememberProjectView();
+      state = next;
+      taskSelectionState = state;
+      selectedTaskRefs.clear();
+      taskSelectionMode = false;
+      save();
+      dialog.close();
+      render();
+      $('#toggleTaskSelection')?.focus({ preventScroll: true });
+      toast('تم تعديل المهام المحددة');
+    } catch (error) {
+      $('#selectedTasksError').textContent = error.message;
+    }
+  };
+  dialog.showModal();
+}
 function bulkUpdateProjectTasks(snapshot, projectId, patch) {
   if (!snapshot.projects?.some((p) => p.id === projectId))
     throw Error('المشروع لم يعد موجودًا.');

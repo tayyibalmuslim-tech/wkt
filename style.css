@@ -4439,3 +4439,139 @@ dialog#projectGoalsEditor {
     gap: 8px;
   }
 }
+
+/* Selection is an explicit mode; normal rows keep their compact controls. */
+.task-selection-toolbar {
+  position: sticky;
+  top: 60px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+}
+.task-selection-toolbar button {
+  min-height: 40px;
+  padding: 6px 8px;
+}
+.task-selection-toolbar button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.task-bulk-check {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 32px;
+  cursor: pointer;
+}
+.task-bulk-check input {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  accent-color: var(--color-brand);
+}
+.task-row:has(> .task-row-heading > .task-bulk-check input:checked) {
+  background: var(--color-brand-soft);
+}
+dialog#selectedTasksEditor {
+  inset: 0;
+  margin: auto;
+  height: fit-content;
+  width: min(520px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 16px;
+}
+#selectedTasksEditor .dialog-head h2 {
+  font-size: var(--font-lg);
+}
+#selectedTasksEditor .dialog-head button,
+#selectedTasksEditor button,
+.bulk-edit-switch,
+#selectedTasksEditor .task-project-options label {
+  min-height: 40px;
+}
+#selectedTasksForm > section {
+  border-bottom: 1px solid var(--color-border);
+  padding-block: 8px;
+}
+.bulk-edit-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+#selectedTasksForm fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+#selectedTasksForm > section > fieldset:disabled {
+  display: none;
+}
+#selectedTasksForm .field {
+  margin: 4px 0 8px;
+}
+#selectedTasksForm .task-project-options {
+  max-height: 200px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 8px;
+}
+#selectedTasksForm .task-project-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+}
+#selectedTasksForm .hint {
+  font-size: var(--font-xs);
+  margin: 6px 0;
+}
+#selectedTasksError {
+  color: var(--color-brand);
+  font-size: var(--font-sm);
+}
+#selectedTasksError:empty {
+  display: none;
+}
+.selected-tasks-actions {
+  display: flex;
+  gap: 8px;
+  position: sticky;
+  bottom: -16px;
+  padding-block: 10px;
+  background: var(--color-surface);
+}
+@media (max-width: 650px) {
+  .task-selection-mode .task-row .task-row-heading {
+    position: relative;
+  }
+  .task-selection-mode .task-bulk-check {
+    position: absolute;
+    inset-inline-start: 32px;
+    top: 2px;
+    width: 40px;
+    height: 40px;
+  }
+  .task-selection-mode .task-row .task-row-select {
+    padding-inline-start: 44px;
+  }
+  #selectedTasksForm .task-priority-options span {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}

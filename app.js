@@ -185,6 +185,7 @@ function render() {
     account: () => window.WaqtiSync?.renderAccount(),
   })[view]();
   installCompletedToggle();
+  installTaskSelection();
   ActionCategories.showIntro(state, save);
 }
 function dailySlotMarkup(n, d = day()) {
