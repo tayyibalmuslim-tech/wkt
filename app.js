@@ -207,7 +207,7 @@ function renderDay() {
     .join(
       '',
     )}</div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
-    taskGroups(allTasksOn(date))
+    orderedTaskRoots(allTasksOn(date))
       .map((t) => compactTaskGroup(t))
       .join('') || '<p class="empty-note">لا توجد مهام لهذا اليوم.</p>'
   }</div></section></div>`;

@@ -32,7 +32,7 @@ const snapshot=run('JSON.stringify(state)');assert.throws(()=>run("savePlannedTa
 // End of period must not spill into the next prayer.
 assert.throws(()=>run("savePlannedTask(null,{id:'overflow',name:'تجاوز',date,prayer:0,expectedSlots:96,actionId:state.actions[0].id,startSlot:periodSlots(date,0)[0]})"));assert.equal(run('JSON.stringify(state)'),snapshot);
 // Main view integrates cards, progress and capacity without altering slot controls.
-run("view='day';prayer=0;render()");assert.equal($('#dailyTaskCards').querySelectorAll('input,select,textarea').length,1);assert.equal($('#dailyTaskCards [data-progress]').value,'1');$('#dailyTaskCards [data-progress]').value='2';$('#dailyTaskCards [data-progress]').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(run('completedSlots(allTasksOn(date)[0])'),2);assert.equal($('#dailyTaskCards .task-row-primary').querySelectorAll('button').length,3);click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.completedSlots.value,'2');$('#plannerForm').elements.completedSlots.value='3';submit('#plannerForm');assert.equal(run('completedSlots(allTasksOn(date)[0])'),3);assert.equal($('#dailyTaskCards [data-progress]').value,'3');assert.ok($('[data-slot]'));assert.match($('.capacity-note').textContent,/مشغولة/);
+run("view='day';prayer=0;render()");assert.equal($('#dailyTaskCards').querySelectorAll('input,select,textarea').length,2);assert.equal($('#dailyTaskCards [data-progress]').value,'1');$('#dailyTaskCards [data-progress]').value='2';$('#dailyTaskCards [data-progress]').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(run('completedSlots(allTasksOn(date)[0])'),2);assert.equal($('#dailyTaskCards .task-row-primary').querySelectorAll('button').length,3);click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.completedSlots.value,'2');$('#plannerForm').elements.completedSlots.value='3';submit('#plannerForm');assert.equal(run('completedSlots(allTasksOn(date)[0])'),3);assert.equal($('#dailyTaskCards [data-progress]').value,'3');assert.ok($('[data-slot]'));assert.match($('.capacity-note').textContent,/مشغولة/);
 // Delete removes task-owned planned slots; preserves later manual changes.
 run("day().planned[periodSlots(date,0)[0]%144]='manual-edit'");click('#dailyTaskCards [data-task-edit]');click('#editorDeleteTask');assert.equal($('#plannerEditor').open,false);assert.equal(run('Object.keys(day().planned).length'),1);assert.equal(run('Object.values(day().planned)[0]'),'manual-edit');
 run('validate(state)');
@@ -171,14 +171,14 @@ click('#projectDetails [data-task-id="pa"] [data-task-toggle]');
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),25);assert.equal(run("taskCompletion(findTask('pa',''))"),50);
 assert.equal($('#projectDetails>progress').value,25);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
 click('#projectDetails [data-task-id="a1"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),0);
-click('#projectDetails [data-task-id="a1"] [data-task-edit]');click('#plannerEditor [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.completedSlots.value='2';submit('#plannerForm');assert.equal(run("projectCompletion('weighted')"),12.5);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
+click('#projectDetails [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.completedSlots.value='2';submit('#plannerForm');assert.equal(run("projectCompletion('weighted')"),12.5);assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
 // Done overrides unfinished children without mutating them; undo restores computed progress.
 click('#projectDetails [data-task-id="pa"] [data-outcome="done"]');assert.equal(run("taskCompletion(findTask('pa',''))"),100);assert.equal(run("projectCompletion('weighted')"),50);assert.equal(run("completedSlots(findTask('a1',''))"),2);
 click('#projectDetails [data-task-id="pa"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),12.5);
 click('#projectDetails [data-task-id="a1"] [data-outcome="failed"]');assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
 // Moving out of and back into inbox preserves completed slots and percentage.
-click('#projectDetails [data-task-id="a1"] [data-task-edit]');click('#plannerEditor [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value=run('date');submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',date))"),2);assert.equal(run("projectCompletion('weighted')"),12.5);
-click('#projectDetails [data-task-id="a1"] [data-task-edit]');click('#plannerEditor [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value='';submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',''))"),2);
+click('#projectDetails [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value=run('date');submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',date))"),2);assert.equal(run("projectCompletion('weighted')"),12.5);
+click('#projectDetails [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value='';submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',''))"),2);
 // Overruns cap at 100; no estimate is zero until marked done.
 run("findTask('a1','').completedSlotCount=8;render()");assert.equal($('[data-task-id="a1"] .task-progress-bar').value,100);
 run("findTask('a1','').expectedSlots=0;render()");assert.equal($('#projectDetails [data-task-id="a1"] > .task-row-heading .task-progress-bar'),null);assert.equal(run("taskCompletion(findTask('a1',''))"),0);
@@ -199,9 +199,9 @@ run("selectedProject='other';render()");assert.equal($('#projectDetails [data-ta
 run("view='day';prayer=2;render()");
 assert.ok($('#dailyTaskCards > [data-task-id="child-family"]'));assert.match($('#dailyTaskCards').textContent,/المهمة الرئيسية/);
 assert.equal($('#allDayTaskCards').querySelectorAll(':scope > [data-task-id]').length,1);assert.ok($('#allDayTaskCards > [data-task-id="root-family"] .task-children [data-task-id="child-family"]'));
-click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.taskName.value,'المهمة الرئيسية');
-click('#plannerEditor [data-task-id="child-family"] [data-task-edit]');f=$('#plannerForm').elements;assert.equal(f.taskName.value,'الفرعية في العصر');assert.equal($('#plannerForm input[name=projectIds]:checked').value,'family');f.taskName.value='فرعية معدلة';f.completedSlots.value='1';submit('#plannerForm');
-assert.equal($('#plannerForm').elements.taskName.value,'المهمة الرئيسية');assert.equal(run("taskCompletion(findTask('root-family',''))"),50);click('#closePlanner');
+click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.taskName.value,'الفرعية في العصر');
+f=$('#plannerForm').elements;assert.equal(f.taskName.value,'الفرعية في العصر');assert.equal($('#plannerForm input[name=projectIds]:checked').value,'family');f.taskName.value='فرعية معدلة';f.completedSlots.value='1';submit('#plannerForm');
+assert.equal($('#plannerEditor').open,false);assert.equal(run("taskCompletion(findTask('root-family',''))"),50);
 const childSlot=run('range(2)[0]'),childSlotIndex=childSlot%144;
 click('.slot-actual[data-slot="'+childSlot+'"]');assert.match($('#slotTasks [data-task-choice="child-family"]').textContent,/المهمة الرئيسية/);click('[data-task-choice="child-family"]');
 assert.equal(run('day().actualTasks['+childSlotIndex+'].parentName'),'المهمة الرئيسية');

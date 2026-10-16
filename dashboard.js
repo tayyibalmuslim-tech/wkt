@@ -8,50 +8,79 @@ let plannerTab = 'day',
   plannerWeek = '';
 // Presentation preference only: outcomes, estimates and project totals stay intact.
 let hideCompletedWork = false;
-try { hideCompletedWork = sessionStorage.getItem('wkt-hide-completed') === 'true'; } catch {}
+try {
+  hideCompletedWork = sessionStorage.getItem('wkt-hide-completed') === 'true';
+} catch {}
 function applyCompletedVisibility() {
-  if (!['projects','dashboard','day'].includes(view)) return;
+  if (!['projects', 'dashboard', 'day'].includes(view)) return;
   if (!hideCompletedWork) {
-    app.querySelectorAll('[data-completed-hidden]').forEach(node => { node.hidden = false;delete node.dataset.completedHidden; });
+    app.querySelectorAll('[data-completed-hidden]').forEach((node) => {
+      node.hidden = false;
+      delete node.dataset.completedHidden;
+    });
     return;
   }
-  const hide = (node, value) => { node.hidden = !!value;if(value) node.dataset.completedHidden = '';else delete node.dataset.completedHidden; };
-  app.querySelectorAll('.task-row').forEach(card => {
+  const hide = (node, value) => {
+    node.hidden = !!value;
+    if (value) node.dataset.completedHidden = '';
+    else delete node.dataset.completedHidden;
+  };
+  app.querySelectorAll('.task-row').forEach((card) => {
     const task = rowTask(card);
-    hide(card,task && taskCompletion(task) === 100);
+    hide(card, task && taskCompletion(task) === 100);
   });
-  app.querySelectorAll('[data-month-task]').forEach(chip => {
+  app.querySelectorAll('[data-month-task]').forEach((chip) => {
     const task = findTask(chip.dataset.monthTask, chip.dataset.monthDate);
-    hide(chip,task && taskCompletion(task) === 100);
+    hide(chip, task && taskCompletion(task) === 100);
   });
   if (view === 'projects') {
-    const complete = id => { const model = projectModel(id);return model.roots.length > 0 && model.done === model.roots.length; };
-    app.querySelectorAll('#projectNavigation [data-project]').forEach(button => {
-      hide(button,complete(button.dataset.project));
-    });
-    app.querySelectorAll('#projectSelect option[value]').forEach(option => {
-      hide(option,option.value && complete(option.value));
+    const complete = (id) => {
+      const model = projectModel(id);
+      return model.roots.length > 0 && model.done === model.roots.length;
+    };
+    app
+      .querySelectorAll('#projectNavigation [data-project]')
+      .forEach((button) => {
+        hide(button, complete(button.dataset.project));
+      });
+    app.querySelectorAll('#projectSelect option[value]').forEach((option) => {
+      hide(option, option.value && complete(option.value));
     });
   }
 }
 function installCompletedToggle() {
-  if (!['projects','dashboard','day'].includes(view)) return;
+  if (!['projects', 'dashboard', 'day'].includes(view)) return;
   let button = app.querySelector('#toggleCompletedWork');
   if (!button) {
-    button = document.createElement('button');button.id = 'toggleCompletedWork';
-    button.type = 'button';button.className = 'secondary';
-    (app.querySelector('.project-page-actions') || app.querySelector('.top')).append(button);
+    button = document.createElement('button');
+    button.id = 'toggleCompletedWork';
+    button.type = 'button';
+    button.className = 'secondary';
+    (
+      app.querySelector('.project-page-actions') || app.querySelector('.top')
+    ).append(button);
   }
   button.textContent = hideCompletedWork ? 'إظهار المكتمل' : 'إخفاء المكتمل';
-  button.setAttribute('aria-pressed',String(hideCompletedWork));
+  button.setAttribute('aria-pressed', String(hideCompletedWork));
   button.onclick = () => {
     hideCompletedWork = !hideCompletedWork;
-    try { sessionStorage.setItem('wkt-hide-completed',String(hideCompletedWork)); } catch {}
+    try {
+      sessionStorage.setItem('wkt-hide-completed', String(hideCompletedWork));
+    } catch {}
     installCompletedToggle();
-    if (view === 'projects' && app.querySelector('#projectNavigation .chosen')?.hidden) {
-      const next = [...app.querySelectorAll('#projectNavigation [data-project]')].find(node => !node.hidden);
+    if (
+      view === 'projects' &&
+      app.querySelector('#projectNavigation .chosen')?.hidden
+    ) {
+      const next = [
+        ...app.querySelectorAll('#projectNavigation [data-project]'),
+      ].find((node) => !node.hidden);
       if (next) selectProject(next.dataset.project);
-      else { selectedProject = '';renderProjectDetails();$('#projectSelect').value = ''; }
+      else {
+        selectedProject = '';
+        renderProjectDetails();
+        $('#projectSelect').value = '';
+      }
     }
   };
   applyCompletedVisibility();
@@ -89,21 +118,93 @@ function taskIcon(name) {
   return markup;
 }
 function taskRowMetrics(t, children = childTasks(t)) {
-  const expected = taskExpectedSlots(t),
-    count = completedSlots(t);
   const completion = taskCompletion(t);
-  return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}" aria-label="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ" aria-label="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}<bdi>${time(t.startSlot)}</bdi></span>` : ''}${expected ? `<span title="الخانات المنجزة / المتوقعة · ${expected * SlotTools.minutes} دقيقة مخططة" aria-label="${count} من ${expected} خانة">${taskIcon('slots')}<bdi>${count}/${expected}</bdi></span>` : ''}${t.recurrent ? `<span title="متكررة" aria-label="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || expected || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
+  return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}</span>` : ''}${t.recurrent ? `<span title="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || taskExpectedSlots(t) || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
+}
+function rootOrderModel() {
+  return cachedTaskRead('rootOrderModel', () => {
+    const tasks = orderedTaskRoots(progressEntries()).filter((t) => !t.virtual);
+    return {
+      tasks,
+      ranks: new Map(tasks.map((t, i) => [taskIdentity(t), i + 1])),
+    };
+  });
 }
 function taskOrderField(key, context, task) {
   const parent = task?.parentId ? parentTask(task) : null;
+  let position, total, attributes, label;
   if (parent) {
-    const siblings = childTasks(parent), position = siblings.findIndex(t => taskIdentity(t) === key)+1;
-    return `<label class="project-task-order"><span>الترتيب داخل الرئيسية</span><input type="number" min="1" max="${siblings.length}" step="1" inputmode="numeric" value="${position}" data-subtask-order aria-label="ترتيب ${esc(task.name)} داخل المهمة الرئيسية"></label>`;
+    const siblings = childTasks(parent);
+    position = siblings.findIndex((t) => taskIdentity(t) === key) + 1;
+    total = siblings.length;
+    attributes = 'data-subtask-order';
+    label = 'داخل المهمة الرئيسية';
+  } else if (context?.order?.has(key)) {
+    const order = context.order.get(key);
+    position = order.position;
+    total = order.total;
+    attributes = `data-project-order-key="${esc(key)}" data-project-order-id="${esc(context.projectId || selectedProject)}"`;
+    label = 'داخل المشروع';
+  } else if (task && !task.virtual) {
+    const model = rootOrderModel();
+    position = model.ranks.get(key);
+    total = model.tasks.length;
+    attributes = 'data-root-order';
+    label = 'في القوائم العامة';
   }
-  const order = context?.order?.get(key);
-  return order
-    ? `<label class="project-task-order"><span>الترتيب</span><input type="number" min="1" max="${order.total}" step="1" inputmode="numeric" value="${order.position}" data-project-order-key="${esc(key)}" aria-label="ترتيب ${esc(order.name)}" title="اكتب موضع المهمة من 1 إلى ${order.total}"></label>`
+  return position
+    ? `<label class="project-task-order" title="ترتيب ${esc(task.name)} ${label}، من 1 إلى ${total}"><span class="sr-only">الترتيب</span><input type="number" min="1" max="${total}" step="1" inputmode="numeric" value="${position}" ${attributes} aria-label="ترتيب ${esc(task.name)} ${label}"></label>`
     : '';
+}
+function preserveTaskScroll(action) {
+  const nodes = [
+    document.scrollingElement,
+    app,
+    $('#projectDetails'),
+    ...document.querySelectorAll('.task-children'),
+  ].filter(Boolean);
+  const positions = nodes.map((node) => [
+    node,
+    node.scrollTop,
+    node.scrollLeft,
+  ]);
+  const focused = document.activeElement;
+  action();
+  if (focused?.isConnected && document.activeElement !== focused)
+    focused.focus({ preventScroll: true });
+  positions.forEach(([node, top, left]) => {
+    node.scrollTop = top;
+    node.scrollLeft = left;
+  });
+}
+function refreshTaskOrderRows(ordered, selector) {
+  const ranks = new Map(ordered.map((t, i) => [taskIdentity(t), i + 1])),
+    containers = new Set();
+  preserveTaskScroll(() => {
+    document.querySelectorAll(selector).forEach((input) => {
+      const card = input.closest('.task-row'),
+        task = rowTask(card),
+        rank = task && ranks.get(taskIdentity(task));
+      if (!rank) return;
+      input.value = rank;
+      input.max = ordered.length;
+      containers.add(card.parentElement);
+    });
+    containers.forEach((container) => {
+      const cards = new Map(
+        [...container.children]
+          .filter((el) => el.matches('.task-row'))
+          .map((card) => [taskIdentity(rowTask(card)), card]),
+      );
+      ordered.forEach((t) => {
+        const card = cards.get(taskIdentity(t));
+        if (card) {
+          if (container.moveBefore) container.moveBefore(card, null);
+          else container.append(card);
+        }
+      });
+    });
+  });
 }
 function taskRow(
   t,
@@ -126,7 +227,7 @@ function taskRow(
   );
   const expanded =
     visibleChildren.length > 0 &&
-    (expandedTaskRows.has(key) || !!context?.forced.has(key));
+    (expandedTaskRows.has(key) || !!context?.forced?.has(key));
   const fullText = t.name + (t.description ? ' — ' + t.description : '');
   const contextLabel =
     mode === 'series'
@@ -144,19 +245,22 @@ function taskRow(
           ]
             .filter(Boolean)
             .join(' · ');
+  const primary =
+    mode === 'series'
+      ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}" title="تعديل السلسلة" aria-label="تعديل ${esc(t.name)}">${taskIcon('edit')}</button></div>`
+      : t.virtual
+        ? `<button type="button" data-task-edit title="إدارة الفروع المحفوظة" aria-label="إدارة ${esc(t.name)}">${taskIcon('edit')}</button>`
+        : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}" title="فعلتها" aria-label="فعلتها: ${esc(t.name)}">${taskIcon('check')}</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}" title="لم أفعلها" aria-label="لم أفعلها: ${esc(t.name)}">${taskIcon('cross')}</button><button type="button" data-task-edit title="تعديل" aria-label="تعديل ${esc(t.name)}">${taskIcon('edit')}</button></div><label class="row-slot-editor" dir="ltr" title="الخانات المنجزة / المتوقعة"><span class="sr-only">الخانات المنجزة</span><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span aria-hidden="true">/</span><output data-row-expected aria-label="الخانات المتوقعة">${taskExpectedSlots(t)}</output></label>${taskOrderField(key, context, t)}`;
   return `<article class="task-row ${mode === 'planner' ? 'planner-task' : 'daily-task'} ${t.virtual ? 'task-family' : ''} ${status}" data-task-id="${esc(t.id)}" data-task-date="${esc(t.date || '')}" data-row-mode="${mode}" ${context?.matches?.has(key) ? 'data-project-match="true"' : ''} data-row-depth="${depth}" ${t.virtual ? 'data-virtual="true"' : ''} style="--task-indent:${Math.min(depth, 3)}">
     <div class="task-row-heading planner-task-heading">
       ${visibleChildren.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
-      <button type="button" class="task-row-select" data-task-select aria-controls="${rowId}-actions" aria-expanded="false" title="${esc(fullText)}">
+      <button type="button" class="task-row-select" data-task-select aria-expanded="false" aria-controls="taskTextPopover" title="${esc(fullText)}" data-task-context="${esc(contextLabel)}">
         <span class="task-row-status" role="img" aria-label="${mode === 'series' ? 'سلسلة متكررة' : { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[status]}">${taskIcon(mode === 'series' ? 'repeat' : status === 'done' ? 'check' : status === 'failed' ? 'cross' : 'circle')}</span>
         <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
-        <span class="task-row-metrics">${mode === 'series' ? ` ${t.expectedSlots ? `<span>${taskIcon('slots')}${t.expectedSlots}</span>` : ''}` : t.virtual ? '' : taskRowMetrics(t, children)}</span>
+        <span class="task-row-metrics">${mode === 'series' || t.virtual ? '' : taskRowMetrics(t, children)}</span>
         ${children.length ? `<span class="task-row-count" title="الفروع المسجلة فعلتها / جميع الفروع">${children.filter((c) => outcome(c) === 'done').length}/${children.length}</span>` : ''}
       </button>
-    </div>
-    <div id="${rowId}-actions" class="task-row-actions daily-task-controls" hidden>
-      <p class="task-row-full">${esc(fullText)}</p><p class="task-row-context">${esc(contextLabel)}</p>
-      ${mode === 'series' ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}">${taskIcon('edit')} تعديل السلسلة</button></div><details class="task-row-secondary"><summary aria-label="المزيد">${taskIcon('more')}</summary><div><button type="button" data-del="${esc(t.id)}">حذف السلسلة</button></div></details>` : t.virtual ? `<button type="button" class="secondary" data-task-edit>إدارة الفروع المحفوظة</button>${taskOrderField(key, context, t)}` : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}">${taskIcon('check')} فعلتها</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}">${taskIcon('cross')} لم أفعلها</button><button type="button" data-task-edit>${taskIcon('edit')} تعديل</button></div><details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}">${taskIcon('more')}<span class="sr-only">المزيد</span></summary><div><button type="button" data-task-child>＋ إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>${taskOrderField(key, context, t)}${t.expectedSlots || t.date ? `<label class="row-slot-editor">الخانات المنجزة <input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"></label>` : ''}</div></details>`}
+      <div class="task-row-actions daily-task-controls">${primary}<details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}" title="إجراءات إضافية">${taskIcon('more')}</summary><div>${mode === 'series' ? `<button type="button" data-del="${esc(t.id)}">حذف السلسلة</button>` : t.virtual ? '<span>فروع محفوظة لأصل محذوف</span>' : `<button type="button" data-task-child>إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>`}</div></details></div>
     </div>
     ${visibleChildren.length ? `<div id="${rowId}-children" class="task-children" ${expanded ? '' : 'hidden'}>${expanded ? visibleChildren.map((c) => taskRow(c, mode, depth + 1, path, context)).join('') : ''}</div>` : ''}
   </article>`;
@@ -188,17 +292,36 @@ function rowTask(card) {
     : findTask(card.dataset.taskId, card.dataset.taskDate);
 }
 function selectTaskRow(card, selected = true) {
-  const root = card.closest('[data-task-list]') || card.parentElement;
-  if (selected)
-    root.querySelectorAll('.task-row.is-selected').forEach((other) => {
-      if (other !== card) selectTaskRow(other, false);
-    });
-  rowOwn(card, '.task-row-actions')[0].hidden = !selected;
-  rowOwn(card, '[data-task-select]')[0].setAttribute(
-    'aria-expanded',
-    String(selected),
-  );
-  card.classList.toggle('is-selected', selected);
+  const button = rowOwn(card, '[data-task-select]')[0];
+  document.querySelectorAll('.task-row.is-selected').forEach((other) => {
+    other.classList.remove('is-selected');
+    rowOwn(other, '[data-task-select]')[0]?.setAttribute(
+      'aria-expanded',
+      'false',
+    );
+  });
+  let popover = $('#taskTextPopover');
+  if (!popover) {
+    popover = document.createElement('div');
+    popover.id = 'taskTextPopover';
+    popover.className = 'task-text-popover';
+    popover.setAttribute('popover', 'auto');
+    popover.innerHTML =
+      '<p class="task-row-full"></p><p class="task-row-context"></p>';
+    document.body.append(popover);
+  }
+  if (!selected) {
+    if (popover.hidePopover) popover.hidePopover();
+    else popover.hidden = true;
+    return;
+  }
+  card.classList.add('is-selected');
+  button.setAttribute('aria-expanded', 'true');
+  popover.querySelector('.task-row-full').textContent = button.title;
+  popover.querySelector('.task-row-context').textContent =
+    button.dataset.taskContext;
+  if (popover.showPopover) popover.showPopover();
+  else popover.hidden = false;
 }
 function toggleTaskRow(card) {
   const t = rowTask(card),
@@ -280,6 +403,8 @@ function refreshTaskRowValues(changed = null) {
     rowOwn(card, '.task-row-metrics')[0].innerHTML = t.virtual
       ? ''
       : taskRowMetrics(t, children);
+    const expected = rowOwn(card, '[data-row-expected]')[0];
+    if (expected) expected.textContent = taskExpectedSlots(t);
     const counter = rowOwn(card, '.task-row-count')[0];
     if (counter)
       counter.textContent = `${children.filter((c) => outcome(c) === 'done').length}/${children.length}`;
@@ -381,29 +506,59 @@ function refreshFilteredTaskRows() {
       preventScroll: true,
     });
 }
-function taskRowChanged(t) {
+function taskRowChanged(t, progressEdit = false) {
   // Saving invalidates the read scope. Update only mounted rows and live summaries.
   taskReadScope(() => {
     if (
       view === 'dashboard' &&
       plannerListRefresh &&
-      (plannerStatus !== 'all' || plannerTab === 'missed')
+      (plannerTab === 'missed' ||
+        (plannerStatus !== 'all' &&
+          !document.activeElement?.matches('[data-progress]')))
     )
       refreshFilteredTaskRows();
     refreshTaskRowValues(t);
     applyCompletedVisibility();
   })();
-  toast(
-    outcome(t) === 'done'
+  let status = $('#inlineTaskStatus');
+  if (!status) {
+    status = document.createElement('div');
+    status.id = 'inlineTaskStatus';
+    status.className = 'sr-only';
+    status.setAttribute('role', 'status');
+    document.body.append(status);
+  }
+  status.textContent = progressEdit
+    ? 'حُفظت الخانات المنجزة'
+    : outcome(t) === 'done'
       ? 'سُجلت: فعلتها'
       : outcome(t) === 'failed'
         ? 'سُجلت: لم أفعلها'
-        : 'أُلغيت نتيجة المهمة',
-  );
+        : 'أُلغيت نتيجة المهمة';
 }
 function bindTaskCards(root = app, insideManager = false) {
   applyCompletedVisibility();
   root.dataset.taskList = '';
+  if (!root.inlineMenuBound) {
+    root.inlineMenuBound = true;
+    root.addEventListener(
+      'toggle',
+      (e) => {
+        const menu = e.target;
+        if (!menu.matches?.('.task-row-secondary') || !menu.open) return;
+        const panel = menu.querySelector(':scope > div'),
+          anchor = menu.querySelector('summary').getBoundingClientRect();
+        panel.style.left =
+          Math.max(8, Math.min(innerWidth - 188, anchor.right - 180)) + 'px';
+        panel.style.top =
+          (anchor.bottom + panel.offsetHeight <= innerHeight - 8
+            ? anchor.bottom
+            : Math.max(8, anchor.top - panel.offsetHeight)) + 'px';
+      },
+      true,
+    );
+  }
+
   root.onclick = taskReadScope((e) => {
     const card = e.target.closest('.task-row');
     if (!card || !root.contains(card)) return;
@@ -427,8 +582,8 @@ function bindTaskCards(root = app, insideManager = false) {
       return;
     }
     if (target.matches('[data-task-edit]')) {
-      if (t.virtual || (t.parentId && !insideManager)) openTaskManager(t);
-      else openPlannerEditor(t);
+      if (t.virtual) openTaskManager(t);
+      else openPlannerEditor(t, null, '', { returnToList: !insideManager });
     } else if (target.matches('[data-task-child]')) {
       if (t.parentId && !insideManager) openTaskManager(t);
       else openPlannerEditor(null, t);
@@ -442,30 +597,51 @@ function bindTaskCards(root = app, insideManager = false) {
     }
   });
   root.onchange = taskReadScope((e) => {
-    const orderInput = e.target.closest('[data-subtask-order]');
+    const orderInput = e.target.closest(
+      '[data-subtask-order], [data-root-order], [data-project-order-key]',
+    );
     if (orderInput) {
       const task = rowTask(orderInput.closest('.task-row'));
       if (!task) return;
-      const parent = parentTask(task), siblings = parent ? childTasks(parent) : [];
-      if (!orderInput.value || !moveSubtask(task, Number(orderInput.value))) {
-        orderInput.value = siblings.findIndex(c => taskIdentity(c) === taskIdentity(task))+1;
-        toast(`أدخل رقم ترتيب من 1 إلى ${siblings.length}`);
+      const parent = parentTask(task),
+        siblings = orderInput.matches('[data-subtask-order]')
+          ? parent
+            ? childTasks(parent)
+            : []
+          : rootOrderModel().tasks;
+      const position = Number(orderInput.value);
+      if (
+        !orderInput.value ||
+        !Number.isInteger(position) ||
+        position < 1 ||
+        position > Number(orderInput.max)
+      ) {
+        orderInput.value = orderInput.matches('[data-project-order-key]')
+          ? orderedProjectTasks(orderInput.dataset.projectOrderId).findIndex(
+              (t) => taskIdentity(t) === taskIdentity(task),
+            ) + 1
+          : siblings.findIndex((t) => taskIdentity(t) === taskIdentity(task)) +
+            1;
+        toast('أدخل رقم ترتيب صحيح ضمن حدود القائمة');
         return;
       }
-      // Reorder existing rows in place, preserving editor drafts, selection and scroll.
-      const ordered = childTasks(parent), ranks = new Map(ordered.map((t,i) => [taskIdentity(t),i+1]));
-      const containers = new Set();
-      document.querySelectorAll('[data-subtask-order]').forEach(input => {
-        const card = input.closest('.task-row'), current = rowTask(card);
-        const rank = current && ranks.get(taskIdentity(current));
-        if (!rank) return;
-        input.value = rank;input.max = ordered.length;
-        containers.add(card.parentElement);
-      });
-      containers.forEach(container => {
-        const cards = new Map([...container.children].filter(el => el.matches('.task-row')).map(card => [taskIdentity(rowTask(card)),card]));
-        ordered.forEach(t => { const card = cards.get(taskIdentity(t));if(card) container.append(card); });
-      });
+      if (
+        !orderInput.matches('[data-project-order-key]') &&
+        position ===
+          siblings.findIndex((t) => taskIdentity(t) === taskIdentity(task)) + 1
+      )
+        return;
+      if (orderInput.matches('[data-project-order-key]'))
+        moveProjectTask(
+          orderInput.dataset.projectOrderId,
+          taskIdentity(task),
+          position,
+        );
+      else if (parent) {
+        if (moveSubtask(task, position))
+          refreshTaskOrderRows(childTasks(parent), '[data-subtask-order]');
+      } else if (moveRootTask(task, position))
+        refreshTaskOrderRows(rootOrderModel().tasks, '[data-root-order]');
       return;
     }
     const input = e.target.closest('[data-progress]');
@@ -479,25 +655,36 @@ function bindTaskCards(root = app, insideManager = false) {
       toast('أدخل عددًا صحيحًا بين ٠ و٩٩٩٩');
       return;
     }
+    if (n === completedSlots(t)) return;
     if (t.date) (taskDay(t.date).taskProgress ??= {})[t.id] = n;
     else t.completedSlotCount = n;
     save();
-    taskRowChanged(t);
+    taskRowChanged(t, true);
   });
   root.onkeydown = (e) => {
     const card = e.target.closest('.task-row');
     if (!card) return;
-    if (e.target.matches('[data-subtask-order]')) {
-      if (e.key === 'Enter') { e.preventDefault();e.target.dispatchEvent(new Event('change', {bubbles:true})); }
+    if (
+      e.target.matches(
+        '[data-subtask-order], [data-root-order], [data-project-order-key]',
+      )
+    ) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.target.dispatchEvent(new Event('change', { bubbles: true }));
+      }
       return;
     }
     if (e.key === 'Escape') {
+      rowOwn(card, '.task-row-secondary').forEach(
+        (menu) => (menu.open = false),
+      );
       selectTaskRow(card, false);
       rowOwn(card, '[data-task-select]')[0].focus();
     }
     if (e.key === 'Enter' && e.target.matches('[data-progress]')) {
       e.preventDefault();
-      e.target.blur();
+      e.target.dispatchEvent(new Event('change', { bubbles: true }));
     }
     if (
       e.target.matches('[data-task-select]') &&
@@ -591,11 +778,25 @@ function groupedPlannerTasks(list) {
   if (!available.some((p) => p.id === plannerProjectTabs[plannerTab]))
     plannerProjectTabs[plannerTab] = available[0]?.id || '';
   const selected = plannerProjectTabs[plannerTab],
-    cards = (tasks) =>
-      taskGroups(tasks)
-        .map((t) => dashboardTaskCard(t))
-        .join('');
-  return `<section class="planner-task-section" data-planner-section="projects"><h2>مهام المشاريع</h2>${available.length ? `<div class="planner-tabs" role="group" aria-label="مشاريع المهام">${available.map((p) => `<button type="button" class="secondary ${p.id === selected ? 'chosen' : ''}" data-planner-project="${esc(p.id)}" aria-pressed="${p.id === selected}">${esc(p.name)} (${taskGroups(byProject.get(p.id)).length})</button>`).join('')}</div><div class="planner-project-tasks">${cards(byProject.get(selected))}</div>` : '<p class="empty-note">لا توجد مهام تابعة لمشاريع تطابق التصفية.</p>'}</section>
+    cards = (tasks, projectId = '') => {
+      const context = projectId
+        ? {
+            ...(dashboardRowContext || {}),
+            projectId,
+            order: projectModel(projectId).order,
+          }
+        : dashboardRowContext;
+      const keys = projectId
+        ? new Set(taskGroups(tasks).map(taskIdentity))
+        : null;
+      const roots = projectId
+        ? orderedProjectTasks(projectId).filter((t) =>
+            keys.has(taskIdentity(t)),
+          )
+        : orderedTaskRoots(tasks);
+      return roots.map((t) => taskCard(t, context)).join('');
+    };
+  return `<section class="planner-task-section" data-planner-section="projects"><h2>مهام المشاريع</h2>${available.length ? `<div class="planner-tabs" role="group" aria-label="مشاريع المهام">${available.map((p) => `<button type="button" class="secondary ${p.id === selected ? 'chosen' : ''}" data-planner-project="${esc(p.id)}" aria-pressed="${p.id === selected}">${esc(p.name)} (${taskGroups(byProject.get(p.id)).length})</button>`).join('')}</div><div class="planner-project-tasks">${cards(byProject.get(selected), selected)}</div>` : '<p class="empty-note">لا توجد مهام تابعة لمشاريع تطابق التصفية.</p>'}</section>
  <section class="planner-task-section" data-planner-section="unassigned"><h2>مهام بدون مشروع (${taskGroups(unassigned).length})</h2>${cards(unassigned) || '<p class="empty-note">لا توجد مهام بدون مشروع تطابق التصفية.</p>'}</section>`;
 }
 const dashboardPositions = new Map();
@@ -728,7 +929,7 @@ function renderDashboard() {
               .map(
                 (p) =>
                   `<section class="planner-period"><div class="panel-title"><h2>${names[p]}</h2><button data-add-period="${p}" class="secondary">＋ مهمة</button></div><p class="capacity-note">${capacityText(date, p)}</p>${
-                    taskGroups(list.filter((t) => taskInPeriod(t, p)))
+                    orderedTaskRoots(list.filter((t) => taskInPeriod(t, p)))
                       .map((t) => dashboardTaskCard(t))
                       .join('') ||
                     '<p class="empty-note">لا توجد مهام مطابقة في هذه الفترة.</p>'
@@ -736,7 +937,7 @@ function renderDashboard() {
               )
               .join('') +
             (list.some((t) => !taskPeriods(t).length)
-              ? `<section class="planner-period"><h2>بدون فترة محددة</h2>${taskGroups(
+              ? `<section class="planner-period"><h2>بدون فترة محددة</h2>${orderedTaskRoots(
                   list.filter((t) => !taskPeriods(t).length),
                 )
                   .map((t) => dashboardTaskCard(t))
@@ -744,7 +945,7 @@ function renderDashboard() {
               : '')
           : ['inbox', 'missed'].includes(plannerTab)
             ? groupedPlannerTasks(list)
-            : taskGroups(list)
+            : orderedTaskRoots(list)
                 .map((t) => dashboardTaskCard(t))
                 .join('') ||
               '<p class="empty-note">لا توجد مهام في هذه القائمة تطابق التصفية.</p>';
@@ -1160,7 +1361,7 @@ function renderTaskWeek() {
         (key) =>
           `<section class="week-day"><button class="week-heading" data-calendar-day="${key}"><strong>${week[new Date(key + 'T12:00:00').getDay()]}</strong><small>${key}</small></button>${prayerOrder
             .map((p) => {
-              const list = taskGroups(
+              const list = orderedTaskRoots(
                   allTasksOn(key).filter((t) => taskInPeriod(t, p)),
                 ),
                 c = capacity(key, p);
@@ -1168,7 +1369,7 @@ function renderTaskWeek() {
             })
             .join('')}${
             allTasksOn(key).some((t) => !taskPeriods(t).length)
-              ? `<div class="week-period"><b>بدون فترة محددة</b>${taskGroups(
+              ? `<div class="week-period"><b>بدون فترة محددة</b>${orderedTaskRoots(
                   allTasksOn(key).filter((t) => !taskPeriods(t).length),
                 )
                   .map((t) => taskCard(t))

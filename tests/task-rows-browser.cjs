@@ -57,10 +57,9 @@ module.exports = async function taskRowsBrowser(browser, url) {
       .click();
     const grand = page.locator('[data-task-id="visual-grand"]');
     await grand
-      .locator(':scope > .task-row-heading [data-task-select]')
-      .click();
-    await grand
-      .locator(':scope > .task-row-actions [data-outcome="done"]')
+      .locator(
+        ':scope > .task-row-heading > .task-row-actions [data-outcome="done"]',
+      )
       .click();
     assert.ok(await grand.evaluate((e) => e.classList.contains('done')));
     assert.equal(await page.evaluate(() => window.rowsRenderCount), 0);
@@ -88,10 +87,9 @@ module.exports = async function taskRowsBrowser(browser, url) {
     const long = page.locator('[data-task-id="visual-23"]');
     await long.locator(':scope > .task-row-heading [data-task-select]').click();
     assert.ok(
-      await long
-        .locator(':scope > .task-row-actions .task-row-full')
-        .isVisible(),
+      await page.locator('#taskTextPopover .task-row-full').isVisible(),
     );
+    await page.keyboard.press('Escape');
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 844 });
       assert.equal(
@@ -101,10 +99,10 @@ module.exports = async function taskRowsBrowser(browser, url) {
         false,
         'no page overflow on phone',
       );
-      await select.click();
+
       const targets = await root
         .locator(
-          ':scope > .task-row-heading button, :scope > .task-row-actions .task-row-primary button, :scope > .task-row-actions .task-row-secondary > summary',
+          ':scope > .task-row-heading [data-task-toggle], :scope > .task-row-heading > .task-row-actions .task-row-primary button, :scope > .task-row-heading > .task-row-actions .task-row-secondary > summary',
         )
         .evaluateAll((list) =>
           list
