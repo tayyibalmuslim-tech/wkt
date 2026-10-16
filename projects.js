@@ -10,16 +10,26 @@ function projectName(t) {
 function projectField(t) {
   const ids = effectiveProjectIds(t);
   const projects = state.projects || [];
-  const selected = projects.filter((p) => ids.includes(p.id)).map((p) => p.name).join('، ');
+  const selected = projects
+    .filter((p) => ids.includes(p.id))
+    .map((p) => p.name)
+    .join('، ');
   return `<details class="task-project-details"><summary>المشاريع المرتبطة <small data-project-summary>${esc(selected || 'بدون مشروع')}</small></summary><fieldset class="task-project-picker"><legend class="sr-only">اختر مشروعًا أو عدة مشاريع</legend><div class="task-project-options">${projects.map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}" ${ids.includes(p.id) ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') || '<span class="hint">أنشئ مشروعًا من تبويب المشاريع أولًا.</span>'}</div></fieldset></details>`;
 }
 function attachTaskProjectSummary(form) {
   const details = form.querySelector('.task-project-details');
   if (!details) return;
   const update = () => {
-    const ids = new Set([...details.querySelectorAll('input[name="projectIds"]:checked')].map((input) => input.value));
-    const names = (state.projects || []).filter((p) => ids.has(p.id)).map((p) => p.name);
-    details.querySelector('[data-project-summary]').textContent = names.join('، ') || 'بدون مشروع';
+    const ids = new Set(
+      [...details.querySelectorAll('input[name="projectIds"]:checked')].map(
+        (input) => input.value,
+      ),
+    );
+    const names = (state.projects || [])
+      .filter((p) => ids.has(p.id))
+      .map((p) => p.name);
+    details.querySelector('[data-project-summary]').textContent =
+      names.join('، ') || 'بدون مشروع';
   };
   details.addEventListener('change', (event) => {
     if (event.target.matches('input[name="projectIds"]')) update();
@@ -115,12 +125,22 @@ function moveProjectTask(projectId, key, position) {
       const scroll = $('#projectDetails').scrollTop;
       for (const task of list) {
         const card = cards.get(taskIdentity(task));
-        if (card) root.append(card);
+        if (card) {
+          if (root.moveBefore) root.moveBefore(card, null);
+          else root.append(card);
+        }
       }
       bindProjectTaskOrder(root, project, list, true);
       $('#projectDetails').scrollTop = scroll;
     })();
-  } else render();
+  } else {
+    taskReadScope(() =>
+      refreshTaskOrderRows(
+        orderedProjectTasks(projectId),
+        '[data-project-order-key]',
+      ),
+    )();
+  }
   [...document.querySelectorAll('[data-project-order-key]')]
     .find((input) => input.dataset.projectOrderKey === key)
     ?.focus({ preventScroll: true });
@@ -290,11 +310,7 @@ function openProjectBulkEditor(project) {
     `<section class="bulk-project-field"><label><input type="checkbox" data-bulk-field="${key}"> تعديل ${title}</label><fieldset data-bulk-value="${key}" disabled>${control}</fieldset></section>`;
   dialog.setAttribute('aria-labelledby', 'projectBulkTitle');
   dialog.innerHTML = `<div class="dialog-head"><h2 id="projectBulkTitle">تعديل جميع مهام ${esc(project.name)}</h2><button type="button" data-close-bulk aria-label="إغلاق">×</button></div><p class="hint">اختر الحقول التي تريد تطبيقها. يشمل التعديل المهام الرئيسية والفرعية، الموزعة وغير الموزعة، والسلاسل المتكررة ونسخ الأيام المحفوظة.</p><form id="projectBulkForm">
- ${row(
-   'priority',
-   'الأهمية',
-   `${priorityButtons(3)}`,
- )}
+ ${row('priority', 'الأهمية', `${priorityButtons(3)}`)}
  ${row('showInMonthlyCalendar', 'الظهور في التقويم', `<label class="field">التقويم الشهري<select name="showInMonthlyCalendar"><option value="true">إظهار جميع مهام المشروع</option><option value="false">إخفاء جميع مهام المشروع</option></select></label>`)}
  ${row('expectedSlots', 'الخانات المتوقعة', '<label class="field">الخانات المتوقعة لكل مهمة<input name="expectedSlots" type="number" min="0" max="144" step="1" required value="0"></label>')}
  ${row('actionId', 'الفعل المرتبط', '<input type="hidden" name="actionId" value=""><button type="button" class="secondary task-action-trigger" data-task-action-trigger aria-haspopup="dialog" aria-controls="taskActionPicker"><span data-task-action-label>بدون ربط — اختر فعلًا</span></button>')}
@@ -572,9 +588,11 @@ function openProjectTaskLink(project) {
         } else {
           // Keep the original identity/fields for change detection; preselect the added membership in the form only.
           openPlannerEditor(task);
-          document.querySelectorAll('#plannerForm input[name="projectIds"]').forEach(input => {
-            input.checked = projectIds.includes(input.value);
-          });
+          document
+            .querySelectorAll('#plannerForm input[name="projectIds"]')
+            .forEach((input) => {
+              input.checked = projectIds.includes(input.value);
+            });
           attachTaskProjectSummary(document.querySelector('#plannerForm'));
         }
       }),
@@ -822,6 +840,7 @@ function renderProjectTaskList(context = undefined) {
         matches: new Set(),
       }),
       order: model.order,
+      projectId: project.id,
     };
     const roots = model.roots.filter(
       (t) =>

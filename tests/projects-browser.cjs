@@ -65,14 +65,8 @@ module.exports = async function projectsBrowser(browser, url) {
     await page.locator('#collapseProjectTasks').click();
     const first = roots.first(),
       id = await first.getAttribute('data-task-id');
-    await first
-      .locator(':scope > .task-row-heading [data-task-select]')
-      .click();
-    await first
-      .locator(':scope > .task-row-actions .task-row-secondary > summary')
-      .click();
     const order = first.locator(
-      ':scope > .task-row-actions [data-project-order-key]',
+      ':scope > .task-row-heading > .task-row-actions [data-project-order-key]',
     );
     await order.fill('2');
     const rankScroll = await panel.evaluate((e) => e.scrollTop);
@@ -82,7 +76,9 @@ module.exports = async function projectsBrowser(browser, url) {
     assert.equal(await page.evaluate(() => window.projectsPageRenderCount), 0);
     await page
       .locator(
-        '[data-task-id="' + id + '"] > .task-row-actions [data-outcome="done"]',
+        '[data-task-id="' +
+          id +
+          '"] > .task-row-heading > .task-row-actions [data-outcome="done"]',
       )
       .click();
     assert.ok(
@@ -93,7 +89,9 @@ module.exports = async function projectsBrowser(browser, url) {
     const editScroll = await panel.evaluate((e) => e.scrollTop);
     await page
       .locator(
-        '[data-task-id="' + id + '"] > .task-row-actions [data-task-edit]',
+        '[data-task-id="' +
+          id +
+          '"] > .task-row-heading > .task-row-actions [data-task-edit]',
       )
       .click();
     await page.locator('#plannerForm [name="taskName"]').fill('جزء معدّل');

@@ -154,6 +154,40 @@ function taskGroups(list) {
   }
   return sortedTasks([...groups.values()]);
 }
+// Optional listPosition orders roots in general lists. Older records keep their existing default order.
+function orderedTaskRoots(list) {
+  return taskGroups(list).sort(
+    (a, b) => (a.listPosition ?? Infinity) - (b.listPosition ?? Infinity),
+  );
+}
+function taskOrderRecord(task) {
+  if (!task.date) return (state.taskInbox || []).find((t) => t.id === task.id);
+  const day = state.sunsetDays[task.date];
+  return [
+    ...(day?.tasks || []),
+    ...(day?.repeatSnapshot || []),
+    ...(state.repeat || []),
+  ].find((t) => t.id === task.id);
+}
+function moveRootTask(task, position) {
+  const roots = orderedTaskRoots(progressEntries()).filter((t) => !t.virtual);
+  const index = roots.findIndex((t) => taskIdentity(t) === taskIdentity(task));
+  if (
+    index < 0 ||
+    !Number.isInteger(position) ||
+    position < 1 ||
+    position > roots.length
+  )
+    return false;
+  roots.splice(index, 1);
+  roots.splice(position - 1, 0, task);
+  roots.forEach((t, i) => {
+    const record = taskOrderRecord(t);
+    if (record) record.listPosition = i + 1;
+  });
+  save();
+  return true;
+}
 function openTaskManager(t) {
   if (!t) return;
   const main = mainTask(t);
@@ -201,28 +235,48 @@ function taskIdentity(t) {
 }
 function childTasks(t, entries = progressEntries()) {
   let children;
-  if (!taskReadCache) children = entries.filter(c => c.parentId === t.id &&
-    (c.parentDate === undefined || c.parentDate === (t.date || '')));
+  if (!taskReadCache)
+    children = entries.filter(
+      (c) =>
+        c.parentId === t.id &&
+        (c.parentDate === undefined || c.parentDate === (t.date || '')),
+    );
   else {
     const index = taskEntryIndex(entries),
       dated = index.datedChildren.get(taskIdentity(t)) || [],
       legacy = index.children.get(t.id) || [];
-    children = [...dated, ...legacy].sort((a,b) => index.order.get(a)-index.order.get(b));
+    children = [...dated, ...legacy].sort(
+      (a, b) => index.order.get(a) - index.order.get(b),
+    );
   }
-  return children.sort((a,b) => (a.subtaskPosition ?? Infinity)-(b.subtaskPosition ?? Infinity));
+  return children.sort(
+    (a, b) => (a.subtaskPosition ?? Infinity) - (b.subtaskPosition ?? Infinity),
+  );
 }
 function moveSubtask(t, position) {
   const parent = parentTask(t);
   if (!parent) return false;
-  const siblings = childTasks(parent), index = siblings.findIndex(c => taskIdentity(c) === taskIdentity(t));
-  if (!Number.isInteger(position) || position < 1 || position > siblings.length || index < 0) return false;
-  siblings.splice(index,1);siblings.splice(position-1,0,t);
-  siblings.forEach((child,i) => {
+  const siblings = childTasks(parent),
+    index = siblings.findIndex((c) => taskIdentity(c) === taskIdentity(t));
+  if (
+    !Number.isInteger(position) ||
+    position < 1 ||
+    position > siblings.length ||
+    index < 0
+  )
+    return false;
+  siblings.splice(index, 1);
+  siblings.splice(position - 1, 0, t);
+  siblings.forEach((child, i) => {
     const records = child.date
-      ? [...(state.sunsetDays[child.date]?.tasks || []), ...(state.sunsetDays[child.date]?.repeatSnapshot || []), ...(state.repeat || [])]
+      ? [
+          ...(state.sunsetDays[child.date]?.tasks || []),
+          ...(state.sunsetDays[child.date]?.repeatSnapshot || []),
+          ...(state.repeat || []),
+        ]
       : state.taskInbox || [];
-    const stored = records.find(record => record.id === child.id);
-    if (stored) stored.subtaskPosition = i+1;
+    const stored = records.find((record) => record.id === child.id);
+    if (stored) stored.subtaskPosition = i + 1;
   });
   save();
   return true;
@@ -251,7 +305,10 @@ function progressLeaves(roots, entries = progressEntries(), projectId = null) {
 function taskExpectedSlots(t) {
   if (!t?.id) return t?.expectedSlots || 0;
   return cachedTaskRead('taskExpectedSlots:' + taskIdentity(t), () =>
-    progressLeaves([t]).reduce((total, leaf) => total + (leaf.expectedSlots || 0), 0),
+    progressLeaves([t]).reduce(
+      (total, leaf) => total + (leaf.expectedSlots || 0),
+      0,
+    ),
   );
 }
 function leafCompletion(t) {
@@ -279,14 +336,16 @@ function projectCompletion(id) {
       entries,
       id,
     );
-    let expected = 0, completed = 0;
+    let expected = 0,
+      completed = 0;
     for (const task of leaves) {
       const slots = task.expectedSlots || 0;
       if (slots <= 0) continue;
       expected += slots;
-      completed += task.rollupDone || outcome(task) === 'done'
-        ? slots
-        : Math.min(slots, completedSlots(task));
+      completed +=
+        task.rollupDone || outcome(task) === 'done'
+          ? slots
+          : Math.min(slots, completedSlots(task));
     }
     return expected ? (completed / expected) * 100 : 0;
   });
@@ -705,7 +764,12 @@ function formProjectField(dialog, t) {
     '<small class="hint">المهام الفرعية تتبع مشاريع المهمة الرئيسية. عدّل الرئيسية لتغيير المشاريع.</small>',
   );
 }
-function openPlannerEditor(t = null, parent = null, projectId = '') {
+function openPlannerEditor(
+  t = null,
+  parent = null,
+  projectId = '',
+  options = {},
+) {
   let dialog = $('#plannerEditor');
   if (!dialog) {
     dialog = document.createElement('dialog');
@@ -739,12 +803,15 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
       section.className = 'editor-subtasks';
       section.open = children.length <= 3;
       section.innerHTML =
-        '<summary>المهام الفرعية (' + children.length + ')</summary>' + children.map((c) => taskCard(c)).join('');
+        '<summary>المهام الفرعية (' +
+        children.length +
+        ')</summary>' +
+        children.map((c) => taskCard(c)).join('');
       dialog.append(section);
       bindTaskCards(section, true);
     }
   }
-  const back = parentTask(t || draft);
+  const back = options.returnToList ? null : parentTask(t || draft);
   if (draft.parentId) formProjectField(dialog, draft);
   if (back) {
     const b = document.createElement('button');
@@ -820,7 +887,9 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
         throw Error(
           'تغيرت البيانات أو الحساب. أغلق النافذة وافتح المهمة مجددًا.',
         );
-      const count = f.expectedSlots.disabled ? draft.expectedSlots || 0 : +f.expectedSlots.value;
+      const count = f.expectedSlots.disabled
+        ? draft.expectedSlots || 0
+        : +f.expectedSlots.value;
       if (!Number.isInteger(count) || count < 0 || count > 144)
         throw Error('عدد الخانات يجب أن يكون عددًا صحيحًا بين ٠ و١٤٤.');
       const selectedProjects = selectedProjectIds(form, draft);
@@ -860,13 +929,25 @@ function openPlannerEditor(t = null, parent = null, projectId = '') {
         next.actionId === (t.actionId || '') &&
         next.startSlot === (t.startSlot ?? null) &&
         JSON.stringify(next.projectIds) === JSON.stringify(taskProjectIds(t));
+      let savedTask = t;
       if (progressOnly) {
         (taskDay(t.date).taskProgress ??= {})[t.id] = progress;
         save();
-      } else savePlannedTask(t, next, progress);
+      } else savedTask = savePlannedTask(t, next, progress);
       dialog.close();
       render();
       if (back) openPlannerEditor(findTask(back.id, back.date) || back);
+      else if (options.returnToList && t) {
+        const card = [...app.querySelectorAll('.task-row')].find(
+          (card) =>
+            card.dataset.taskId === savedTask.id &&
+            card.dataset.taskDate === (next.date || ''),
+        );
+        rowOwn(
+          card || document.createElement('div'),
+          '[data-task-edit]',
+        )[0]?.focus({ preventScroll: true });
+      }
       toast('تم حفظ المهمة');
     } catch (err) {
       $('#plannerError').textContent = err.message;
@@ -933,7 +1014,9 @@ function renderRepeat(edit = null) {
   const submit = form.onsubmit;
   form.onsubmit = (e) => {
     const f = form.elements,
-      count = f.expectedSlots.disabled ? edit?.expectedSlots || 0 : +f.expectedSlots.value;
+      count = f.expectedSlots.disabled
+        ? edit?.expectedSlots || 0
+        : +f.expectedSlots.value;
     if (!Number.isInteger(count) || count < 0 || count > 144) {
       e.preventDefault();
       toast('الخانات المتوقعة بين ٠ و١٤٤');
@@ -1042,7 +1125,15 @@ function validatePlanning(s) {
       !['done', 'failed'].includes(t.inboxOutcome)
     )
       throw Error('حالة مهمة غير موزعة غير صالحة');
-    if (t.subtaskPosition !== undefined && (!Number.isInteger(t.subtaskPosition) || t.subtaskPosition < 1))
+    if (
+      t.listPosition !== undefined &&
+      (!Number.isInteger(t.listPosition) || t.listPosition < 1)
+    )
+      throw Error('ترتيب مهمة غير صالح');
+    if (
+      t.subtaskPosition !== undefined &&
+      (!Number.isInteger(t.subtaskPosition) || t.subtaskPosition < 1)
+    )
       throw Error('ترتيب مهمة فرعية غير صالح');
     if (
       t.expectedSlots !== undefined &&

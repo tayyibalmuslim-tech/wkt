@@ -94,7 +94,7 @@ try {
   assert.equal(row('ui-grand'), null);
   assert.equal(
     w.getComputedStyle(own(rootRow, '.task-row-actions')).display,
-    'none',
+    'flex',
   );
   assert.equal(
     w.getComputedStyle(own(rootRow, '.task-row-heading')).minHeight,
@@ -114,11 +114,10 @@ try {
     null,
     'long text is escaped',
   );
-  assert.equal(
-    own(row('ui-long'), '.task-row-actions').textContent.includes(
+  assert.ok(
+    own(row('ui-long'), '[data-task-select]').title.includes(
       'وصف طويل '.repeat(40),
     ),
-    true,
   );
   assert.equal(row('ui-done').classList.contains('done'), true);
   assert.equal(row('ui-failed').classList.contains('failed'), true);
@@ -235,7 +234,7 @@ try {
   select.dispatchEvent(
     new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
   );
-  assert.equal(own(rootRow, '.task-row-actions').hidden, true);
+  assert.equal(own(rootRow, '.task-row-actions').hidden, false);
   assert.equal(w.document.activeElement, select);
   // The same occurrence in two daily lists updates in place, without replacing slot controls.
   run(
@@ -296,7 +295,7 @@ try {
   );
   const series = $('[data-row-mode="series"]');
   assert.ok(series);
-  assert.equal(own(series, '.task-row-actions').hidden, true);
+  assert.equal(own(series, '.task-row-actions').hidden, false);
   assert.equal(own(series, '[data-outcome]'), undefined);
   own(series, '[data-task-select]').click();
   assert.equal(own(series, '.task-row-actions').hidden, false);
@@ -306,7 +305,9 @@ try {
   run(
     `state.sunsetDays={};state.taskInbox=[];state.projects=[{id:'dated',name:'تواريخ'}];for(const key of [date,addDate(date,-1)]){taskDay(key).tasks=[{id:'same-root',name:'أصل '+key,projectId:'dated'},{id:'same-child',name:'فرع '+key,parentId:'same-root',parentDate:key}];}view='projects';selectedProject='dated';expandedTaskRows.clear();render();`,
   );
-  const dated = [...w.document.querySelectorAll('#projectTaskList > .task-row')];
+  const dated = [
+    ...w.document.querySelectorAll('#projectTaskList > .task-row'),
+  ];
   assert.equal(dated.length, 2);
   own(dated[0], '[data-task-toggle]').click();
   assert.equal(
@@ -339,19 +340,45 @@ try {
   assert.equal(row('deep-8').style.getPropertyValue('--task-indent'), '3');
   assert.equal(run("findTask('deep-8','').parentId"), 'deep-7');
   // Reorder direct siblings through the real numeric control; deep children stay with their parent.
-  run(`state.sunsetDays={};state.repeat=[];state.taskInbox=[{id:'rank-root',name:'أصل'},{id:'rank-a',name:'أ',parentId:'rank-root',parentDate:''},{id:'rank-b',name:'ب',parentId:'rank-root',parentDate:''},{id:'rank-deep',name:'عميقة',parentId:'rank-a',parentDate:''}];openPlannerEditor(findTask('rank-root',''));`);
-  const rankInput = $('#plannerEditor [data-task-id="rank-b"] [data-subtask-order]');
-  assert.ok(rankInput);$('#plannerForm').elements.taskName.value='مسودة غير محفوظة';
-  const draftForm = $('#plannerForm');rankInput.value='1';
-  rankInput.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
-  assert.equal(run("childTasks(findTask('rank-root','')).map(t=>t.id).join(',')"),'rank-b,rank-a');
-  assert.equal($('#plannerForm'),draftForm);assert.equal(draftForm.elements.taskName.value,'مسودة غير محفوظة');
-  assert.equal($('#plannerEditor .editor-subtasks > .task-row').dataset.taskId,'rank-b');
-  assert.equal(run("childTasks(findTask('rank-a',''))[0].id"),'rank-deep');
-  assert.equal(run("moveSubtask(findTask('rank-a',''),0)"),false);
+  run(
+    `state.sunsetDays={};state.repeat=[];state.taskInbox=[{id:'rank-root',name:'أصل'},{id:'rank-a',name:'أ',parentId:'rank-root',parentDate:''},{id:'rank-b',name:'ب',parentId:'rank-root',parentDate:''},{id:'rank-deep',name:'عميقة',parentId:'rank-a',parentDate:''}];openPlannerEditor(findTask('rank-root',''));`,
+  );
+  const rankInput = $(
+    '#plannerEditor [data-task-id="rank-b"] [data-subtask-order]',
+  );
+  assert.ok(rankInput);
+  $('#plannerForm').elements.taskName.value = 'مسودة غير محفوظة';
+  const draftForm = $('#plannerForm');
+  rankInput.value = '1';
+  rankInput.dispatchEvent(
+    new w.KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  assert.equal(
+    run("childTasks(findTask('rank-root','')).map(t=>t.id).join(',')"),
+    'rank-b,rank-a',
+  );
+  assert.equal($('#plannerForm'), draftForm);
+  assert.equal(draftForm.elements.taskName.value, 'مسودة غير محفوظة');
+  assert.equal(
+    $('#plannerEditor .editor-subtasks > .task-row').dataset.taskId,
+    'rank-b',
+  );
+  assert.equal(run("childTasks(findTask('rank-a',''))[0].id"), 'rank-deep');
+  assert.equal(run("moveSubtask(findTask('rank-a',''),0)"), false);
   run('state=JSON.parse(JSON.stringify(state));validate(state);');
-  assert.equal(run("childTasks(findTask('rank-root','')).map(t=>t.id).join(',')"),'rank-b,rank-a');
-  assert.throws(()=>run("validatePlanning({...state,taskInbox:[{id:'invalid-rank',name:'خطأ',subtaskPosition:0}]})"));
+  assert.equal(
+    run("childTasks(findTask('rank-root','')).map(t=>t.id).join(',')"),
+    'rank-b,rank-a',
+  );
+  assert.throws(() =>
+    run(
+      "validatePlanning({...state,taskInbox:[{id:'invalid-rank',name:'خطأ',subtaskPosition:0}]})",
+    ),
+  );
   assert.deepEqual(errors, []);
   console.log(
     'PASS: shared task rows, lazy multi-level families, keyboard, escaped full text, outcomes/effort without page redraw, summaries, duplicate lists and dated identities',
