@@ -22,8 +22,11 @@ module.exports = async function selectedTasksBrowser(browser, url) {
   try {
     await page.setViewportSize({ width: 1440, height: 1080 });
     await page.goto(url);
-    for (const width of [1440, 820, 390, 320]) {
-      await page.setViewportSize({ width, height: width > 650 ? 1080 : 844 });
+    for (const width of [1440, 1366, 820, 390, 320]) {
+      await page.setViewportSize({
+        width,
+        height: width === 1366 ? 685 : width > 650 ? 1080 : 844,
+      });
       await page.evaluate(() => {
         document.querySelectorAll('dialog[open]').forEach((d) => d.close());
         eval(
@@ -60,6 +63,56 @@ module.exports = async function selectedTasksBrowser(browser, url) {
         ),
         false,
       );
+      const compact = await page.evaluate(() => {
+        const box = (s) => document.querySelector(s).getBoundingClientRect();
+        return {
+          navigation: box('body > aside').height,
+          toolbar: box('.project-list-toolbar').height,
+          search: box('#projectSearch').height,
+          add: box('#newProjectTask').height,
+          progress: box('#projectGoalsTrack').height,
+          countTop: box('#projectSearchResults').top,
+          searchBottom: box('#projectSearch').bottom,
+          stickyTop: getComputedStyle(
+            document.querySelector('.project-list-toolbar'),
+          ).top,
+          backupTop: box('#downloadBackup').top,
+          accountTop: box('#accountButton').top,
+        };
+      });
+      if (width > 900) {
+        assert.ok(compact.navigation <= 48, 'compact fixed navigation');
+        assert.ok(
+          compact.toolbar <= 42,
+          'search, actions and count share one short row',
+        );
+        assert.ok(compact.search <= 32 && compact.add <= 32);
+        assert.ok(
+          compact.countTop < compact.searchBottom,
+          'count has no separate row',
+        );
+        assert.equal(
+          compact.stickyTop,
+          '48px',
+          'search sticks below navigation without a gap',
+        );
+      } else {
+        assert.ok(
+          compact.search >= 40 && compact.add >= 40,
+          'phone touch targets remain usable',
+        );
+        assert.equal(
+          compact.backupTop,
+          compact.accountTop,
+          'account and backup share one phone row',
+        );
+      }
+      assert.equal(
+        compact.progress,
+        14,
+        'no empty space reserved for absent goal markers',
+      );
+      console.log('PROJECT_TOOLBAR', width, JSON.stringify(compact));
       await shot('selection-button-' + width);
       await toggle.click();
       assert.equal(
