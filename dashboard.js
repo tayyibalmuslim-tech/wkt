@@ -43,6 +43,8 @@ function refreshTaskSelection() {
   if (count) count.textContent = `${selectedTaskRefs.size} محددة`;
   const edit = $('#editSelectedTasks');
   if (edit) edit.disabled = !selectedTaskRefs.size;
+  const remove = $('#deleteSelectedTasks');
+  if (remove) remove.disabled = !selectedTaskRefs.size;
 }
 function installTaskSelection() {
   if (
@@ -77,7 +79,7 @@ function installTaskSelection() {
     ? selectedProject
       ? 'لا توجد مهام ظاهرة في هذا المشروع للتحديد'
       : 'اختر مشروعًا لبدء تحديد مهامه'
-    : 'اختر مهام لتعديل الأولوية أو المشاريع المرتبطة بها';
+    : 'اختر مهام لتعديلها جماعيًا أو حذفها';
   button.setAttribute('aria-pressed', String(taskSelectionMode));
   button.onclick = () => {
     taskSelectionMode = !taskSelectionMode;
@@ -90,7 +92,7 @@ function installTaskSelection() {
     toolbar.id = 'taskSelectionToolbar';
     toolbar.className = 'task-selection-toolbar';
     toolbar.innerHTML =
-      '<span id="selectedTaskCount" role="status"></span><button type="button" id="selectVisibleTasks">تحديد الظاهر</button><button type="button" id="clearSelectedTasks">مسح التحديد</button><button type="button" id="editSelectedTasks" class="primary">تعديل المحدد</button>';
+      '<span id="selectedTaskCount" role="status"></span><button type="button" id="selectVisibleTasks">تحديد الظاهر</button><button type="button" id="clearSelectedTasks">مسح التحديد</button><button type="button" id="editSelectedTasks" class="primary">تعديل المحدد</button><button type="button" id="deleteSelectedTasks" class="secondary">حذف المحدد</button>';
     app.querySelector('.top').after(toolbar);
     $('#selectVisibleTasks').onclick = () => {
       app.querySelectorAll('[data-select-task]').forEach((input) => {
@@ -109,6 +111,7 @@ function installTaskSelection() {
       refreshTaskSelection();
     };
     $('#editSelectedTasks').onclick = openSelectedTaskEditor;
+    $('#deleteSelectedTasks').onclick = deleteSelectedTasks;
   }
   if (!taskSelectionMode) toolbar?.remove();
   if (!app.taskSelectionBound) {
@@ -127,6 +130,42 @@ function installTaskSelection() {
     });
   }
   refreshTaskSelection();
+}
+function deleteSelectedTasks() {
+  const references = [...selectedTaskRefs.values()],
+    originalState = state;
+  if (!references.length) return;
+  try {
+    if (taskSelectionState !== state)
+      throw Error('تغيرت البيانات أو الحساب. أعد تحديد المهام.');
+    // Prepare the whole deletion before confirmation; never partially delete.
+    const next = bulkDeleteSelectedTasks(state, references);
+    if (
+      !confirm(
+        `حذف ${references.length} مهمة محددة؟ لا يمكن التراجع.\nسيُحذف المحدد فقط؛ تبقى الفروع غير المحددة وسجل الأيام الأخرى.\nالمهام المشتركة تُحذف من جميع مشاريعها، والمتكررة من يومها المحدد فقط.`,
+      )
+    )
+      return;
+    if (state !== originalState)
+      throw Error('تغيرت البيانات أو الحساب. أعد تحديد المهام.');
+    rememberProjectView();
+    rememberDashboardPosition();
+    state = next;
+    taskSelectionState = state;
+    selectedTaskRefs.clear();
+    save();
+    preserveTaskScroll(() => {
+      if (view === 'projects') renderProjectTaskList();
+      else if (plannerListRefresh) plannerListRefresh();
+      refreshTaskRowValues();
+      installTaskSelection();
+      applyCompletedVisibility();
+    });
+    $('#selectVisibleTasks')?.focus({ preventScroll: true });
+    toast('تم حذف المهام المحددة');
+  } catch (error) {
+    toast(error.message);
+  }
 }
 try {
   hideCompletedWork = sessionStorage.getItem('wkt-hide-completed') === 'true';

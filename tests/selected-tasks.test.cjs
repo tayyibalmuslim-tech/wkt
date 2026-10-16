@@ -222,6 +222,85 @@ try {
   run('render()');
   assert.equal(run('selectedTaskRefs.size'), 0);
   assert.equal($('#taskSelectionToolbar'), null);
+  // Bulk deletion shares single-task semantics and commits once after confirmation.
+  run(
+    `state.sunsetDays={};state.repeat=[];state.projects=[{id:'a',name:'أ'},{id:'b',name:'ب'}];state.taskInbox=[{id:'remove-root',name:'مشتركة',projectIds:['a','b']},{id:'keep-child',name:'فرع غير محدد',parentId:'remove-root',parentDate:'',parentName:'مشتركة'},{id:'keep',name:'تبقى',projectId:'a'}];view='projects';selectedProject='a';render();`,
+  );
+  $('#toggleTaskSelection').click();
+  assert.equal($('#deleteSelectedTasks').disabled, true);
+  own(row('remove-root'), '[data-select-task]').click();
+  assert.equal($('#deleteSelectedTasks').disabled, false);
+  let confirmations = 0;
+  w.confirm = (message) => {
+    confirmations++;
+    assert.match(message, /حذف 1 مهمة/);
+    assert.match(message, /الفروع غير المحددة/);
+    return false;
+  };
+  const beforeDelete = run('JSON.stringify(state)');
+  $('#deleteSelectedTasks').click();
+  assert.equal(run('JSON.stringify(state)'), beforeDelete);
+  assert.equal(run('selectedTaskRefs.size'), 1);
+  w.confirm = () => {
+    confirmations++;
+    return true;
+  };
+  const shell = $('#app > .project-workspace');
+  $('#deleteSelectedTasks').click();
+  assert.equal(confirmations, 2);
+  assert.equal(run(`!!findTask('remove-root','')`), false);
+  assert.equal(
+    run(`!!findTask('keep-child','') && !!findTask('keep','')`),
+    true,
+  );
+  assert.equal(run(`projectTasks('b').some(t=>t.id==='remove-root')`), false);
+  assert.equal($('#app > .project-workspace'), shell, 'no full-page redraw');
+  assert.equal(run('selectedTaskRefs.size'), 0);
+  assert.equal($('#deleteSelectedTasks').disabled, true);
+  run(
+    `taskDay(date).tasks=[{id:'dated-delete',name:'موزعة',prayers:[0]}];taskDay(date).done['dated-delete']=true;taskDay(date).taskProgress={'dated-delete':2};taskDay(date).taskSlotOwners={'0':'dated-delete','1':'dated-delete'};taskDay(date).taskSlotValues={'0':'old','1':'old'};taskDay(date).planned={'0':'old','1':'manual'};taskDay(date).slots={'0':'actual'};taskDay(addDate(date,-1)).tasks=[{id:'dated-delete',name:'سجل سابق',prayers:[0]}];state.repeat=[{id:'repeat-delete',name:'تكرار',days:[0,1,2,3,4,5,6],prayer:0}];save();window.deleteSource=JSON.stringify(state);window.deleted=bulkDeleteSelectedTasks(state,[{id:'dated-delete',date},{id:'repeat-delete',date},{id:'dated-delete',date}])`,
+  );
+  assert.equal(
+    run('JSON.stringify(state)'),
+    run('window.deleteSource'),
+    'atomic model',
+  );
+  assert.equal(run(`window.deleted.sunsetDays[date].tasks.length`), 0);
+  assert.equal(
+    run(`window.deleted.sunsetDays[date].done['dated-delete']`),
+    undefined,
+  );
+  assert.equal(
+    run(`window.deleted.sunsetDays[date].taskProgress['dated-delete']`),
+    undefined,
+  );
+  assert.equal(run(`window.deleted.sunsetDays[date].planned[0]`), undefined);
+  assert.equal(run(`window.deleted.sunsetDays[date].planned[1]`), 'manual');
+  assert.equal(run(`window.deleted.sunsetDays[date].slots[0]`), 'actual');
+  assert.equal(
+    run(`window.deleted.sunsetDays[addDate(date,-1)].tasks.length`),
+    1,
+  );
+  assert.equal(run(`window.deleted.repeat.length`), 1);
+  assert.equal(
+    run(`window.deleted.sunsetDays[date].excludedRepeat['repeat-delete']`),
+    true,
+  );
+  assert.throws(
+    () =>
+      run(
+        `bulkDeleteSelectedTasks(state,[{id:'keep',date:''},{id:'missing',date:''}])`,
+      ),
+    /تغيرت/,
+  );
+  assert.equal(run('JSON.stringify(state)'), run('window.deleteSource'));
+  run(`state=window.deleted;save();validate(state);`);
+  assert.equal(run(`!!findTask('repeat-delete',date)`), false);
+  assert.equal(run(`!!findTask('repeat-delete',addDate(date,1))`), true);
+  run(
+    `state.sunsetDays[addDate(date,-2)]={...emptyDay(),repeatSnapshot:[{id:'snapshot-delete',name:'نسخة قديمة',prayer:0}]};window.snapshotDeleted=bulkDeleteSelectedTasks(state,[{id:'snapshot-delete',date:addDate(date,-2)}]);state=window.snapshotDeleted;save();`,
+  );
+  assert.equal(run(`!!findTask('snapshot-delete',addDate(date,-2))`), false);
   assert.deepEqual(errors, []);
   console.log(
     'PASS: explicit lazy selection, atomic selected priority/project add/remove/replace, inherited/shared families, stable recurring occurrences, preserved progress/context and stale-account guard',
