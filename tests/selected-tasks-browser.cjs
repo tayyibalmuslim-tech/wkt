@@ -22,6 +22,53 @@ module.exports = async function selectedTasksBrowser(browser, url) {
   try {
     await page.setViewportSize({ width: 1440, height: 1080 });
     await page.goto(url);
+    for (const width of [1440, 820, 390, 320]) {
+      await page.setViewportSize({ width, height: width > 650 ? 1080 : 844 });
+      await page.evaluate(() => {
+        document.querySelectorAll('dialog[open]').forEach((d) => d.close());
+        eval(
+          `state.starterIntroPending=false;state.sunsetDays={};state.repeat=[];state.projects=[{id:'entry-a',name:'مشروع به مهام'},{id:'entry-empty',name:'مشروع فارغ'}];state.taskInbox=[{id:'entry-task',name:'مهمة للاختيار',projectId:'entry-a'}];view='projects';selectedProject='';render()`,
+        );
+      });
+      const toggle = page.locator('#toggleTaskSelection');
+      assert.equal(
+        await toggle.isVisible(),
+        true,
+        'selection control is discoverable before choosing a project',
+      );
+      assert.equal(await toggle.isDisabled(), true);
+      if (width > 1050)
+        await page
+          .locator('#projectNavigation [data-project="entry-empty"]')
+          .click();
+      else await page.locator('#projectSelect').selectOption('entry-empty');
+      assert.equal(await toggle.isDisabled(), true);
+      if (width > 1050)
+        await page
+          .locator('#projectNavigation [data-project="entry-a"]')
+          .click();
+      else await page.locator('#projectSelect').selectOption('entry-a');
+      assert.equal(
+        await toggle.isEnabled(),
+        true,
+        'first project pick activates selection without a page reload',
+      );
+      assert.equal(await toggle.textContent(), 'تحديد عدة مهام');
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+      await shot('selection-button-' + width);
+      await toggle.click();
+      assert.equal(
+        await page.locator('#projectTaskList [data-select-task]').count(),
+        1,
+      );
+      await toggle.click();
+    }
+    await page.setViewportSize({ width: 1440, height: 1080 });
     await page.evaluate(() => {
       document.querySelectorAll('dialog[open]').forEach((d) => d.close());
       eval(

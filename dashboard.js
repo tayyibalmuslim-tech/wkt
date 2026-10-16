@@ -55,7 +55,7 @@ function installTaskSelection() {
   }
   if (
     !['projects', 'dashboard'].includes(view) ||
-    !app.querySelector('.task-row')
+    (view !== 'projects' && !app.querySelector('.task-row'))
   ) {
     refreshTaskSelection();
     return;
@@ -70,7 +70,14 @@ function installTaskSelection() {
       app.querySelector('.project-page-actions') || app.querySelector('.top')
     ).append(button);
   }
-  button.textContent = taskSelectionMode ? 'إنهاء التحديد' : 'تحديد مهام';
+  const hasTasks = !!app.querySelector('.task-row:not([data-virtual])');
+  button.textContent = taskSelectionMode ? 'إنهاء التحديد' : 'تحديد عدة مهام';
+  button.disabled = !hasTasks && !taskSelectionMode;
+  button.title = button.disabled
+    ? selectedProject
+      ? 'لا توجد مهام ظاهرة في هذا المشروع للتحديد'
+      : 'اختر مشروعًا لبدء تحديد مهامه'
+    : 'اختر مهام لتعديل الأولوية أو المشاريع المرتبطة بها';
   button.setAttribute('aria-pressed', String(taskSelectionMode));
   button.onclick = () => {
     taskSelectionMode = !taskSelectionMode;
