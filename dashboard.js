@@ -121,15 +121,6 @@ function taskRowMetrics(t, children = childTasks(t)) {
   const completion = taskCompletion(t);
   return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}</span>` : ''}${t.recurrent ? `<span title="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || taskExpectedSlots(t) || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
 }
-function rootOrderModel() {
-  return cachedTaskRead('rootOrderModel', () => {
-    const tasks = orderedTaskRoots(progressEntries()).filter((t) => !t.virtual);
-    return {
-      tasks,
-      ranks: new Map(tasks.map((t, i) => [taskIdentity(t), i + 1])),
-    };
-  });
-}
 function taskOrderField(key, context, task) {
   const parent = task?.parentId ? parentTask(task) : null;
   let position, total, attributes, label;
@@ -145,12 +136,6 @@ function taskOrderField(key, context, task) {
     total = order.total;
     attributes = `data-project-order-key="${esc(key)}" data-project-order-id="${esc(context.projectId || selectedProject)}"`;
     label = 'داخل المشروع';
-  } else if (task && !task.virtual) {
-    const model = rootOrderModel();
-    position = model.ranks.get(key);
-    total = model.tasks.length;
-    attributes = 'data-root-order';
-    label = 'في القوائم العامة';
   }
   return position
     ? `<label class="project-task-order" title="ترتيب ${esc(task.name)} ${label}، من 1 إلى ${total}"><span class="sr-only">الترتيب</span><input type="number" min="1" max="${total}" step="1" inputmode="numeric" value="${position}" ${attributes} aria-label="ترتيب ${esc(task.name)} ${label}"></label>`
@@ -598,7 +583,7 @@ function bindTaskCards(root = app, insideManager = false) {
   });
   root.onchange = taskReadScope((e) => {
     const orderInput = e.target.closest(
-      '[data-subtask-order], [data-root-order], [data-project-order-key]',
+      '[data-subtask-order], [data-project-order-key]',
     );
     if (orderInput) {
       const task = rowTask(orderInput.closest('.task-row'));
@@ -608,7 +593,7 @@ function bindTaskCards(root = app, insideManager = false) {
           ? parent
             ? childTasks(parent)
             : []
-          : rootOrderModel().tasks;
+          : [];
       const position = Number(orderInput.value);
       if (
         !orderInput.value ||
@@ -640,8 +625,7 @@ function bindTaskCards(root = app, insideManager = false) {
       else if (parent) {
         if (moveSubtask(task, position))
           refreshTaskOrderRows(childTasks(parent), '[data-subtask-order]');
-      } else if (moveRootTask(task, position))
-        refreshTaskOrderRows(rootOrderModel().tasks, '[data-root-order]');
+      }
       return;
     }
     const input = e.target.closest('[data-progress]');
@@ -664,11 +648,7 @@ function bindTaskCards(root = app, insideManager = false) {
   root.onkeydown = (e) => {
     const card = e.target.closest('.task-row');
     if (!card) return;
-    if (
-      e.target.matches(
-        '[data-subtask-order], [data-root-order], [data-project-order-key]',
-      )
-    ) {
+    if (e.target.matches('[data-subtask-order], [data-project-order-key]')) {
       if (e.key === 'Enter') {
         e.preventDefault();
         e.target.dispatchEvent(new Event('change', { bubbles: true }));
@@ -793,7 +773,7 @@ function groupedPlannerTasks(list) {
         ? orderedProjectTasks(projectId).filter((t) =>
             keys.has(taskIdentity(t)),
           )
-        : orderedTaskRoots(tasks);
+        : taskGroups(tasks);
       return roots.map((t) => taskCard(t, context)).join('');
     };
   return `<section class="planner-task-section" data-planner-section="projects"><h2>مهام المشاريع</h2>${available.length ? `<div class="planner-tabs" role="group" aria-label="مشاريع المهام">${available.map((p) => `<button type="button" class="secondary ${p.id === selected ? 'chosen' : ''}" data-planner-project="${esc(p.id)}" aria-pressed="${p.id === selected}">${esc(p.name)} (${taskGroups(byProject.get(p.id)).length})</button>`).join('')}</div><div class="planner-project-tasks">${cards(byProject.get(selected), selected)}</div>` : '<p class="empty-note">لا توجد مهام تابعة لمشاريع تطابق التصفية.</p>'}</section>
@@ -929,7 +909,7 @@ function renderDashboard() {
               .map(
                 (p) =>
                   `<section class="planner-period"><div class="panel-title"><h2>${names[p]}</h2><button data-add-period="${p}" class="secondary">＋ مهمة</button></div><p class="capacity-note">${capacityText(date, p)}</p>${
-                    orderedTaskRoots(list.filter((t) => taskInPeriod(t, p)))
+                    taskGroups(list.filter((t) => taskInPeriod(t, p)))
                       .map((t) => dashboardTaskCard(t))
                       .join('') ||
                     '<p class="empty-note">لا توجد مهام مطابقة في هذه الفترة.</p>'
@@ -937,7 +917,7 @@ function renderDashboard() {
               )
               .join('') +
             (list.some((t) => !taskPeriods(t).length)
-              ? `<section class="planner-period"><h2>بدون فترة محددة</h2>${orderedTaskRoots(
+              ? `<section class="planner-period"><h2>بدون فترة محددة</h2>${taskGroups(
                   list.filter((t) => !taskPeriods(t).length),
                 )
                   .map((t) => dashboardTaskCard(t))
@@ -945,7 +925,7 @@ function renderDashboard() {
               : '')
           : ['inbox', 'missed'].includes(plannerTab)
             ? groupedPlannerTasks(list)
-            : orderedTaskRoots(list)
+            : taskGroups(list)
                 .map((t) => dashboardTaskCard(t))
                 .join('') ||
               '<p class="empty-note">لا توجد مهام في هذه القائمة تطابق التصفية.</p>';
@@ -1361,7 +1341,7 @@ function renderTaskWeek() {
         (key) =>
           `<section class="week-day"><button class="week-heading" data-calendar-day="${key}"><strong>${week[new Date(key + 'T12:00:00').getDay()]}</strong><small>${key}</small></button>${prayerOrder
             .map((p) => {
-              const list = orderedTaskRoots(
+              const list = taskGroups(
                   allTasksOn(key).filter((t) => taskInPeriod(t, p)),
                 ),
                 c = capacity(key, p);
@@ -1369,7 +1349,7 @@ function renderTaskWeek() {
             })
             .join('')}${
             allTasksOn(key).some((t) => !taskPeriods(t).length)
-              ? `<div class="week-period"><b>بدون فترة محددة</b>${orderedTaskRoots(
+              ? `<div class="week-period"><b>بدون فترة محددة</b>${taskGroups(
                   allTasksOn(key).filter((t) => !taskPeriods(t).length),
                 )
                   .map((t) => taskCard(t))

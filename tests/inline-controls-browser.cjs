@@ -29,7 +29,7 @@ module.exports = async function inlineControlsBrowser(browser, url) {
         const rect = heading.getBoundingClientRect();
         return [
           ...heading.querySelectorAll(
-            '[data-outcome], [data-task-edit], [data-progress], [data-project-order-key], [data-subtask-order], [data-root-order]',
+            '[data-outcome], [data-task-edit], [data-progress], [data-project-order-key], [data-subtask-order]',
           ),
         ].map((e) => {
           const r = e.getBoundingClientRect(),
@@ -187,6 +187,29 @@ module.exports = async function inlineControlsBrowser(browser, url) {
       await own(nested, '[data-outcome="done"]').click();
       await save('inline-' + width + '-twenty');
     }
+    await page.evaluate(() => {
+      state.taskInbox.push({
+        id: 'ordinary-no-order',
+        name: 'مهمة عادية',
+        listPosition: 1,
+      });
+      save();
+      view = 'dashboard';
+      plannerTab = 'inbox';
+      plannerQuery = '';
+      plannerStatus = plannerPriority = plannerProject = 'all';
+      render();
+    });
+    const ordinary = page.locator('#app [data-task-id="ordinary-no-order"]');
+    assert.equal(await own(ordinary, '.project-task-order').count(), 0);
+    assert.equal(await own(ordinary, '[data-task-edit]').isVisible(), true);
+    assert.equal(await own(ordinary, '[data-progress]').isVisible(), true);
+    assert.equal(
+      (await page
+        .locator('.planner-project-tasks [data-project-order-key]')
+        .count()) > 0,
+      true,
+    );
     assert.deepEqual(errors, []);
     console.log(
       'PASS: inline five controls without selection, stable heights, 30/240 tafsir, 20 siblings, nested/shared task, direct editing and desktop/tablet/phone hit targets',

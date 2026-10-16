@@ -139,36 +139,41 @@ try {
   assert.ok(row('inline-deep'));
   assert.equal($('#projectDetails').scrollTop, 280);
   assert.equal(own(row('inline-child-9'), '[data-subtask-order]').value, '1');
-  // General lists have a persisted order, not a decorative number.
+  // Ordinary roots have no manual order, including records saved by the previous version.
   run(
-    `view='dashboard';plannerTab='inbox';plannerQuery='';plannerStatus=plannerPriority=plannerProject='all';render();window.inlineRenderCount=0;`,
+    `findTask('inline-free','').priority=1;findTask('inline-free','').listPosition=2;findTask('inline-free2','').priority=5;findTask('inline-free2','').listPosition=1;save();view='dashboard';plannerTab='inbox';plannerQuery='';plannerStatus=plannerPriority=plannerProject='all';render();`,
   );
-  const free = row('inline-free2'),
-    freeRank = own(free, '[data-root-order]'),
-    snapshot = run(`JSON.stringify(state.projects)`),
-    priority = run(`findTask('inline-free2','').priority`);
-  freeRank.focus();
-  change(freeRank, '1', 'Enter');
-  assert.equal(w.document.activeElement, freeRank);
-  assert.equal(row('inline-free2'), free);
-  assert.equal($('[data-planner-section="unassigned"] > .task-row'), free);
-  assert.equal(run(`findTask('inline-free2','').listPosition`), 1);
-  assert.equal(run('window.inlineRenderCount'), 0);
-  assert.equal(run('JSON.stringify(state.projects)'), snapshot);
-  assert.equal(run(`findTask('inline-free2','').priority`), priority);
+  const free = row('inline-free2');
+  assert.equal(own(free, '.project-task-order'), undefined);
+  assert.equal(own(row('inline-free'), '.project-task-order'), undefined);
+  assert.equal($('[data-root-order]'), null);
+  assert.ok(own(free, '[data-task-edit]'));
+  assert.ok(own(free, '[data-progress]'));
+  assert.equal(
+    $('[data-planner-section="unassigned"] > .task-row').dataset.taskId,
+    'inline-free',
+  );
+  assert.ok(
+    $('.planner-project-tasks [data-project-order-key]'),
+    'project order remains available in dashboard project groups',
+  );
   run(
     `state=JSON.parse(localStorage.getItem('waqti-v1'));validate(state);render()`,
   );
   assert.equal(
     $('[data-planner-section="unassigned"] > .task-row').dataset.taskId,
-    'inline-free2',
+    'inline-free',
   );
-  run(`findTask('inline-free2','').listPosition=0`);
-  assert.throws(() => run('validate(state)'));
-  run(`findTask('inline-free2','').listPosition=1`);
+  assert.equal(
+    run(`findTask('inline-free2','').listPosition`),
+    1,
+    'legacy data is preserved but ignored',
+  );
+  run(`view='day';render()`);
+  assert.equal($('[data-root-order]'), null);
   assert.deepEqual(errors, []);
   console.log(
-    'PASS: always-visible inline controls, shared results, numeric validation/focus, local sibling/project/global ordering, direct child editing and persisted compatible list order',
+    'PASS: always-visible inline controls, shared results, numeric validation/focus, local sibling/project ordering, direct child editing and no ordinary-task ordering',
   );
 } finally {
   dom.window.close();

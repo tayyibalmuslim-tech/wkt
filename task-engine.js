@@ -154,40 +154,6 @@ function taskGroups(list) {
   }
   return sortedTasks([...groups.values()]);
 }
-// Optional listPosition orders roots in general lists. Older records keep their existing default order.
-function orderedTaskRoots(list) {
-  return taskGroups(list).sort(
-    (a, b) => (a.listPosition ?? Infinity) - (b.listPosition ?? Infinity),
-  );
-}
-function taskOrderRecord(task) {
-  if (!task.date) return (state.taskInbox || []).find((t) => t.id === task.id);
-  const day = state.sunsetDays[task.date];
-  return [
-    ...(day?.tasks || []),
-    ...(day?.repeatSnapshot || []),
-    ...(state.repeat || []),
-  ].find((t) => t.id === task.id);
-}
-function moveRootTask(task, position) {
-  const roots = orderedTaskRoots(progressEntries()).filter((t) => !t.virtual);
-  const index = roots.findIndex((t) => taskIdentity(t) === taskIdentity(task));
-  if (
-    index < 0 ||
-    !Number.isInteger(position) ||
-    position < 1 ||
-    position > roots.length
-  )
-    return false;
-  roots.splice(index, 1);
-  roots.splice(position - 1, 0, task);
-  roots.forEach((t, i) => {
-    const record = taskOrderRecord(t);
-    if (record) record.listPosition = i + 1;
-  });
-  save();
-  return true;
-}
 function openTaskManager(t) {
   if (!t) return;
   const main = mainTask(t);
@@ -1125,6 +1091,7 @@ function validatePlanning(s) {
       !['done', 'failed'].includes(t.inboxOutcome)
     )
       throw Error('حالة مهمة غير موزعة غير صالحة');
+    // Accept the legacy optional field in old backups; general lists no longer use or write it.
     if (
       t.listPosition !== undefined &&
       (!Number.isInteger(t.listPosition) || t.listPosition < 1)
