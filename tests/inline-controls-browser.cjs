@@ -68,7 +68,10 @@ module.exports = async function inlineControlsBrowser(browser, url) {
         'no controls clipped outside the phone',
       );
       if (width <= 650) assert.ok(r.width >= 40 && r.height >= 40);
-      assert.ok(r.hit, 'control is not covered by another element');
+      assert.ok(
+        r.hit,
+        'control is not covered: ' + width + ' ' + JSON.stringify(r),
+      );
     }
   };
   try {
@@ -173,13 +176,20 @@ module.exports = async function inlineControlsBrowser(browser, url) {
     for (const width of [820, 390, 320]) {
       await page.setViewportSize({ width, height: width > 650 ? 1180 : 844 });
       await panel.evaluate((e) => (e.scrollTop = 0));
+      await page.evaluate(() => scrollTo(0, 0));
       assert.equal(
         await page.evaluate(
           () => document.documentElement.scrollWidth > innerWidth,
         ),
         false,
       );
+      await root
+        .locator(':scope > .task-row-heading')
+        .evaluate((e) => e.scrollIntoView({ block: 'center' }));
       await assertControls(root, width);
+      await nested
+        .locator(':scope > .task-row-heading')
+        .evaluate((e) => e.scrollIntoView({ block: 'center' }));
       await assertControls(nested, width);
       const headerBefore = await geometry(nested);
       await own(nested, '[data-outcome="done"]').click();

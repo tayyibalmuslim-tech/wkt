@@ -4268,3 +4268,174 @@ main > header {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Dated project targets sit on the existing completion scale (RTL: start at right). */
+.project-progress-track {
+  position: relative;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+.project-progress-track .project-heading-progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: 0;
+  accent-color: var(--color-brand);
+}
+.project-goal-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.project-goal-marker {
+  position: absolute;
+  inset-inline-start: calc(var(--goal-percent) * 1%);
+  top: 0;
+  transform: translateX(50%);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  pointer-events: auto;
+}
+.project-goal-marker > span {
+  width: 3px;
+  height: 18px;
+  border: 1px solid var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  border-radius: 2px;
+}
+.project-goal-marker > small {
+  position: absolute;
+  top: 0;
+  padding-inline: 2px;
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-brand);
+  font-size: 10px;
+  line-height: 12px;
+}
+.project-goal-marker.reached > span {
+  background: var(--color-brand);
+}
+.project-goal-marker.overdue > span {
+  border-style: dashed;
+}
+.project-goal-marker:hover > span,
+.project-goal-marker:focus-visible > span {
+  height: 24px;
+}
+.project-goals-trigger {
+  min-height: 40px;
+  padding: 4px 8px;
+  color: var(--color-brand);
+  font-size: var(--font-sm);
+  white-space: nowrap;
+}
+.project-goal-summary {
+  margin: -2px 0 8px;
+  font-size: var(--font-xs);
+  line-height: 1.5;
+  color: var(--color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-goal-summary:empty {
+  display: none;
+}
+dialog#projectGoalsEditor {
+  inset: 0;
+  margin: auto;
+  height: fit-content;
+  width: min(460px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 16px;
+}
+#projectGoalsEditor .dialog-head {
+  gap: 12px;
+}
+#projectGoalsEditor h2 {
+  font-size: var(--font-lg);
+  overflow-wrap: anywhere;
+}
+#projectGoalsEditor .dialog-head button {
+  min-width: 40px;
+  min-height: 40px;
+}
+#projectGoalForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px;
+  gap: 8px 12px;
+}
+#projectGoalForm .field {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--font-sm);
+  gap: 4px;
+}
+#projectGoalForm input {
+  min-width: 0;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+}
+#projectGoalForm input[name='goalPercent'] {
+  width: 72px;
+}
+.project-goal-form-actions {
+  display: flex;
+  gap: 8px;
+  grid-column: 1/-1;
+}
+.project-goal-form-actions button {
+  min-height: 40px;
+}
+#projectGoalError {
+  grid-column: 1/-1;
+  font-size: var(--font-sm);
+  color: var(--color-brand);
+  margin: 0;
+}
+#projectGoalError:empty {
+  display: none;
+}
+#projectGoalsList {
+  margin-top: 12px;
+}
+.project-goal-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 6px;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-sm);
+}
+.project-goal-item > div {
+  flex: 1;
+  min-width: 0;
+}
+.project-goal-item time {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.project-goal-item small {
+  display: block;
+  color: var(--color-secondary);
+}
+.project-goal-item button {
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--color-brand);
+}
+@media (max-width: 380px) {
+  #projectGoalForm {
+    grid-template-columns: minmax(0, 1fr) 110px;
+    gap: 8px;
+  }
+}

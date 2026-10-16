@@ -163,7 +163,7 @@ try {
   own(childRow, '[data-outcome="done"]').click();
   assert.equal(row('work-child'), childRow);
   assert.equal(panel.scrollTop, 180);
-  assert.equal($('#projectDetails > progress').value, 50);
+  assert.equal($('#projectDetails progress').value, 50);
   assert.equal($('.project-heading-count b').textContent, '1/2');
   assert.equal(run('window.workspacePageRenders'), 0);
   // The full-project rank is available from More without competing with the task title.
