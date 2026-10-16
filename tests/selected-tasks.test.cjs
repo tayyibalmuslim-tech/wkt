@@ -92,7 +92,9 @@ try {
     before,
     'model edits are atomic and do not write live state',
   );
-  assert.deepEqual([...next.taskInbox[0].projectIds], ['a', 'b', 'c']);
+  assert.deepEqual([...next.taskInbox[0].projectIds], ['a', 'b']);
+  assert.deepEqual([...next.taskInbox[1].projectIds], ['a', 'b', 'c']);
+  assert.equal(next.taskInbox[1].projectOverride, true);
   assert.equal(
     next.taskInbox[0].priority,
     3,
@@ -115,8 +117,13 @@ try {
   run(
     `window.removed=bulkUpdateSelectedTasks(state,[{id:'child',date:''}],{projects:{mode:'remove',ids:['a']}})`,
   );
-  assert.equal(run(`window.removed.taskInbox[0].projectId`), 'b');
-  assert.deepEqual([...run(`window.removed.taskInbox[0].projectIds`)], ['b']);
+  assert.equal(run(`window.removed.taskInbox[0].projectId`), undefined);
+  assert.equal(run(`window.removed.taskInbox[1].projectId`), 'b');
+  assert.deepEqual(
+    [...run(`window.removed.taskInbox[0].projectIds`)],
+    ['a', 'b'],
+  );
+  assert.deepEqual([...run(`window.removed.taskInbox[1].projectIds`)], ['b']);
   run(
     `window.unlinked=bulkUpdateSelectedTasks(state,[{id:'parent',date:''}],{projects:{mode:'replace',ids:[]}})`,
   );
@@ -154,7 +161,7 @@ try {
   assert.equal(run(`findTask('parent','').priority`), 3);
   assert.deepEqual(
     [...run(`taskProjectIds(findTask('parent',''))`)],
-    ['a', 'b', 'c'],
+    ['a', 'b'],
   );
   assert.equal(run('selectedTaskRefs.size'), 0);
   assert.equal($('#projectDetails').scrollTop, 190);
@@ -305,6 +312,91 @@ try {
     `state.sunsetDays[addDate(date,-2)]={...emptyDay(),repeatSnapshot:[{id:'snapshot-delete',name:'نسخة قديمة',prayer:0}]};window.snapshotDeleted=bulkDeleteSelectedTasks(state,[{id:'snapshot-delete',date:addDate(date,-2)}]);state=window.snapshotDeleted;save();`,
   );
   assert.equal(run(`!!findTask('snapshot-delete',addDate(date,-2))`), false);
+  // A child can own project links without moving its parent or siblings.
+  run(
+    `state.sunsetDays={};state.repeat=[];state.projects=[{id:'a',name:'أ'},{id:'b',name:'ب'},{id:'c',name:'ج'}];state.taskInbox=[{id:'ind-parent',name:'أصل مستقل',projectId:'a',expectedSlots:99},{id:'ind-b',name:'فرع ب',parentId:'ind-parent',parentDate:'',expectedSlots:2},{id:'ind-deep',name:'عميقة',parentId:'ind-b',parentDate:'',expectedSlots:2,completedSlotCount:1},{id:'ind-c',name:'فرع ج',parentId:'ind-parent',parentDate:'',expectedSlots:6}];save();view='projects';selectedProject='a';render();openPlannerEditor(findTask('ind-b',''));`,
+  );
+  assert.equal(
+    $('#plannerForm [name="projectIds"][value="b"]').disabled,
+    false,
+  );
+  $('#plannerForm [name="projectIds"][value="a"]').click();
+  $('#plannerForm [name="projectIds"][value="b"]').click();
+  assert.equal($('#plannerForm [name="inheritProjects"]').checked, false);
+  $('#plannerForm').dispatchEvent(
+    new w.Event('submit', { bubbles: true, cancelable: true }),
+  );
+  assert.deepEqual(
+    [...run(`effectiveProjectIds(findTask('ind-parent',''))`)],
+    ['a'],
+  );
+  assert.deepEqual(
+    [...run(`effectiveProjectIds(findTask('ind-b',''))`)],
+    ['b'],
+  );
+  assert.deepEqual(
+    [...run(`effectiveProjectIds(findTask('ind-deep',''))`)],
+    ['b'],
+  );
+  run(
+    `state=bulkUpdateSelectedTasks(state,[{id:'ind-c',date:''}],{projects:{mode:'replace',ids:['c']}});save();validate(state);`,
+  );
+  assert.deepEqual(
+    [...run(`effectiveProjectIds(findTask('ind-c',''))`)],
+    ['c'],
+  );
+  assert.equal(run(`taskExpectedSlots(findTask('ind-parent',''))`), 8);
+  assert.equal(run(`taskCompletion(findTask('ind-parent',''))`), 25);
+  assert.equal(run(`projectCompletion('b')`), 50);
+  assert.equal(run(`projectCompletion('c')`), 0);
+  assert.equal(
+    run(`projectCompletion('a')`),
+    12.5,
+    'the parent project keeps the full family rollup without counting its own estimate',
+  );
+  run(`selectedProject='b';render();expandProjectTasks(true);`);
+  assert.ok(row('ind-parent') && row('ind-b') && row('ind-deep'));
+  assert.equal(row('ind-c'), null, 'other-project sibling is not shown');
+  run(`window.purgeIndependent=removeProjectAndItsTasks(state,'a');`);
+  assert.equal(
+    run(`window.purgeIndependent.state.taskInbox.some(t=>t.id==='ind-parent')`),
+    false,
+  );
+  assert.equal(
+    run(
+      `window.purgeIndependent.state.taskInbox.filter(t=>['ind-b','ind-c','ind-deep'].includes(t.id)).length`,
+    ),
+    3,
+    'deleting parent project preserves independently linked descendants',
+  );
+  run(`openPlannerEditor(findTask('ind-b',''));`);
+  $('#plannerForm [name="inheritProjects"]').click();
+  $('#plannerForm').dispatchEvent(
+    new w.Event('submit', { bubbles: true, cancelable: true }),
+  );
+  assert.deepEqual(
+    [...run(`effectiveProjectIds(findTask('ind-b',''))`)],
+    ['a'],
+  );
+  assert.deepEqual(
+    [...run(`effectiveProjectIds(findTask('ind-c',''))`)],
+    ['c'],
+  );
+  run(
+    `state.taskInbox.push({id:'old-copied-link',name:'بيانات قديمة',parentId:'ind-parent',parentDate:'',projectIds:['c']});save();`,
+  );
+  assert.deepEqual(
+    [...run(`effectiveProjectIds(findTask('old-copied-link',''))`)],
+    ['a'],
+    'legacy copied links keep inherited behavior',
+  );
+  assert.throws(
+    () =>
+      run(
+        `validatePlanning({...state,taskInbox:[{id:'invalid',name:'غير صالح',projectOverride:'yes'}]})`,
+      ),
+    /وراثة/,
+  );
   assert.deepEqual(errors, []);
   console.log(
     'PASS: explicit lazy selection, atomic selected priority/project add/remove/replace, inherited/shared families, stable recurring occurrences, preserved progress/context and stale-account guard',

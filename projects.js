@@ -14,9 +14,9 @@ function projectField(t) {
     .filter((p) => ids.includes(p.id))
     .map((p) => p.name)
     .join('، ');
-  return `<details class="task-project-details"><summary>المشاريع المرتبطة <small data-project-summary>${esc(selected || 'بدون مشروع')}</small></summary><fieldset class="task-project-picker"><legend class="sr-only">اختر مشروعًا أو عدة مشاريع</legend><div class="task-project-options">${projects.map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}" ${ids.includes(p.id) ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') || '<span class="hint">أنشئ مشروعًا من تبويب المشاريع أولًا.</span>'}</div></fieldset></details>`;
+  return `<details class="task-project-details"><summary>المشاريع المرتبطة <small data-project-summary>${esc(selected || 'بدون مشروع')}</small></summary><fieldset class="task-project-picker"><legend class="sr-only">اختر مشروعًا أو عدة مشاريع</legend>${t.parentId ? `<label class="project-inherit-switch"><input type="checkbox" name="inheritProjects" ${t.projectOverride !== true ? 'checked' : ''}> نفس مشاريع الرئيسية</label>` : ''}<div class="task-project-options">${projects.map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}" ${ids.includes(p.id) ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') || '<span class="hint">أنشئ مشروعًا من تبويب المشاريع أولًا.</span>'}</div></fieldset></details>`;
 }
-function attachTaskProjectSummary(form) {
+function attachTaskProjectSummary(form, task = null) {
   const details = form.querySelector('.task-project-details');
   if (!details) return;
   const update = () => {
@@ -32,12 +32,25 @@ function attachTaskProjectSummary(form) {
       names.join('، ') || 'بدون مشروع';
   };
   details.addEventListener('change', (event) => {
-    if (event.target.matches('input[name="projectIds"]')) update();
+    const inherit = form.elements.inheritProjects;
+    if (event.target.matches('input[name="projectIds"]')) {
+      if (inherit) inherit.checked = false;
+      update();
+    }
+    if (event.target === inherit && inherit.checked) {
+      const parent = parentTask(task);
+      const ids = parent
+        ? effectiveProjectIds(parent)
+        : effectiveProjectIds({ ...task, projectOverride: false });
+      details
+        .querySelectorAll('input[name="projectIds"]')
+        .forEach((input) => (input.checked = ids.includes(input.value)));
+      update();
+    }
   });
   update();
 }
 function selectedProjectIds(form, t) {
-  if (t?.parentId) return effectiveProjectIds(t);
   return [...form.querySelectorAll('input[name="projectIds"]:checked')].map(
     (input) => input.value,
   );
@@ -261,9 +274,7 @@ function validateProjects(s) {
 function projectTasks(id) {
   return cachedTaskRead('project-tasks:' + id, () => {
     const entries = progressEntries();
-    return sortedTasks(
-      entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
-    );
+    return sortedTasks(entries.filter((t) => taskInProject(t, id, entries)));
   });
 }
 // Order belongs to the project; it never changes task priority, dates or parent links.
@@ -409,9 +420,7 @@ function projectTaskRecords(snapshot, projectId) {
   }
   const entries = records.map((r) => r.entry);
   return taskReadScope(() =>
-    records.filter((r) =>
-      effectiveProjectIds(r.entry, entries).includes(projectId),
-    ),
+    records.filter((r) => taskInProject(r.entry, projectId, entries)),
   )();
 }
 // Build an atomic edit of selected occurrences; never modify another day in a series.
@@ -484,19 +493,9 @@ function bulkUpdateSelectedTasks(snapshot, references, patch) {
           record(task).priority = patch.priority;
         });
       if (patch.projects) {
-        const roots = new Map(
-          selected.map((task) => {
-            const root = mainTask(task, entries);
-            return [taskIdentity(root), root];
-          }),
-        );
-        for (const root of roots.values()) {
-          if (root.virtual)
-            throw Error(
-              'لا يمكن تغيير مشاريع فرع أصله محذوف؛ عدّل المهمة الأصلية أولًا.',
-            );
-          const target = record(root),
-            current = taskProjectIds(target),
+        for (const task of selected) {
+          const target = record(task),
+            current = effectiveProjectIds(task, entries),
             { mode, ids } = patch.projects;
           setTaskProjects(
             target,
@@ -506,6 +505,7 @@ function bulkUpdateSelectedTasks(snapshot, references, patch) {
                 ? [...current, ...ids]
                 : current.filter((id) => !ids.includes(id)),
           );
+          if (task.parentId) target.projectOverride = true;
         }
       }
       invalidateTaskReads();
@@ -528,7 +528,7 @@ function openSelectedTaskEditor() {
     document.body.append(dialog);
   }
   dialog.setAttribute('aria-labelledby', 'selectedTasksTitle');
-  dialog.innerHTML = `<div class="dialog-head"><h2 id="selectedTasksTitle">تعديل ${references.length} مهمة</h2><button type="button" data-close-selected aria-label="إغلاق">×</button></div><form id="selectedTasksForm"><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="priority">تعديل الأولوية</label><fieldset data-selected-value="priority" disabled>${priorityButtons(3)}</fieldset></section><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="projects">تعديل المشاريع المرتبطة</label><fieldset data-selected-value="projects" disabled><label class="field">الطريقة<select name="projectMode"><option value="add">إضافة للمشاريع المختارة</option><option value="remove">إزالة من المشاريع المختارة</option><option value="replace">استبدال جميع المشاريع</option></select></label><div class="task-project-options">${(state.projects || []).map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div><p class="hint">الفروع تتبع أصلها؛ تغيير المشاريع يشمل الأصل وفروعه. استبدال المشاريع دون اختيار يزيل كل الروابط.</p></fieldset></section><p class="hint">الأولوية للمهام المحددة فقط. النسخة المتكررة تُعدّل في يومها وحده.</p><p id="selectedTasksError" role="alert"></p><div class="selected-tasks-actions"><button class="primary">تطبيق التعديل</button><button type="button" class="secondary" data-close-selected>إلغاء</button></div></form>`;
+  dialog.innerHTML = `<div class="dialog-head"><h2 id="selectedTasksTitle">تعديل ${references.length} مهمة</h2><button type="button" data-close-selected aria-label="إغلاق">×</button></div><form id="selectedTasksForm"><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="priority">تعديل الأولوية</label><fieldset data-selected-value="priority" disabled>${priorityButtons(3)}</fieldset></section><section><label class="bulk-edit-switch"><input type="checkbox" data-edit-selected="projects">تعديل المشاريع المرتبطة</label><fieldset data-selected-value="projects" disabled><label class="field">الطريقة<select name="projectMode"><option value="add">إضافة للمشاريع المختارة</option><option value="remove">إزالة من المشاريع المختارة</option><option value="replace">استبدال جميع المشاريع</option></select></label><div class="task-project-options">${(state.projects || []).map((p) => `<label><input type="checkbox" name="projectIds" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div><p class="hint">تغيير المشاريع يخص المحدد؛ الفرع لا يغيّر مشاريع أصله. استبدال المشاريع دون اختيار يزيل كل الروابط.</p></fieldset></section><p class="hint">الأولوية والمشاريع للمهام المحددة فقط. النسخة المتكررة تُعدّل في يومها وحده.</p><p id="selectedTasksError" role="alert"></p><div class="selected-tasks-actions"><button class="primary">تطبيق التعديل</button><button type="button" class="secondary" data-close-selected>إلغاء</button></div></form>`;
   dialog
     .querySelectorAll('[data-close-selected]')
     .forEach((button) => (button.onclick = () => dialog.close()));
@@ -811,6 +811,7 @@ function removeProjectAndItsTasks(snapshot, projectId) {
       if (
         !deleteIds.has(task.id) &&
         !sharedIds.has(task.id) &&
+        task.projectOverride !== true &&
         (deleteIds.has(task.parentId) || deleteIds.has(task.detachedFrom))
       ) {
         deleteIds.add(task.id);
@@ -1101,11 +1102,12 @@ function rememberProjectView() {
 function projectModel(id) {
   return cachedTaskRead('project-model:' + id, () => {
     const entries = projectTasks(id),
-      roots = orderedProjectTasks(id);
+      roots = orderedProjectTasks(id),
+      membership = projectMemberKeys(entries);
     return {
       entries,
       roots,
-      keys: new Set([...entries, ...roots].map(taskIdentity)),
+      keys: membership,
       order: new Map(
         roots.map((t, i) => [
           taskIdentity(t),
@@ -1114,8 +1116,25 @@ function projectModel(id) {
       ),
       percent: projectCompletion(id),
       done: roots.filter((t) => taskCompletion(t) === 100).length,
+      membership,
     };
   });
+}
+function projectMemberKeys(entries) {
+  const membership = new Set(entries.map(taskIdentity));
+  for (const entry of entries) {
+    let current = entry;
+    const seen = new Set();
+    while (current.parentId && !seen.has(taskIdentity(current))) {
+      seen.add(taskIdentity(current));
+      current = parentTask(current) || mainTask(current);
+      const key = taskIdentity(current);
+      if (membership.has(key)) break;
+      membership.add(key);
+      if (current.virtual) break;
+    }
+  }
+  return membership;
 }
 function normalizeProjectSearch(text) {
   return String(text)
@@ -1147,6 +1166,7 @@ function projectSearchContext(model, query) {
       matches.add(taskIdentity(t));
   const visit = (t) => {
     const key = taskIdentity(t);
+    if (!model.membership.has(key)) return;
     if (visited.has(key)) return;
     visited.add(key);
     visible.add(key);
@@ -1189,7 +1209,7 @@ function renderProjectTaskList(context = undefined) {
       context === undefined ? projectSearchContext(model, ui.query) : context;
     activeProjectContext = {
       ...(searchContext || {
-        visible: null,
+        visible: model.membership,
         forced: new Set(),
         matches: new Set(),
       }),

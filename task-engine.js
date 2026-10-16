@@ -185,10 +185,43 @@ function taskProjectIds(t) {
       : [];
 }
 function effectiveProjectIds(t, entries) {
-  return taskProjectIds(mainTask(t, entries) || t);
+  if (!t?.parentId || t.projectOverride === true) return taskProjectIds(t);
+  entries ??= progressEntries();
+  if (taskReadCache) {
+    const overrides = cachedTaskRead('project-overrides', () => new WeakMap());
+    if (!overrides.has(entries))
+      overrides.set(
+        entries,
+        entries.some((entry) => entry.projectOverride === true),
+      );
+    if (!overrides.get(entries))
+      return taskProjectIds(mainTask(t, entries) || t);
+  }
+  const seen = new Set();
+  let current = t;
+  while (current?.parentId && current.projectOverride !== true) {
+    const key = taskIdentity(current);
+    if (seen.has(key)) break;
+    seen.add(key);
+    const parent = parentTask(current, entries);
+    if (!parent) break;
+    current = parent;
+  }
+  return taskProjectIds(current);
 }
 function effectiveProjectId(t) {
   return effectiveProjectIds(t)[0] || '';
+}
+function taskInProject(t, id, entries = progressEntries()) {
+  if (effectiveProjectIds(t, entries).includes(id)) return true;
+  const seen = new Set();
+  let current = t.parentId ? parentTask(t, entries) : null;
+  while (current && !seen.has(taskIdentity(current))) {
+    seen.add(taskIdentity(current));
+    if (effectiveProjectIds(current, entries).includes(id)) return true;
+    current = current.parentId ? parentTask(current, entries) : null;
+  }
+  return false;
 }
 function setTaskProjects(t, ids) {
   const unique = [...new Set(ids.filter(Boolean))];
@@ -255,11 +288,12 @@ function progressLeaves(roots, entries = progressEntries(), projectId = null) {
     const nextPath = new Set(path);
     nextPath.add(key);
     const done = inheritedDone || outcome(t) === 'done';
-    const children = childTasks(t, entries).filter(
-      (c) => !projectId || effectiveProjectIds(c, entries).includes(projectId),
-    );
+    const children = childTasks(t, entries);
     if (children.length) children.forEach((c) => visit(c, nextPath, done));
-    else {
+    else if (
+      !projectId ||
+      effectiveProjectIds(t, entries).includes(projectId)
+    ) {
       const old = leaves.get(key);
       leaves.set(key, { ...t, rollupDone: done || old?.rollupDone || false });
     }
@@ -300,7 +334,6 @@ function projectCompletion(id) {
     const leaves = progressLeaves(
       entries.filter((t) => effectiveProjectIds(t, entries).includes(id)),
       entries,
-      id,
     );
     let expected = 0,
       completed = 0;
@@ -744,15 +777,7 @@ function attachTaskActionPicker(form) {
   updateLabel();
 }
 function formProjectField(dialog, t) {
-  const picker = dialog.querySelector('.task-project-picker');
-  if (!picker) return;
-  picker
-    .querySelectorAll('input[name=projectIds]')
-    .forEach((input) => (input.disabled = true));
-  picker.insertAdjacentHTML(
-    'beforeend',
-    '<small class="hint">المهام الفرعية تتبع مشاريع المهمة الرئيسية. عدّل الرئيسية لتغيير المشاريع.</small>',
-  );
+  // Subtasks can keep inherited memberships or override them in their own picker.
 }
 function openPlannerEditor(
   t = null,
@@ -817,7 +842,7 @@ function openPlannerEditor(
   const form = $('#plannerForm'),
     f = form.elements;
   attachTaskActionPicker(form);
-  attachTaskProjectSummary(form);
+  attachTaskProjectSummary(form, draft);
   const refresh = () => {
     const key = f.taskDate.value,
       periods = selectedTaskPeriods(form),
@@ -890,6 +915,9 @@ function openPlannerEditor(
           showInMonthlyCalendar: f.showInMonthlyCalendar.checked,
           projectIds: selectedProjects,
           projectId: selectedProjects[0] || '',
+          ...(draft.parentId
+            ? { projectOverride: !f.inheritProjects.checked }
+            : {}),
           priority: +f.priority.value,
           expectedSlots: count,
           actionId: f.actionId.value,
@@ -918,6 +946,7 @@ function openPlannerEditor(
         next.expectedSlots === (t.expectedSlots || 0) &&
         next.actionId === (t.actionId || '') &&
         next.startSlot === (t.startSlot ?? null) &&
+        next.projectOverride === t.projectOverride &&
         JSON.stringify(next.projectIds) === JSON.stringify(taskProjectIds(t));
       let savedTask = t;
       if (progressOnly) {
@@ -1198,6 +1227,11 @@ function validatePlanning(s) {
     for (const key of ['actionId', 'parentId', 'parentName', 'projectId'])
       if (t[key] !== undefined && typeof t[key] !== 'string')
         throw Error('بيانات مهمة غير صالحة');
+    if (
+      t.projectOverride !== undefined &&
+      typeof t.projectOverride !== 'boolean'
+    )
+      throw Error('اختيار وراثة المشاريع غير صالح');
     if (
       t.projectIds !== undefined &&
       (!Array.isArray(t.projectIds) ||

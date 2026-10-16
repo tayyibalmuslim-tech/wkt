@@ -2623,6 +2623,20 @@ nav .ui-icon {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.project-inherit-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.project-inherit-switch input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+}
 .task-selection-search {
   display: flex;
   align-items: flex-end;

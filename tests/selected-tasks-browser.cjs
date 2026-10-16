@@ -191,7 +191,7 @@ module.exports = async function selectedTasksBrowser(browser, url) {
     assert.equal(await page.evaluate(() => findTask('child', '').priority), 2);
     assert.deepEqual(
       await page.evaluate(() => taskProjectIds(findTask('root', ''))),
-      ['a', 'b', 'c'],
+      ['a', 'b'],
     );
     assert.equal(await page.locator('[data-select-task]').count(), 0);
     for (const width of [390, 320]) {
@@ -328,11 +328,90 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       await page.evaluate(() => !!findTask('dashboard-delete', '')),
       false,
     );
+    for (const width of [1366, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(() => {
+        eval(
+          `state.sunsetDays={};state.repeat=[];state.projects=['a','b','c','d'].map(id=>({id,name:'مشروع '+id}));state.taskInbox=[{id:'split-root',name:'الأصل في أ',projectId:'a'},{id:'split-b',name:'الفرع في ب',parentId:'split-root',parentDate:'',expectedSlots:2},{id:'split-deep',name:'فرع عميق',parentId:'split-b',parentDate:'',expectedSlots:2,completedSlotCount:1},{id:'split-c',name:'الفرع في ج',parentId:'split-root',parentDate:'',expectedSlots:6,projectOverride:true,projectIds:['c']}];view='projects';selectedProject='a';render();`,
+        );
+      });
+      if (
+        (await own(row('split-root'), '[data-task-toggle]').getAttribute(
+          'aria-expanded',
+        )) === 'false'
+      )
+        await own(row('split-root'), '[data-task-toggle]').click();
+      await own(row('split-b'), '[data-task-edit]').click();
+      const childEditor = page.locator('#plannerForm');
+      await childEditor.locator('.task-project-details > summary').click();
+      await childEditor.locator('[name=projectIds][value=a]').uncheck();
+      await childEditor.locator('[name=projectIds][value=b]').check();
+      await childEditor.locator('[name=projectIds][value=d]').check();
+      assert.equal(
+        await childEditor.locator('[name=inheritProjects]').isChecked(),
+        false,
+      );
+      await shot('independent-subtask-projects-' + width);
+      await childEditor.locator('button.primary').click();
+      assert.deepEqual(
+        await page.evaluate(() =>
+          effectiveProjectIds(findTask('split-root', '')),
+        ),
+        ['a'],
+      );
+      assert.deepEqual(
+        await page.evaluate(() => effectiveProjectIds(findTask('split-b', ''))),
+        ['b', 'd'],
+      );
+      assert.deepEqual(
+        await page.evaluate(() =>
+          effectiveProjectIds(findTask('split-deep', '')),
+        ),
+        ['b', 'd'],
+      );
+      assert.deepEqual(
+        await page.evaluate(() => effectiveProjectIds(findTask('split-c', ''))),
+        ['c'],
+      );
+      assert.deepEqual(
+        await page.evaluate(() => ['a', 'b', 'c', 'd'].map(projectCompletion)),
+        [12.5, 50, 0, 50],
+      );
+      if (width > 1050)
+        await page.locator('#projectNavigation [data-project=b]').click();
+      else await page.locator('#projectSelect').selectOption('b');
+      if (
+        (await own(row('split-root'), '[data-task-toggle]').getAttribute(
+          'aria-expanded',
+        )) === 'false'
+      )
+        await own(row('split-root'), '[data-task-toggle]').click();
+      assert.equal(await row('split-c').count(), 0);
+      assert.equal(await row('split-b').count(), 1);
+      if (
+        (await own(row('split-b'), '[data-task-toggle]').getAttribute(
+          'aria-expanded',
+        )) === 'false'
+      )
+        await own(row('split-b'), '[data-task-toggle]').click();
+      assert.equal(await row('split-deep').count(), 1);
+      await page.reload();
+      assert.deepEqual(
+        await page.evaluate(() => effectiveProjectIds(findTask('split-b', ''))),
+        ['b', 'd'],
+      );
+      assert.deepEqual(
+        await page.evaluate(() =>
+          effectiveProjectIds(findTask('split-root', '')),
+        ),
+        ['a'],
+      );
+    }
     for (const width of [1366, 820, 390, 320]) {
       await page.setViewportSize({ width, height: 844 });
       await page.evaluate(() => {
         eval(
-          `state.repeat=Array.from({length:20},(_,i)=>({id:'compact-repeat-'+i,name:'مهمة متكررة '+i,description:'وصف قصير',days:[0,1,2,3,4,5,6],prayer:0,prayers:[0],expectedSlots:3,priority:3,projectId:'delete-a',actionId:state.actions[0].id}));view='repeat';render();window.scrollTo(0,0);`,
+          `state.repeat=Array.from({length:20},(_,i)=>({id:'compact-repeat-'+i,name:'مهمة متكررة '+i,description:'وصف قصير',days:[0,1,2,3,4,5,6],prayer:0,prayers:[0],expectedSlots:3,priority:3,projectId:'a',actionId:state.actions[0].id}));view='repeat';render();window.scrollTo(0,0);`,
         );
       });
       assert.equal(
@@ -381,7 +460,7 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       assert.equal(saved.expectedSlots, 5);
       assert.equal(saved.priority, 2);
       assert.deepEqual(saved.days, [0, 1, 2, 3, 4, 5]);
-      assert.equal(saved.projectId, 'delete-a');
+      assert.equal(saved.projectId, 'a');
       assert.ok(saved.actionId);
       assert.deepEqual(saved.prayers, [0]);
       assert.equal(
