@@ -224,7 +224,9 @@
       }
       if (editing() && !initialLoad) {
         deferred = true;
-        report('وصلت تحديثات؛ ستُدمج بعد إنهاء التعديل المفتوح');
+        report(dirty
+          ? 'جاري إرسال تغييراتك؛ ستظهر التحديثات بعد إنهاء التعديل المفتوح'
+          : 'تغييراتك محفوظة؛ ستظهر التحديثات بعد إنهاء التعديل المفتوح');
         return;
       }
       if (!dirty) {
@@ -258,11 +260,11 @@
   }
   function schedule(delay = 180) {
     clearTimeout(timer);
-    if (user && ready && dirty && !conflict && online && !writing && !deferred)
+    if (user && ready && dirty && !conflict && online && !writing)
       timer = setTimeout(flush, delay);
   }
   async function flush() {
-    if (!user || !ready || !dirty || conflict || !online || writing || deferred)
+    if (!user || !ready || !dirty || conflict || !online || writing)
       return false;
     const ticket = epoch,
       uid = user.uid,
@@ -286,7 +288,6 @@
           if (!current && expected > 0) return;
           const revision = current?.revision || 0;
           const cloud = decode(current) || fresh();
-          if (editing() && revision !== expected) return;
           const merged =
             !known && revision === expected
               ? { state: local, conflicts: [] }
@@ -320,7 +321,10 @@
       baseState = local;
       baseKnown = true;
       baseRevision = committed.revision;
-      dirty = !WaqtiSyncMerge.same(state, decode(committed));
+      // Every edit in local is now acknowledged, even if remote-only changes
+      // cannot be rendered yet because an editor or focused field is still open.
+      // Only edits made after this submitted snapshot need another upload.
+      dirty = !WaqtiSyncMerge.same(state, local);
       retryDelay = 500;
       persist();
       let latest = remote;
@@ -331,6 +335,9 @@
       } else {
         receive(committed);
       }
+      // receive may defer rendering an editor's incoming changes; it must not
+      // strand edits saved while this write was in flight.
+      schedule();
       return true;
     } catch (e) {
       if (ticket === epoch) {

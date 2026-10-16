@@ -366,6 +366,70 @@ async function pump(hub, clients, limit = 30) {
   await pump(hub, [a, reloaded]);
   assert.equal(reloaded.data().taskInbox[0].name, 'Kept draft');
   assert.equal(a.data().sunsetDays[day].slots[10], other);
+  // Receiving remote updates must not stop already saved inline edits from uploading.
+  a.w.run("view='projects';selectedProject='p';render();");
+  const inline = a.w.document.querySelector('#projectTaskList [data-progress]');
+  inline.focus();
+  hub.publish('same-account', (s) => { s.taskInbox[0].description = 'Remote while focused'; });
+  assert.equal(a.w.document.activeElement, inline);
+  inline.value = '1';
+  inline.dispatchEvent(new a.w.Event('change', { bubbles: true }));
+  await pump(hub, [a, reloaded]);
+  assert.equal(reloaded.data().taskInbox[0].completedSlotCount, 1);
+  assert.equal(JSON.parse(hub.records.get('same-account').payload).taskInbox[0].description, 'Remote while focused');
+  assert.equal(a.w.document.activeElement, inline, 'uploading does not redraw the focused input');
+  assert.equal(JSON.parse(a.storage()['waqti-account-same-account']).dirty, false, 'remote-only updates waiting to render are not unsent local edits');
+  const settledReload = new a.w.Event('beforeunload', { cancelable: true });
+  a.w.dispatchEvent(settledReload);
+  assert.equal(settledReload.defaultPrevented, false, 'acknowledged edits do not trigger a false reload warning');
+  inline.blur();
+  await pump(hub, [a, reloaded]);
+  assert.equal(a.data().taskInbox[0].description, 'Remote while focused');
+  // Keep an unsaved editor open while saved changes and independent remote changes sync.
+  a.w.run("openPlannerEditor(findTask('inbox',''))");
+  const openEditor = a.w.document.querySelector('#plannerEditor');
+  a.w.document.querySelector('#plannerForm [name=taskName]').value = 'Still an unsaved draft';
+  hub.publish('same-account', (s) => { s.taskInbox[0].description = 'Other device during editor'; });
+  a.save('taskDay(date).slots[11]=' + JSON.stringify(action));
+  a.runTimers();
+  assert.ok(hub.pending.length, 'saved edits upload even with a deferred incoming snapshot');
+  // Another save made in flight needs its own acknowledgement, not a false clean state.
+  a.save('taskDay(date).slots[12]=' + JSON.stringify(other));
+  const pendingReload = new a.w.Event('beforeunload', { cancelable: true });
+  a.w.dispatchEvent(pendingReload);
+  assert.equal(pendingReload.defaultPrevented, true);
+  await pump(hub, [a, reloaded]);
+  assert.equal(openEditor.open, true);
+  assert.equal(a.w.document.querySelector('#plannerForm [name=taskName]').value, 'Still an unsaved draft');
+  assert.equal(reloaded.data().sunsetDays[day].slots[11], action);
+  assert.equal(reloaded.data().sunsetDays[day].slots[12], other);
+  assert.equal(reloaded.data().taskInbox[0].description, 'Other device during editor');
+  assert.equal(JSON.parse(a.storage()['waqti-account-same-account']).dirty, false);
+  // Reloading while remote rendering is deferred restores the acknowledged base safely.
+  const deferredReload = client(hub, seed, a.storage());
+  deferredReload.login();
+  await pump(hub, [a, reloaded, deferredReload]);
+  assert.equal(deferredReload.data().taskInbox[0].description, 'Other device during editor');
+  assert.equal(deferredReload.data().sunsetDays[day].slots[12], other);
+  deferredReload.dom.window.close();
+  hub.clients = hub.clients.filter((c) => c !== deferredReload);
+  openEditor.close();
+  await pump(hub, [a, reloaded]);
+  assert.equal(a.data().taskInbox[0].description, 'Other device during editor');
+  // An open editor must still never permit overwriting a genuine concurrent conflict.
+  a.w.run("openPlannerEditor(findTask('inbox',''))");
+  hub.publish('same-account', (s) => { s.taskInbox[0].priority = 2; });
+  a.save('state.taskInbox[0].priority=5');
+  await pump(hub, [a, reloaded]);
+  assert.equal(JSON.parse(hub.records.get('same-account').payload).taskInbox[0].priority, 2);
+  assert.equal(JSON.parse(a.storage()['waqti-account-same-account']).dirty, true);
+  a.w.document.querySelector('#plannerEditor').close();
+  await pump(hub, [a, reloaded]);
+  a.account();
+  assert.ok(a.w.document.querySelector('[data-sync-choice="local"]'));
+  a.w.document.querySelector('[data-sync-choice="local"]').click();
+  await pump(hub, [a, reloaded]);
+  assert.equal(reloaded.data().taskInbox[0].priority, 5);
   // Transient errors retry without deleting a local/remote snapshot.
   hub.failNext = true;
   a.save('state.taskInbox[0].expectedSlots=4');
