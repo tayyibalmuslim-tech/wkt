@@ -310,6 +310,39 @@ try {
   assert.equal(row('rev'), null, 'independent membership survives restoring a backup');
   run("selectProject('revise');expandProjectTasks(true)");
   assert.equal(row('mem'), null);
+  // Date edits preserve the saved rank in every linked project.
+  run(`state.sunsetDays={};state.repeat=[];state.projects=[{id:'rank-a',name:'ترتيب أ'},{id:'rank-b',name:'ترتيب ب'}];state.taskInbox=['rank-first','rank-middle','rank-last'].map(id=>({id,name:id,projectIds:['rank-a','rank-b'],prayers:[],priority:3}));state.taskInbox.push({id:'rank-child',name:'فرعية',parentId:'rank-middle',parentDate:'',subtaskPosition:1,prayers:[]});save();view='projects';selectedProject='rank-a';render();moveProjectTask('rank-a',taskIdentity(findTask('rank-middle','')),1);moveProjectTask('rank-b',taskIdentity(findTask('rank-last','')),1);`);
+  const rankA = run("orderedProjectTasks('rank-a').map(t=>t.id).join(',')"),
+    rankB = run("orderedProjectTasks('rank-b').map(t=>t.id).join(',')");
+  const assertRanks = () => {
+    assert.equal(run("orderedProjectTasks('rank-a').map(t=>t.id).join(',')"), rankA);
+    assert.equal(run("orderedProjectTasks('rank-b').map(t=>t.id).join(',')"), rankB);
+  };
+  run("openPlannerEditor(findTask('rank-middle',''))");
+  $('#plannerForm').elements.taskDate.value = run('date');
+  $('#plannerForm').dispatchEvent(new w.Event('submit', { cancelable: true }));
+  assert.equal($('#plannerEditor').open, false);
+  assertRanks();
+  assert.equal(run("findTask('rank-child','').parentDate"), run('date'));
+  assert.equal(run("state.projects[0].taskOrder.includes(taskIdentity({id:'rank-middle',date:''}))"), false);
+  run("state=bulkUpdateSelectedTasks(state,[{id:'rank-middle',date}],{date:addDate(date,2)});save();render()");
+  assertRanks();
+  run("state=bulkUpdateSelectedTasks(state,[{id:'rank-middle',date:addDate(date,2)}],{date:''});save();render()");
+  assertRanks();
+  // Moving a subtask retains its sibling rank as well as its parent linkage.
+  run("const child=findTask('rank-child','');savePlannedTask(child,{...child,date:addDate(date,1)});render()");
+  assert.equal(run("findTask('rank-child',addDate(date,1)).subtaskPosition"), 1);
+  assert.equal(run("findTask('rank-child',addDate(date,1)).parentDate"), '');
+  assertRanks();
+  // Detached recurring occurrences get a new ID; only that occurrence's rank moves.
+  run(`state.repeat=[{id:'rank-repeat',name:'متكررة',projectIds:['rank-a'],days:[0,1,2,3,4,5,6],prayers:[],priority:3,startDate:date}];save();moveProjectTask('rank-a',taskIdentity(findTask('rank-repeat',date)),2);window.oldOccurrence=taskIdentity({id:'rank-repeat',date});window.otherOccurrence=taskIdentity({id:'rank-repeat',date:addDate(date,5)});state.projects[0].taskOrder.push(window.otherOccurrence);save();window.detachedRank=savePlannedTask(findTask('rank-repeat',date),{...findTask('rank-repeat',date),date:addDate(date,1)});`);
+  assert.notEqual(run('window.detachedRank.id'), 'rank-repeat');
+  assert.equal(run('state.projects[0].taskOrder[1]'), run('taskIdentity(window.detachedRank)'));
+  assert.equal(run('state.projects[0].taskOrder.includes(window.oldOccurrence)'), false);
+  assert.equal(run('state.projects[0].taskOrder.includes(window.otherOccurrence)'), true);
+  const rankedBackup = run('JSON.stringify(state)');
+  run('state=JSON.parse('+JSON.stringify(rankedBackup)+');save();validate(state);render()');
+  assert.equal(run('state.projects[0].taskOrder[1]'), run('taskIdentity(window.detachedRank)'));
   assert.deepEqual(errors, []);
   console.log(
     'PASS: project workspace navigation, searchable nested paths, session expansion/scroll, local reorder, CRUD/import preservation and safe unlink deletion',

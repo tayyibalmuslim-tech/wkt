@@ -677,6 +677,17 @@ function savePlannedTask(original, next, progress = null, persist = true) {
           child.parentName = item.name;
           child.parentDate = item.date || '';
         }
+    // Project ranks identify occurrences by both ID and date. Moving a task
+    // (or detaching a recurring occurrence) must carry its saved rank with it.
+    if (original) {
+      const oldKey = taskIdentity(original), newKey = taskIdentity(item);
+      if (oldKey !== newKey)
+        for (const project of state.projects || [])
+          if (project.taskOrder?.includes(oldKey))
+            project.taskOrder = [...new Set(project.taskOrder.map(
+              (key) => key === oldKey ? newKey : key,
+            ))];
+    }
     if (persist) save();
     return item;
   } catch (error) {
