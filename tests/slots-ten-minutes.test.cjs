@@ -51,7 +51,7 @@ let authListener;
 const refs=new Map();
 const db={ref(path){if(!refs.has(path))refs.set(path,{on(event,cb){this.cb=cb},off(){}});return refs.get(path)}};
 w.firebase={initializeApp(){},auth(){return {onAuthStateChanged(cb){authListener=cb}}},database(){return db}};
-run(fs.readFileSync(root+'sync.js','utf8'));
+run(fs.readFileSync(root+'sync-merge.js','utf8')+'\n'+fs.readFileSync(root+'sync.js','utf8'));
 authListener({uid:'slot-migration-test',email:'test@example.com'});
 refs.get('waqti/users/slot-migration-test').cb({val:()=>({revision:1,payload:JSON.stringify(w.cloudOld)})});
 assert.equal(run('state.slotMinutes'),10);
