@@ -57,12 +57,19 @@ try {
   run(
     `state.sunsetDays={};state.repeat=[];state.projects=[{id:'a',name:'أ'}];state.taskInbox=[{id:'first',name:'المهمة الأولى',projectId:'a'}];view='projects';selectedProject='';render();`,
   );
-  assert.equal($('#toggleTaskSelection'), null);
+  assert.equal($('#toggleTaskSelection').disabled, true);
+  assert.equal($('#toggleTaskSelection').textContent, 'تحديد عدة مهام');
   $('#projectNavigation [data-project="a"]').click();
   assert.ok(
     $('#toggleTaskSelection'),
     'bulk-selection button appears when first choosing a populated project',
   );
+  assert.equal($('#toggleTaskSelection').disabled, false);
+  $('#projectSearch').value = 'بحث لا يطابق أي مهمة';
+  $('#projectSearch').dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal($('#toggleTaskSelection').disabled, true);
+  $('#clearProjectSearch').click();
+  assert.equal($('#toggleTaskSelection').disabled, false);
   $('#toggleTaskSelection').click();
   assert.equal(
     w.document.querySelectorAll('#projectTaskList [data-select-task]').length,

@@ -1210,6 +1210,7 @@ function renderProjectTaskList(context = undefined) {
     $('#clearProjectSearch').hidden = !ui.query;
     bindTaskCards(root);
     bindProjectTaskOrder(root, project, model.roots);
+    installTaskSelection();
   })();
 }
 function expandProjectTasks(open) {
@@ -1264,9 +1265,6 @@ function selectProject(id) {
     selectedProject = id;
     updateProjectNavigation();
     renderProjectDetails();
-    // Project navigation updates the task list without calling the main render().
-    // Reinstall bulk selection so the button appears after the first project is picked.
-    installTaskSelection();
   })();
 }
 function updateProjectNavigation() {
