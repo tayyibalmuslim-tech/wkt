@@ -68,6 +68,38 @@ try {
   assert.match(groupB.querySelector('.period-family-heading').textContent, /مهمة رئيسية/);
   assert.match(groupA.querySelector('.period-family-heading').textContent, /أصل محذوف/);
   assert.equal(groupB.querySelector('img'), null, 'parent names are escaped');
+
+  // The all-day list must use the same two-level grouping, including other prayers.
+  const dayRows = (selector) => [
+    ...w.document.querySelectorAll('#allDayTaskCards ' + selector),
+  ];
+  const allDayGroups = dayRows('.period-action-group');
+  assert.equal(allDayGroups.length, 3, 'all-day groups by linked action too');
+  const allDayA = allDayGroups.find((section) =>
+    section.querySelector('.period-action-heading').textContent.includes(run('state.actions[0].name')));
+  const allDayB = allDayGroups.find((section) =>
+    section.querySelector('.period-action-heading').textContent.includes(run('state.actions[1].name')));
+  const allDayUnlinked = allDayGroups.find((section) =>
+    section.querySelector('.period-action-heading').textContent.includes('بدون فعل مرتبط'));
+  assert.ok(allDayA && allDayB && allDayUnlinked);
+  assert.deepEqual(
+    dayRows('.task-row').map((row) => row.dataset.taskId).sort(),
+    ['root', 'child-same', 'child-other', 'independent', 'no-action', 'orphan', 'different-period'].sort(),
+    'every task appears exactly once in the all-day list',
+  );
+  assert.ok(inGroup(allDayA, 'different-period'), 'all-day section includes tasks from other prayers');
+  assert.ok(inGroup(allDayA, 'child-same').closest('.period-task-family'));
+  assert.ok(allDayA.querySelector('.period-family-root [data-task-id="root"]'));
+  assert.ok(inGroup(allDayB, 'child-other').closest('.period-task-family'));
+  assert.equal(inGroup(allDayB, 'root'), null, 'parent is a heading rather than a duplicated actionable task');
+  assert.match(allDayB.querySelector('.period-family-heading').textContent, /مهمة رئيسية/);
+  assert.ok(inGroup(allDayUnlinked, 'no-action'));
+  assert.equal(allDayB.querySelector('img'), null, 'all-day parent labels are escaped');
+  assert.ok(inGroup(allDayB, 'child-other').querySelector('[data-progress]'));
+  assert.ok(inGroup(allDayB, 'child-other').querySelector('[data-task-edit]'));
+  assert.ok(inGroup(allDayB, 'child-other').querySelector('[data-outcome="failed"]'));
+  inGroup(allDayA, 'different-period').querySelector('[data-outcome="done"]').click();
+  assert.equal(run("outcome(findTask('different-period',date))"), 'done');
   assert.ok(inGroup(groupB, 'child-other').querySelector('[data-outcome="done"]'));
   inGroup(groupB, 'child-other').querySelector('[data-outcome="done"]').click();
   assert.equal(run("outcome(findTask('child-other',date))"), 'done');
