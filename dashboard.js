@@ -1042,6 +1042,8 @@ function groupedPlannerTasks(list) {
     plannerProjectTabs[plannerTab] = available[0]?.id || '';
   const selected = plannerProjectTabs[plannerTab],
     cards = (tasks, projectId = '') => {
+      if (plannerTab === 'missed')
+        return tasks.length ? renderPeriodTaskGroups(tasks) : '';
       const context = projectId
         ? {
             ...(dashboardRowContext || {}),
@@ -1057,9 +1059,7 @@ function groupedPlannerTasks(list) {
             keys.has(taskIdentity(t)),
           )
         : taskGroups(tasks);
-      return plannerTab === 'missed'
-        ? renderPeriodTaskGroups(tasks, 'لا توجد مهام فائتة تطابق التصفية.')
-        : roots.map((t) => taskCard(t, context)).join('');
+      return roots.map((t) => taskCard(t, context)).join('');
     };
   return `<section class="planner-task-section" data-planner-section="projects"><h2>مهام المشاريع</h2>${available.length ? `<div class="planner-tabs" role="group" aria-label="مشاريع المهام">${available.map((p) => `<button type="button" class="secondary ${p.id === selected ? 'chosen' : ''}" data-planner-project="${esc(p.id)}" aria-pressed="${p.id === selected}">${esc(p.name)} (${taskGroups(byProject.get(p.id)).length})</button>`).join('')}</div><div class="planner-project-tasks">${cards(byProject.get(selected), selected)}</div>` : '<p class="empty-note">لا توجد مهام تابعة لمشاريع تطابق التصفية.</p>'}</section>
  <section class="planner-task-section" data-planner-section="unassigned"><h2>مهام بدون مشروع (${taskGroups(unassigned).length})</h2>${cards(unassigned) || '<p class="empty-note">لا توجد مهام بدون مشروع تطابق التصفية.</p>'}</section>`;
