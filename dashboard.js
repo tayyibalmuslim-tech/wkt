@@ -65,7 +65,9 @@ function installTaskSelection() {
   }
   if (
     !['projects', 'dashboard'].includes(view) ||
-    (view !== 'projects' && !app.querySelector('.task-row'))
+    (view !== 'projects' &&
+      !app.querySelector('.task-row') &&
+      !app.querySelector('#plannerSearch'))
   ) {
     refreshTaskSelection();
     return;
@@ -1234,6 +1236,7 @@ function renderDashboard() {
             openPrayer();
           }),
       );
+      installTaskSelection();
     });
     $('#plannerSearch').oninput = (e) => {
       plannerQuery = e.target.value;
@@ -1276,6 +1279,7 @@ function renderDashboard() {
     plannerListRefresh = refresh;
     refresh();
   }
+  installTaskSelection();
   const position = dashboardPositions.get(mountedDashboard);
   if (position) {
     app.scrollTop = position.app;
