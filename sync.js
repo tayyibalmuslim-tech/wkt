@@ -404,6 +404,7 @@
     remote = null;
     error = '';
     authReady = true;
+    if (view === 'followUp') FollowUp.render();
     editSequence = 0;
     if (!u) {
       if (apply(readGuest())) persist();
@@ -765,6 +766,7 @@
   }
   window.WaqtiSync = {
     changed,
+    referenceOwner: () => authReady ? (user?.uid || 'guest') : null,
     renderAccount,
     canExport: () => authReady && (!user || ready || hasCachedData),
   };

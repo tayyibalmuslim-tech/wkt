@@ -74,14 +74,17 @@ function toast(s) {
   setTimeout(() => ($('#toast').style.display = 'none'), 2300);
 }
 
-function downloadBackup() {
+function downloadBackup(includeReference = false) {
   if (window.WaqtiSync?.canExport && !window.WaqtiSync.canExport()) {
     toast('انتظر تحميل بيانات الحساب قبل تصديرها');
     return false;
   }
   let url = null;
   try {
-    const payload = JSON.stringify(state, null, 2);
+    const exported = { ...state };
+    delete exported.followUpReference;
+    if (includeReference === true) exported.followUpReference = FollowUp.backup();
+    const payload = JSON.stringify(exported, null, 2);
     if (!payload) throw Error('Empty backup');
     const now = new Date(),
       stamp =
@@ -173,12 +176,13 @@ function render() {
   if (more)
     more.classList.toggle(
       'has-current',
-      ['actions', 'repeat', 'settings', 'account'].includes(view),
+      ['actions', 'repeat', 'settings', 'account', 'followUp'].includes(view),
     );
   ({
     day: renderDay,
     dashboard: renderDashboard,
     projects: renderProjects,
+    followUp: () => FollowUp.render(),
     actions: renderActions,
     repeat: renderRepeat,
     settings: renderSettings,
@@ -721,6 +725,9 @@ function renderSettings() {
     try {
       let s = JSON.parse(await f.text());
       validate(s);
+      const reference = s.followUpReference
+        ? FollowUp.validate(s.followUpReference) : null;
+      delete s.followUpReference;
       if (!confirm('استبدال البيانات الحالية بهذه النسخة؟')) return;
       state = s;
       prayerCache.clear();
@@ -733,6 +740,10 @@ function renderSettings() {
       save();
       render();
       toast('تم استيراد البيانات');
+      if (reference) {
+        view = 'followUp';
+        FollowUp.preview(reference);
+      }
     } catch {
       toast('ملف النسخة غير صالح');
     }
