@@ -5114,3 +5114,77 @@ main > header {
 .task-transfer-history ol, .task-transfer-history ul { padding-inline-start: 20px; max-height: 220px; overflow: auto; }
 .task-transfer-history li { margin-block: 6px; }
 .task-transfer-history small { display: block; overflow-wrap: anywhere; }
+
+/* In "My Day", group period tasks by action, then by their parent task. */
+#dailyTaskCards .period-action-group {
+  min-width: 0;
+  margin-block: 10px 14px;
+}
+#dailyTaskCards .period-action-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 0 4px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+#dailyTaskCards .period-action-heading > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#dailyTaskCards .period-action-count {
+  flex: 0 0 auto;
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+#dailyTaskCards .period-action-tasks {
+  min-width: 0;
+}
+#dailyTaskCards .period-task-family {
+  min-width: 0;
+  margin-block: 6px;
+  border-inline-start: 2px solid var(--color-border);
+  padding-inline-start: 9px;
+}
+#dailyTaskCards .period-family-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px 4px;
+  min-width: 0;
+  font-size: var(--font-sm);
+}
+#dailyTaskCards .period-family-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#dailyTaskCards .period-family-heading span {
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+#dailyTaskCards .period-family-root {
+  min-width: 0;
+  background: color-mix(in srgb, var(--color-brand-soft) 35%, transparent);
+}
+#dailyTaskCards .period-family-children {
+  min-width: 0;
+  margin-inline-start: 9px;
+}
+#dailyTaskCards .period-family-children .row-parent {
+  display: none;
+}
+@media (max-width: 650px) {
+  #dailyTaskCards .period-task-family {
+    padding-inline-start: 5px;
+  }
+  #dailyTaskCards .period-family-children {
+    margin-inline-start: 5px;
+  }
+}
