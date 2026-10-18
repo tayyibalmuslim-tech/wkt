@@ -5116,11 +5116,11 @@ main > header {
 .task-transfer-history small { display: block; overflow-wrap: anywhere; }
 
 /* In "My Day", use the same action/parent grouping in the period and all-day lists. */
-:is(#dailyTaskCards, #allDayTaskCards) .period-action-group {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-action-group {
   min-width: 0;
   margin-block: 10px 14px;
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-action-heading {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-action-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5134,25 +5134,25 @@ main > header {
   font-size: var(--font-sm);
   font-weight: 700;
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-action-heading > span:first-child {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-action-heading > span:first-child {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-action-count {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-action-count {
   flex: 0 0 auto;
   font-size: var(--font-xs);
   color: var(--color-secondary);
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-action-tasks {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-action-tasks {
   min-width: 0;
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-task-family {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-task-family {
   min-width: 0;
   margin-block: 6px;
   border-inline-start: 2px solid var(--color-border);
   padding-inline-start: 9px;
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-family-heading {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-family-heading {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -5160,31 +5160,31 @@ main > header {
   min-width: 0;
   font-size: var(--font-sm);
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-family-heading strong {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-family-heading strong {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-family-heading span {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-family-heading span {
   flex-shrink: 0;
   font-size: var(--font-xs);
   color: var(--color-secondary);
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-family-root {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-family-root {
   min-width: 0;
   background: color-mix(in srgb, var(--color-brand-soft) 35%, transparent);
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-family-children {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-family-children {
   min-width: 0;
   margin-inline-start: 9px;
 }
-:is(#dailyTaskCards, #allDayTaskCards) .period-family-children .row-parent {
+:is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-family-children .row-parent {
   display: none;
 }
 @media (max-width: 650px) {
-  :is(#dailyTaskCards, #allDayTaskCards) .period-task-family {
+  :is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-task-family {
     padding-inline-start: 5px;
   }
-  :is(#dailyTaskCards, #allDayTaskCards) .period-family-children {
+  :is(#dailyTaskCards, #allDayTaskCards, #plannerResults) .period-family-children {
     margin-inline-start: 5px;
   }
 }
