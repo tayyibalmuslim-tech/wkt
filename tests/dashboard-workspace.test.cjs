@@ -47,6 +47,24 @@ try {
   run(
     `state.sunsetDays={};state.repeat=[];state.projects=[{id:'a',name:'ألف'},{id:'b',name:'باء'}];state.taskInbox=Array.from({length:40},(_,i)=>({id:'task-'+i,name:'مهمة '+i,priority:i%5+1,projectId:i<15?'a':i<30?'b':''}));state.taskInbox.push({id:'root',name:'أصل',projectId:'a'},{id:'child',name:'فرع',parentId:'root',parentDate:''},{id:'deep',name:'عبارة فريدة',parentId:'child',parentDate:''});view='dashboard';plannerTab='inbox';plannerProject=plannerPriority=plannerStatus='all';plannerQuery='';expandedTaskRows.clear();render();`,
   );
+  $('[data-planner-tab="day"]').click();
+  assert.ok($('#toggleTaskSelection'), 'empty day retains the selection button');
+  assert.equal($('#toggleTaskSelection').disabled, true);
+  $('[data-planner-tab="missed"]').click();
+  assert.ok($('#toggleTaskSelection'), 'empty missed tab retains the selection button');
+  $('[data-planner-tab="inbox"]').click();
+  assert.ok($('#toggleTaskSelection'), 'direct tab navigation reinstalls selection');
+  assert.equal($('#toggleTaskSelection').disabled, false);
+  $('#toggleTaskSelection').click();
+  assert.ok($('#transferSelectedTasks'), 'bulk transfer toolbar survives tab navigation');
+  assert.ok($('[data-select-task]'));
+  $('#toggleTaskSelection').click();
+  change('#plannerSearch', 'لا توجد مهمة بهذا الاسم', 'input');
+  assert.ok($('#toggleTaskSelection'), 'filtering to zero does not hide selection');
+  assert.equal($('#toggleTaskSelection').disabled, true);
+  change('#plannerSearch', '', 'input');
+  assert.equal($('#toggleTaskSelection').disabled, false);
+  assert.equal(w.document.querySelectorAll('#toggleTaskSelection').length, 1);
   assert.equal(row('child'), null, 'closed descendants are not drawn');
   assert.equal(
     $('[data-planner-section="unassigned"]').querySelectorAll('.task-row')
