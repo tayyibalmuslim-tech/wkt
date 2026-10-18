@@ -932,7 +932,7 @@ function dashboardTaskCard(task) {
   return taskCard(task, dashboardRowContext);
 }
 function dashboardFilterContext(list) {
-  if (!plannerQuery.trim()) return null;
+  if (!plannerQuery.trim() && plannerTab !== 'missed') return null;
   const visible = new Set(list.map(taskIdentity)),
     forced = new Set();
   for (const task of list) {

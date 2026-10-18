@@ -133,6 +133,45 @@ try {
   assert.equal(row('past-a'), null, 'resolved missed task leaves backlog');
   $('[data-planner-tab="future"]').click();
   assert.ok(row('future-a'));
+  // Missed families show only overdue pending descendants and their ancestor path,
+  // even with no search query, including lazy re-opening and result updates.
+  run(`state.sunsetDays={};state.repeat=[];state.taskInbox=[
+    {id:'missed-root',name:'الأصل',projectId:'a'},
+    {id:'missed-middle',name:'الفرع الوسيط',parentId:'missed-root',parentDate:''},
+    {id:'undated-sibling',name:'غير موزعة',parentId:'missed-root',parentDate:''},
+    {id:'free-root',name:'أصل مستقل'}
+  ];const yesterday=addDate(activeDay(),-1),tomorrow=addDate(activeDay(),1);
+  taskDay(yesterday).tasks=[
+    {id:'overdue-child',name:'فرع فائت',parentId:'missed-root',parentDate:''},
+    {id:'overdue-deep',name:'فائت عميق',parentId:'missed-middle',parentDate:''},
+    {id:'done-sibling',name:'فرع منجز',parentId:'missed-root',parentDate:''},
+    {id:'failed-sibling',name:'لم ينجز وسجل',parentId:'missed-root',parentDate:''},
+    {id:'free-overdue',name:'فائت مستقل',parentId:'free-root',parentDate:''}
+  ];taskDay(yesterday).done['done-sibling']=true;
+  (taskDay(yesterday).failed??={})['failed-sibling']=true;
+  taskDay(tomorrow).tasks=[
+    {id:'future-sibling',name:'مستقبلية',parentId:'missed-root',parentDate:''},
+    {id:'future-deep',name:'مستقبلية عميقة',parentId:'missed-middle',parentDate:''}
+  ];plannerTab='missed';plannerQuery='';plannerPriority=plannerStatus=plannerProject='all';expandedTaskRows.clear();save();render();`);
+  assert.ok(row('missed-root'));
+  assert.ok(row('overdue-child'));
+  assert.ok(row('missed-middle'));
+  assert.ok(row('overdue-deep'));
+  assert.ok(row('free-root'));
+  assert.ok(row('free-overdue'));
+  for (const id of ['undated-sibling','done-sibling','failed-sibling','future-sibling','future-deep'])
+    assert.equal(row(id),null,'non-missed sibling hidden: '+id);
+  own(row('missed-root'),'[data-task-toggle]').click();
+  assert.equal(row('overdue-child'),null);
+  own(row('missed-root'),'[data-task-toggle]').click();
+  assert.ok(row('overdue-child'));
+  assert.equal(row('future-sibling'),null,'lazy reopen retains missed filter');
+  own(row('overdue-child'),'[data-outcome="done"]').click();
+  assert.equal(row('overdue-child'),null,'completed child disappears immediately');
+  assert.ok(row('overdue-deep'));
+  own(row('overdue-deep'),'[data-outcome="done"]').click();
+  assert.equal(row('missed-root'),null,'family disappears once no missed children remain');
+  assert.ok(row('free-overdue'),'other missed families are preserved');
   assert.deepEqual(errors, []);
   console.log(
     'PASS: dashboard mixed lists, lazy nested paths, project/priority/search filters, inline capture, real editor save and session scroll preservation',
@@ -140,3 +179,4 @@ try {
 } finally {
   dom.window.close();
 }
+
