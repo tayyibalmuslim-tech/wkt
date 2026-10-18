@@ -588,11 +588,10 @@ function appendExecution(record, kind, value, extra = {}) {
   };
   (record.executionEvents ??= {})[event.id] = event;
   record.executionHead = event.id;
-  if (value.date) taskDay(value.date);
   invalidateTaskReads();
   return executionProjection(record);
 }
-function transferTask(t, newDate, periods = taskPeriods(t)) {
+function transferTask(t, newDate, periods = taskPeriods(t), persist = true) {
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(newDate) ||
     Number.isNaN(Date.parse(newDate + 'T12:00:00Z')) ||
@@ -608,7 +607,7 @@ function transferTask(t, newDate, periods = taskPeriods(t)) {
   )
     throw Error('فترة غير صالحة.');
   assertCurrentExecution(t);
-  const snapshot = structuredClone(state);
+  const snapshot = persist ? structuredClone(state) : null;
   try {
     let record = t.executionBase
       ? executionRecord(t)
@@ -669,12 +668,59 @@ function transferTask(t, newDate, periods = taskPeriods(t)) {
       { from },
     );
     removeTaskSchedule(t.date, t.id);
-    save();
+    if (persist) save();
     return next;
   } catch (error) {
-    state = snapshot;
+    if (snapshot) state = snapshot;
     invalidateTaskReads();
     throw error;
+  }
+}
+// Work on a disposable snapshot and publish only the completed batch. Each task
+// keeps its own source day, identity, progress and transfer event.
+function bulkTransferSelectedTasks(
+  snapshot,
+  references,
+  newDate,
+  periods = null,
+) {
+  if (!references.length) throw Error('حدد مهام للنقل.');
+  const previous = state,
+    next = structuredClone(snapshot);
+  try {
+    state = next;
+    invalidateTaskReads();
+    const unique = [
+      ...new Map(
+        references.map((ref) => [
+          JSON.stringify([ref.id, ref.date || '']),
+          ref,
+        ]),
+      ).values(),
+    ];
+    for (const ref of unique) {
+      const task = findTask(ref.id, ref.date);
+      if (!task || task.historical)
+        throw Error('تغيرت بعض المهام؛ أعد تحديدها.');
+      if (!task.date)
+        throw Error(
+          'بعض المهام بلا تاريخ؛ حدد تاريخها أولًا أو أزلها من التحديد.',
+        );
+    }
+    for (const ref of unique) {
+      const task = findTask(ref.id, ref.date);
+      transferTask(
+        task,
+        newDate,
+        periods === null ? taskPeriods(task) : periods,
+        false,
+      );
+    }
+    validatePlanning(next);
+    return next;
+  } finally {
+    state = previous;
+    invalidateTaskReads();
   }
 }
 function undoTaskTransfer(t) {
@@ -969,14 +1015,20 @@ function completedSlots(t) {
 }
 function taskEntries() {
   return cachedTaskRead('entries', () => [
-    ...Object.keys(state.sunsetDays)
-      .sort()
-      .flatMap(allTasksOn)
-      .filter((t) => !t.historical),
-    ...(state.taskInbox || [])
-      .filter((t) => !t.executionBase)
-      .map((t) => ({ ...t, date: '' })),
-    ...(executionRows().get('') || []),
+    ...new Map(
+      [
+        ...Object.keys(state.sunsetDays)
+          .sort()
+          .flatMap(allTasksOn)
+          .filter((t) => !t.historical),
+        ...(state.taskInbox || [])
+          .filter((t) => !t.executionBase)
+          .map((t) => ({ ...t, date: '' })),
+        // Execution destinations need no empty day record. Creating one would also
+        // materialize unrelated native repeats and change project denominators.
+        ...[...executionRows().values()].flat().filter((t) => !t.historical),
+      ].map((t) => [taskIdentity(t), t]),
+    ).values(),
   ]);
 }
 function findTask(id, key) {

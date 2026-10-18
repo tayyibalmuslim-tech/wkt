@@ -139,6 +139,107 @@ module.exports = async function taskTransfersBrowser(browser, url) {
         ),
         true,
       );
+      // The selection-only bulk action fits phone widths and carries both tasks
+      // through the same transfer path with one destination and shared prayer.
+      await page.evaluate(() => {
+        state.projects = [{ id: 'bulk-browser', name: 'مشروع النقل' }];
+        setTaskProjects(
+          executionRecord(findTask('browser-transfer', activeDay())),
+          ['bulk-browser'],
+        );
+        savePlannedTask(null, {
+          id: 'browser-second',
+          name: 'المهمة الثانية',
+          date: activeDay(),
+          prayer: 1,
+          expectedSlots: 3,
+          projectId: 'bulk-browser',
+        });
+        recordTaskProgress(findTask('browser-second', activeDay()), 1);
+        view = 'projects';
+        selectedProject = 'bulk-browser';
+        save();
+        render();
+      });
+      await page.locator('#toggleTaskSelection').click();
+      assert.equal(
+        await page.locator('#transferSelectedTasks').isDisabled(),
+        true,
+      );
+      for (const id of ['browser-transfer', 'browser-second'])
+        await page
+          .locator(
+            `#projectDetails [data-task-id="${id}"] > .task-row-heading [data-select-task]`,
+          )
+          .check();
+      await page.locator('#transferSelectedTasks').click();
+      await page.locator('[data-bulk-transfer-tomorrow]').click();
+      await page
+        .locator('#selectedTasksTransferForm [name=transferPrayer]')
+        .selectOption('4');
+      assert.equal(
+        await page.locator('#selectedTasksTransfer').evaluate((e) => {
+          const r = e.getBoundingClientRect();
+          return (
+            r.left >= 0 &&
+            r.right <= innerWidth &&
+            e.scrollWidth <= e.clientWidth + 1
+          );
+        }),
+        true,
+      );
+      if (process.env.WKT_SCREENSHOTS_DIR)
+        await page.screenshot({
+          path: path.join(
+            process.env.WKT_SCREENSHOTS_DIR,
+            `bulk-transfer-${width}.png`,
+          ),
+        });
+      await page
+        .locator('#selectedTasksTransferForm button[type=submit]')
+        .click();
+      for (const id of ['browser-transfer', 'browser-second']) {
+        assert.equal(
+          await page.evaluate((id) => outcome(findTask(id, activeDay())), id),
+          'failed',
+        );
+        assert.equal(
+          await page.evaluate(
+            (id) => outcome(findTask(id, addDate(activeDay(), 1))),
+            id,
+          ),
+          'pending',
+        );
+        assert.equal(
+          await page.evaluate(
+            (id) => findTask(id, addDate(activeDay(), 1)).prayer,
+            id,
+          ),
+          4,
+        );
+      }
+      assert.equal(
+        await page.evaluate(() =>
+          completedSlots(findTask('browser-transfer', addDate(activeDay(), 1))),
+        ),
+        2,
+      );
+      assert.equal(
+        await page.evaluate(() =>
+          completedSlots(findTask('browser-second', addDate(activeDay(), 1))),
+        ),
+        1,
+      );
+      assert.equal(
+        await page.locator('#transferSelectedTasks').isDisabled(),
+        true,
+      );
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth + 1,
+        ),
+        true,
+      );
     }
     assert.deepEqual(errors, []);
     console.log(

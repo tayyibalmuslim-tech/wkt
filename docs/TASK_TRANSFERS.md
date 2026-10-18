@@ -70,6 +70,13 @@ deferred badge stays inline. Historical cards have no outcome/progress controls;
 their details show the destination and complete transfer history. Undo lives in
 the existing task editor.
 
+In multiple selection mode, `نقل` transfers all selected dated tasks in one saved
+snapshot. Users choose a common destination and either retain each task's own
+prayer periods or set a shared period. The operation validates and prepares a
+disposable copy first; an invalid member cancels the whole batch without saving.
+Undated tasks have no source day for a missed outcome and must first be dated or
+deselected. A stale dialog cannot overwrite changes made after it was opened.
+
 `npm test` covers ordinary/repeated transfers, partial progress, shared projects,
 independent children/parents, recurring occurrences, calendars, undo and rollback,
 manual/bulk edits, ordering, local reload, import validation, stale editors and
