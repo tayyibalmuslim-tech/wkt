@@ -324,6 +324,113 @@ assert.equal(
 );
 ra.close();
 rb.close();
+// Bulk transfer uses the same UI selection and publishes one complete snapshot.
+run(`state.sunsetDays={};state.taskInbox=[];state.repeat=[];
+state.projects=[{id:'bulk-p',name:'مشروع'},{id:'bulk-q',name:'مشترك'}];
+window.bd0=activeDay();window.bd1=addDate(bd0,-1);window.bd2=addDate(bd0,1);
+taskDay(bd0).tasks=[
+ {id:'bulk-a',name:'أ',prayer:0,expectedSlots:6,projectIds:['bulk-p','bulk-q']},
+ {id:'bulk-parent',name:'الأصل',prayer:0,projectId:'bulk-p'},
+ {id:'bulk-child',name:'الفرع',prayer:2,parentId:'bulk-parent',parentDate:bd0,expectedSlots:3},
+ {id:'bulk-sibling',name:'غير محدد',prayer:3,parentId:'bulk-parent',parentDate:bd0}
+];taskDay(bd1).tasks=[{id:'bulk-b',name:'ب',prayer:1,expectedSlots:4,projectId:'bulk-p'}];
+taskDay(bd0).taskProgress={'bulk-a':2,'bulk-child':1};taskDay(bd1).taskProgress={'bulk-b':1};
+state.repeat=[{id:'bulk-r',name:'متكررة',days:[0,1,2,3,4,5,6],prayer:4,expectedSlots:2,projectId:'bulk-p',startDate:bd0}];
+view='projects';selectedProject='bulk-p';expandedTaskRows.clear();save();render();`);
+click('#toggleTaskSelection');
+assert.equal($('#transferSelectedTasks').disabled, true);
+click(
+  '#projectDetails [data-task-id="bulk-parent"] > .task-row-heading [data-task-toggle]',
+);
+for (const id of ['bulk-a', 'bulk-b', 'bulk-child', 'bulk-r'])
+  click(
+    `#projectDetails [data-task-id="${id}"] > .task-row-heading [data-select-task]`,
+  );
+assert.equal(run('selectedTaskRefs.size'), 4);
+assert.equal($('#transferSelectedTasks').textContent, 'نقل');
+const beforeBulk = state(),
+  beforeBulkPercent = run("projectCompletion('bulk-p')");
+click('#transferSelectedTasks');
+click('[data-close-bulk-transfer]');
+assert.deepEqual(
+  state(),
+  beforeBulk,
+  'cancel never writes failure or transfer',
+);
+click('#transferSelectedTasks');
+$('#selectedTasksTransferForm').elements.transferDate.value = run('bd2');
+run(
+  "window.bulkWrites=0;window.WaqtiSync={changed(){window.bulkWrites++;localStorage.setItem('waqti-v1',JSON.stringify(state));}}",
+);
+submit('#selectedTasksTransferForm');
+assert.equal(run('bulkWrites'), 1, 'all selected tasks saved once');
+run('delete window.WaqtiSync');
+assert.equal(run('selectedTaskRefs.size'), 0);
+assert.equal(run("projectCompletion('bulk-p')"), beforeBulkPercent);
+for (const [id, from, prayer, slots] of [
+  ['bulk-a', 'bd0', 0, 2],
+  ['bulk-b', 'bd1', 1, 1],
+  ['bulk-child', 'bd0', 2, 1],
+]) {
+  assert.equal(run(`outcome(findTask('${id}',${from}))`), 'failed');
+  assert.equal(run(`outcome(findTask('${id}',bd2))`), 'pending');
+  assert.equal(run(`findTask('${id}',bd2).prayer`), prayer);
+  assert.equal(run(`completedSlots(findTask('${id}',bd2))`), slots);
+}
+assert.equal(run("findTask('bulk-parent',bd0).historical"), undefined);
+assert.equal(run("findTask('bulk-sibling',bd0).historical"), undefined);
+assert.equal(run("parentTask(findTask('bulk-child',bd2)).id"), 'bulk-parent');
+assert.equal(
+  run(
+    "allTasksOn(bd2).filter(t=>t.id==='bulk-r'||t.detachedFrom==='bulk-r').length",
+  ),
+  2,
+);
+const bulkSaved = client(JSON.parse(w.localStorage.getItem('waqti-v1')));
+assert.equal(
+  bulkSaved.run("taskEntries().filter(t=>t.id==='bulk-a').length"),
+  1,
+);
+bulkSaved.close();
+// A later invalid item rolls back earlier temporary transfers, without any save.
+run(
+  "savePlannedTask(findTask('bulk-b',bd2),{...findTask('bulk-b',bd2),date:addDate(bd2,1)});window.atomicBefore=JSON.stringify(state)",
+);
+assert.throws(() =>
+  run(
+    "bulkTransferSelectedTasks(state,[{id:'bulk-a',date:bd2},{id:'bulk-b',date:addDate(bd2,1)}],addDate(bd2,1))",
+  ),
+);
+assert.equal(run('JSON.stringify(state)'), run('atomicBefore'));
+// Explicit prayer changes and duplicate references retain one task and one event.
+run(
+  "state=bulkTransferSelectedTasks(state,[{id:'bulk-a',date:bd2},{id:'bulk-a',date:bd2},{id:'bulk-child',date:bd2}],addDate(bd2,2),[4]);save()",
+);
+assert.equal(run("findTask('bulk-a',addDate(bd2,2)).prayer"), 4);
+assert.equal(
+  run(
+    "executionChain(findTask('bulk-a',addDate(bd2,2))).filter(e=>e.kind==='transfer').length",
+  ),
+  2,
+);
+// Reject undated members and stale open dialogs rather than silently skipping work.
+run(
+  "state.taskInbox.push({id:'bulk-undated',name:'بلا موعد'});save();window.atomicBefore=JSON.stringify(state)",
+);
+assert.throws(() =>
+  run(
+    "bulkTransferSelectedTasks(state,[{id:'bulk-child',date:addDate(bd2,2)},{id:'bulk-undated',date:''}],addDate(bd2,3))",
+  ),
+);
+assert.equal(run('JSON.stringify(state)'), run('atomicBefore'));
+run(
+  "selectedTaskRefs.clear();selectedTaskRefs.set('a',{id:'bulk-a',date:addDate(bd2,2)});taskSelectionState=state;openSelectedTaskTransfer();recordTaskProgress(findTask('bulk-a',addDate(bd2,2)),3);save();window.atomicBefore=JSON.stringify(state)",
+);
+submit('#selectedTasksTransferForm');
+assert.match($('[data-bulk-transfer-error]').textContent, /تغيرت/);
+assert.equal(run('JSON.stringify(state)'), run('atomicBefore'));
+click('[data-close-bulk-transfer]');
+run('validate(state)');
 console.log(
   'Task transfers: UI, history, slots, projects, subtasks, recurrence, undo, offline reload, concurrent merge passed',
 );

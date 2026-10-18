@@ -51,6 +51,8 @@ function refreshTaskSelection() {
   if (edit) edit.disabled = !selectedTaskRefs.size;
   const remove = $('#deleteSelectedTasks');
   if (remove) remove.disabled = !selectedTaskRefs.size;
+  const transfer = $('#transferSelectedTasks');
+  if (transfer) transfer.disabled = !selectedTaskRefs.size;
 }
 function installTaskSelection() {
   if (
@@ -112,7 +114,7 @@ function installTaskSelection() {
     toolbar.id = 'taskSelectionToolbar';
     toolbar.className = 'task-selection-toolbar';
     toolbar.innerHTML =
-      '<span id="selectedTaskCount" role="status"></span><button type="button" id="selectVisibleTasks">تحديد الظاهر</button><button type="button" id="clearSelectedTasks">مسح التحديد</button><button type="button" id="editSelectedTasks" class="primary">تعديل المحدد</button><button type="button" id="deleteSelectedTasks" class="secondary">حذف المحدد</button>';
+      '<span id="selectedTaskCount" role="status"></span><button type="button" id="selectVisibleTasks">تحديد الظاهر</button><button type="button" id="clearSelectedTasks">مسح التحديد</button><button type="button" id="editSelectedTasks" class="primary">تعديل المحدد</button><button type="button" id="transferSelectedTasks" class="secondary" title="تسجيل عدم الإنجاز ونقل المحدد">نقل</button><button type="button" id="deleteSelectedTasks" class="secondary">حذف المحدد</button>';
     app.querySelector('.top').after(toolbar);
     $('#selectVisibleTasks').onclick = () => {
       app.querySelectorAll('[data-select-task]').forEach((input) => {
@@ -133,6 +135,7 @@ function installTaskSelection() {
       refreshTaskSelection();
     };
     $('#editSelectedTasks').onclick = openSelectedTaskEditor;
+    $('#transferSelectedTasks').onclick = openSelectedTaskTransfer;
     $('#deleteSelectedTasks').onclick = deleteSelectedTasks;
   }
   if (!taskSelectionMode) toolbar?.remove();
@@ -152,6 +155,80 @@ function installTaskSelection() {
     });
   }
   refreshTaskSelection();
+}
+function openSelectedTaskTransfer() {
+  const references = [...selectedTaskRefs.values()],
+    originalState = state;
+  if (!references.length) return;
+  const signature = () =>
+    JSON.stringify(
+      references.map((ref) => {
+        const task = findTask(ref.id, ref.date);
+        return task
+          ? { task, outcome: outcome(task), slots: completedSlots(task) }
+          : null;
+      }),
+    );
+  if (taskSelectionState !== state) {
+    toast('تغيرت البيانات أو الحساب؛ أعد تحديد المهام.');
+    return;
+  }
+  const tasks = references.map((ref) => findTask(ref.id, ref.date));
+  if (tasks.some((t) => !t || t.historical)) {
+    toast('تغيرت بعض المهام؛ أعد تحديدها.');
+    return;
+  }
+  if (tasks.some((t) => !t.date)) {
+    toast('بعض المهام بلا تاريخ؛ حدد تاريخها أولًا أو أزلها من التحديد.');
+    return;
+  }
+  const captured = signature(),
+    latest = tasks
+      .map((t) => t.date)
+      .sort()
+      .at(-1);
+  let dialog = $('#selectedTasksTransfer');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'selectedTasksTransfer';
+    document.body.append(dialog);
+  }
+  dialog.setAttribute('aria-labelledby', 'selectedTransferTitle');
+  dialog.innerHTML = `<div class="dialog-head"><h2 id="selectedTransferTitle">نقل ${tasks.length} مهمة</h2><button type="button" data-close-bulk-transfer aria-label="إغلاق">×</button></div><p class="hint">يُسجّل عدم الإنجاز في الأيام الأصلية، وتُنقل المهام مع تقدمها وسجلها.</p><form id="selectedTasksTransferForm"><label class="field">اليوم الجديد<input type="date" name="transferDate" required min="${addDate(latest, 1)}" value="${addDate(latest > activeDay() ? latest : activeDay(), 1)}"></label><button type="button" data-bulk-transfer-tomorrow>غدًا</button><label class="field">الفترة<select name="transferPrayer"><option value="keep">نفس فترة كل مهمة</option><option value="none">بدون فترة</option>${names.map((name, p) => `<option value="${p}">${name}</option>`).join('')}</select></label><p data-bulk-transfer-error role="alert"></p><div class="selected-tasks-actions"><button type="submit" class="primary">نقل</button><button type="button" data-close-bulk-transfer>إلغاء</button></div></form>`;
+  dialog
+    .querySelectorAll('[data-close-bulk-transfer]')
+    .forEach((b) => (b.onclick = () => dialog.close()));
+  dialog.querySelector('[data-bulk-transfer-tomorrow]').onclick = () => {
+    dialog.querySelector('[name=transferDate]').value = addDate(activeDay(), 1);
+  };
+  dialog.querySelector('form').onsubmit = (event) => {
+    event.preventDefault();
+    try {
+      if (state !== originalState || signature() !== captured)
+        throw Error('تغيرت المهام أو الحساب؛ أغلق النافذة وأعد التحديد.');
+      const f = event.currentTarget.elements,
+        p = f.transferPrayer.value;
+      const next = bulkTransferSelectedTasks(
+        state,
+        references,
+        f.transferDate.value,
+        p === 'keep' ? null : p === 'none' ? [] : [+p],
+      );
+      rememberProjectView();
+      rememberDashboardPosition();
+      state = next;
+      taskSelectionState = state;
+      selectedTaskRefs.clear();
+      save();
+      dialog.close();
+      render();
+      toast(`تم نقل ${tasks.length} مهمة وحفظ عدم الإنجاز`);
+    } catch (error) {
+      dialog.querySelector('[data-bulk-transfer-error]').textContent =
+        error.message;
+    }
+  };
+  dialog.showModal();
 }
 function deleteSelectedTasks() {
   const references = [...selectedTaskRefs.values()],

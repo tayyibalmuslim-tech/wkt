@@ -5104,7 +5104,7 @@ main > header {
 }
 
 /* Transfer choices live in a dialog; task rows keep their existing height. */
-#taskTransfer, #taskHistory { width: min(420px, calc(100vw - 24px)); }
+#taskTransfer, #taskHistory, #selectedTasksTransfer { width: min(420px, calc(100vw - 24px)); }
 .task-failure-options { display: flex; gap: 8px; }
 [data-transfer-form]:not([hidden]) { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
 [data-transfer-form] .field { flex: 1 1 130px; }
