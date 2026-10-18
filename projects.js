@@ -406,7 +406,14 @@ function projectTaskRecords(snapshot, projectId) {
   const records = [],
     add = (tasks, key = '', scheduled = false) => {
       for (const task of tasks || [])
-        records.push({ task, key, scheduled, entry: { ...task, date: key } });
+        records.push({
+          task,
+          key,
+          scheduled,
+          entry: task.executionBase
+            ? executionProjection(task)
+            : { ...task, date: key },
+        });
     };
   add(snapshot.taskInbox);
   add(snapshot.repeat);
@@ -512,6 +519,7 @@ function bulkUpdateSelectedTasks(snapshot, references, patch) {
         ).values(),
       ];
       const record = (task) => {
+        if (task.executionBase) return executionRecord(task);
         if (!task.date) return next.taskInbox.find((t) => t.id === task.id);
         const day = taskDay(task.date),
           stored = day.tasks.find((t) => t.id === task.id);
@@ -573,7 +581,9 @@ function bulkUpdateSelectedTasks(snapshot, references, patch) {
       for (const { task: reference, values, moved, reschedule } of edits) {
         invalidateTaskReads();
         const task = findTask(reference.id, reference.date);
-        if (moved) {
+        if (task.executionBase) {
+          savePlannedTask(task, { ...task, ...values }, null, false);
+        } else if (moved) {
           const target = { ...task, ...values };
           // Detached copies may share a series id on different days. Moving one
           // must not overwrite the series occurrence at its destination.
@@ -726,7 +736,7 @@ function bulkUpdateProjectTasks(snapshot, projectId, patch) {
   const reschedule = records.filter(
     (r) =>
       r.scheduled &&
-      r.task.startSlot != null &&
+      r.entry.startSlot != null &&
       fields.some(
         (key) =>
           ['expectedSlots', 'actionId'].includes(key) &&
@@ -739,8 +749,23 @@ function bulkUpdateProjectTasks(snapshot, projectId, patch) {
   try {
     state = next;
     invalidateTaskReads();
-    for (const r of reschedule) removeTaskSchedule(r.key, r.task.id);
-    for (const r of reschedule) {
+    for (const r of records.filter((r) => r.task.executionBase)) {
+      const item = executionProjection(r.task);
+      saveExecutionTask(
+        r.entry,
+        {
+          ...item,
+          ...patch,
+          startSlot:
+            !r.task.actionId || !r.task.expectedSlots ? null : item.startSlot,
+        },
+        null,
+        false,
+      );
+    }
+    for (const r of reschedule.filter((r) => !r.task.executionBase))
+      removeTaskSchedule(r.key, r.task.id);
+    for (const r of reschedule.filter((r) => !r.task.executionBase)) {
       if (!r.task.actionId || !r.task.expectedSlots) r.task.startSlot = null;
       else scheduleTask({ ...r.task, date: r.key }, r.task.startSlot);
     }

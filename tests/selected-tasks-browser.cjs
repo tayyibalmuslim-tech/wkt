@@ -375,7 +375,7 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       );
       assert.deepEqual(
         await page.evaluate(() => ['a', 'b', 'c', 'd'].map(projectCompletion)),
-        [12.5, 50, 0, 50],
+        [0, 50, 0, 50], // A has no remaining project-owned leaves after the override.
       );
       if (width > 1050)
         await page.locator('#projectNavigation [data-project=b]').click();
@@ -583,3 +583,4 @@ module.exports = async function selectedTasksBrowser(browser, url) {
     await page.close();
   }
 };
+

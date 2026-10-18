@@ -64,7 +64,10 @@ class Hub {
           return;
         }
         if (next === undefined) {
-          resolve({ committed: false, snapshot: snapshot(initial) });
+          resolve({
+            committed: false,
+            snapshot: snapshot(this.records.get(uid) || null),
+          });
           return;
         }
         assert.equal(next.revision, (this.records.get(uid)?.revision || 0) + 1);
@@ -370,29 +373,53 @@ async function pump(hub, clients, limit = 30) {
   a.w.run("view='projects';selectedProject='p';render();");
   const inline = a.w.document.querySelector('#projectTaskList [data-progress]');
   inline.focus();
-  hub.publish('same-account', (s) => { s.taskInbox[0].description = 'Remote while focused'; });
+  hub.publish('same-account', (s) => {
+    s.taskInbox[0].description = 'Remote while focused';
+  });
   assert.equal(a.w.document.activeElement, inline);
   inline.value = '1';
   inline.dispatchEvent(new a.w.Event('change', { bubbles: true }));
   await pump(hub, [a, reloaded]);
   assert.equal(reloaded.data().taskInbox[0].completedSlotCount, 1);
-  assert.equal(JSON.parse(hub.records.get('same-account').payload).taskInbox[0].description, 'Remote while focused');
-  assert.equal(a.w.document.activeElement, inline, 'uploading does not redraw the focused input');
-  assert.equal(JSON.parse(a.storage()['waqti-account-same-account']).dirty, false, 'remote-only updates waiting to render are not unsent local edits');
+  assert.equal(
+    JSON.parse(hub.records.get('same-account').payload).taskInbox[0]
+      .description,
+    'Remote while focused',
+  );
+  assert.equal(
+    a.w.document.activeElement,
+    inline,
+    'uploading does not redraw the focused input',
+  );
+  assert.equal(
+    JSON.parse(a.storage()['waqti-account-same-account']).dirty,
+    false,
+    'remote-only updates waiting to render are not unsent local edits',
+  );
   const settledReload = new a.w.Event('beforeunload', { cancelable: true });
   a.w.dispatchEvent(settledReload);
-  assert.equal(settledReload.defaultPrevented, false, 'acknowledged edits do not trigger a false reload warning');
+  assert.equal(
+    settledReload.defaultPrevented,
+    false,
+    'acknowledged edits do not trigger a false reload warning',
+  );
   inline.blur();
   await pump(hub, [a, reloaded]);
   assert.equal(a.data().taskInbox[0].description, 'Remote while focused');
   // Keep an unsaved editor open while saved changes and independent remote changes sync.
   a.w.run("openPlannerEditor(findTask('inbox',''))");
   const openEditor = a.w.document.querySelector('#plannerEditor');
-  a.w.document.querySelector('#plannerForm [name=taskName]').value = 'Still an unsaved draft';
-  hub.publish('same-account', (s) => { s.taskInbox[0].description = 'Other device during editor'; });
+  a.w.document.querySelector('#plannerForm [name=taskName]').value =
+    'Still an unsaved draft';
+  hub.publish('same-account', (s) => {
+    s.taskInbox[0].description = 'Other device during editor';
+  });
   a.save('taskDay(date).slots[11]=' + JSON.stringify(action));
   a.runTimers();
-  assert.ok(hub.pending.length, 'saved edits upload even with a deferred incoming snapshot');
+  assert.ok(
+    hub.pending.length,
+    'saved edits upload even with a deferred incoming snapshot',
+  );
   // Another save made in flight needs its own acknowledgement, not a false clean state.
   a.save('taskDay(date).slots[12]=' + JSON.stringify(other));
   const pendingReload = new a.w.Event('beforeunload', { cancelable: true });
@@ -400,16 +427,28 @@ async function pump(hub, clients, limit = 30) {
   assert.equal(pendingReload.defaultPrevented, true);
   await pump(hub, [a, reloaded]);
   assert.equal(openEditor.open, true);
-  assert.equal(a.w.document.querySelector('#plannerForm [name=taskName]').value, 'Still an unsaved draft');
+  assert.equal(
+    a.w.document.querySelector('#plannerForm [name=taskName]').value,
+    'Still an unsaved draft',
+  );
   assert.equal(reloaded.data().sunsetDays[day].slots[11], action);
   assert.equal(reloaded.data().sunsetDays[day].slots[12], other);
-  assert.equal(reloaded.data().taskInbox[0].description, 'Other device during editor');
-  assert.equal(JSON.parse(a.storage()['waqti-account-same-account']).dirty, false);
+  assert.equal(
+    reloaded.data().taskInbox[0].description,
+    'Other device during editor',
+  );
+  assert.equal(
+    JSON.parse(a.storage()['waqti-account-same-account']).dirty,
+    false,
+  );
   // Reloading while remote rendering is deferred restores the acknowledged base safely.
   const deferredReload = client(hub, seed, a.storage());
   deferredReload.login();
   await pump(hub, [a, reloaded, deferredReload]);
-  assert.equal(deferredReload.data().taskInbox[0].description, 'Other device during editor');
+  assert.equal(
+    deferredReload.data().taskInbox[0].description,
+    'Other device during editor',
+  );
   assert.equal(deferredReload.data().sunsetDays[day].slots[12], other);
   deferredReload.dom.window.close();
   hub.clients = hub.clients.filter((c) => c !== deferredReload);
@@ -418,11 +457,19 @@ async function pump(hub, clients, limit = 30) {
   assert.equal(a.data().taskInbox[0].description, 'Other device during editor');
   // An open editor must still never permit overwriting a genuine concurrent conflict.
   a.w.run("openPlannerEditor(findTask('inbox',''))");
-  hub.publish('same-account', (s) => { s.taskInbox[0].priority = 2; });
+  hub.publish('same-account', (s) => {
+    s.taskInbox[0].priority = 2;
+  });
   a.save('state.taskInbox[0].priority=5');
   await pump(hub, [a, reloaded]);
-  assert.equal(JSON.parse(hub.records.get('same-account').payload).taskInbox[0].priority, 2);
-  assert.equal(JSON.parse(a.storage()['waqti-account-same-account']).dirty, true);
+  assert.equal(
+    JSON.parse(hub.records.get('same-account').payload).taskInbox[0].priority,
+    2,
+  );
+  assert.equal(
+    JSON.parse(a.storage()['waqti-account-same-account']).dirty,
+    true,
+  );
   a.w.document.querySelector('#plannerEditor').close();
   await pump(hub, [a, reloaded]);
   a.account();
@@ -522,6 +569,105 @@ async function pump(hub, clients, limit = 30) {
     JSON.parse(broken.storage()['waqti-account-other']).basePatch,
     undefined,
   );
+  // Transfer events travel through the actual account queue and Firebase CAS path,
+  // including a refresh before any upload and conflicting offline destinations.
+  {
+    const transfers = new Hub(),
+      transferSeed = clone(seed);
+    transferSeed.sunsetDays[day].tasks.push({
+      id: 'transfer-sync',
+      name: 'نقل بين جهازين',
+      prayer: 0,
+      expectedSlots: 6,
+      projectId: 'p',
+    });
+    transferSeed.sunsetDays[day].taskProgress = { 'transfer-sync': 2 };
+    transfers.records.set('transfer-account', {
+      revision: 1,
+      payload: JSON.stringify(transferSeed),
+      updatedAt: 1234,
+    });
+    const desktop = client(transfers, transferSeed),
+      phone = client(transfers, transferSeed);
+    desktop.login('transfer-account');
+    phone.login('transfer-account');
+    await pump(transfers, [desktop, phone]);
+    desktop.save(
+      "transferTask(findTask('transfer-sync',date),addDate(date,1),[2])",
+    );
+    const queued = desktop.storage();
+    desktop.connect(false);
+    const refreshed = client(transfers, transferSeed, queued, false);
+    refreshed.login('transfer-account');
+    assert.equal(
+      refreshed.w.run(
+        "completedSlots(findTask('transfer-sync',addDate(date,1)))",
+      ),
+      2,
+    );
+    refreshed.connect(true);
+    await pump(transfers, [phone, refreshed]);
+    assert.equal(
+      phone.w.run("outcome(findTask('transfer-sync',date))"),
+      'failed',
+    );
+    assert.equal(
+      phone.w.run("findTask('transfer-sync',addDate(date,1)).prayer"),
+      2,
+    );
+    phone.connect(false);
+    refreshed.connect(false);
+    phone.save(
+      "transferTask(findTask('transfer-sync',addDate(date,1)),addDate(date,2),[1])",
+    );
+    refreshed.save(
+      "transferTask(findTask('transfer-sync',addDate(date,1)),addDate(date,3),[4])",
+    );
+    phone.connect(true);
+    refreshed.connect(true);
+    await pump(transfers, [phone, refreshed]);
+    const conflicted = [phone, refreshed].filter((c) => {
+      c.account();
+      return c.w.document.querySelector('[data-sync-choice]');
+    });
+    assert.ok(conflicted.length > 0, 'competing destinations require a choice');
+    assert.match(
+      conflicted[0].w.document.querySelector('[data-sync-choice="remote"]')
+        .textContent,
+      /\d{4}-\d{2}-\d{2}.*خانة/,
+    );
+    for (const c of conflicted) {
+      for (let count = 0; count < 10; count++) {
+        const choice = c.w.document.querySelector(
+          '[data-sync-choice="remote"]',
+        );
+        if (!choice) break;
+        choice.click();
+        await pump(transfers, [phone, refreshed]);
+      }
+    }
+    for (const c of [phone, refreshed]) {
+      const record = c
+        .data()
+        .sunsetDays[day].tasks.find((t) => t.id === 'transfer-sync');
+      assert.equal(
+        Object.keys(record.executionEvents).length,
+        3,
+        'both competing transfers survive in history',
+      );
+      assert.equal(
+        c.w.run("taskEntries().filter(t=>t.id==='transfer-sync').length"),
+        1,
+      );
+      c.w.run('validate(state)');
+      assert.deepEqual(c.errors, []);
+    }
+    assert.deepEqual(phone.data(), refreshed.data());
+    for (const c of [desktop, phone, refreshed]) c.dom.window.close();
+    console.log(
+      'PASS: task transfer account queue, pre-upload reload, two-device delivery and explicit offline destination conflict without lost history',
+    );
+  }
   broken.dom.window.close();
   for (const c of [a, reloaded, legacyClient]) {
     assert.deepEqual(c.errors, []);

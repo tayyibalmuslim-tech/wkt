@@ -90,6 +90,7 @@ try {
   own(child, '[data-outcome="done"]').click();
   assert.equal(run(`projectCompletion('inline-b')`), 2.5);
   own(child, '[data-outcome="failed"]').click();
+  if ($('#taskTransfer')?.open) $('[data-failure-only]').click();
   assert.ok(child.classList.contains('failed'));
   assert.equal(run(`projectCompletion('inline-b')`), 2.5);
   for (const invalid of ['-1', '2.5', '', '10000']) {
@@ -178,3 +179,4 @@ try {
 } finally {
   dom.window.close();
 }
+

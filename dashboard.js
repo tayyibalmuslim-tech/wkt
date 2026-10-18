@@ -17,28 +17,34 @@ function refreshTaskSelection() {
     app.querySelectorAll('.task-bulk-check').forEach((label) => label.remove());
     return;
   }
-  app.querySelectorAll('.task-row:not([data-virtual])').forEach((card) => {
-    if (card.dataset.rowMode === 'series') return;
-    const task = { id: card.dataset.taskId, date: card.dataset.taskDate };
-    const heading = card.querySelector(':scope > .task-row-heading');
-    let label = heading.querySelector(':scope > .task-bulk-check');
-    if (!label) {
-      label = document.createElement('label');
-      label.className = 'task-bulk-check';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.dataset.selectTask = '';
-      input.setAttribute(
-        'aria-label',
-        'تحديد ' + heading.querySelector('.daily-task-name').textContent,
+  app
+    .querySelectorAll('.task-row:not([data-virtual]):not(.task-historical)')
+    .forEach((card) => {
+      if (card.dataset.rowMode === 'series') return;
+      const task = rowTask(card);
+      if (!task) return;
+      const heading = card.querySelector(':scope > .task-row-heading');
+      let label = heading.querySelector(':scope > .task-bulk-check');
+      if (!label) {
+        label = document.createElement('label');
+        label.className = 'task-bulk-check';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.dataset.selectTask = '';
+        input.setAttribute(
+          'aria-label',
+          'تحديد ' + heading.querySelector('.daily-task-name').textContent,
+        );
+        label.append(input);
+        heading.insertBefore(
+          label,
+          heading.querySelector('[data-task-select]'),
+        );
+      }
+      label.querySelector('input').checked = selectedTaskRefs.has(
+        taskIdentity(task),
       );
-      label.append(input);
-      heading.insertBefore(label, heading.querySelector('[data-task-select]'));
-    }
-    label.querySelector('input').checked = selectedTaskRefs.has(
-      taskIdentity(task),
-    );
-  });
+    });
   const count = $('#selectedTaskCount');
   if (count) count.textContent = `${selectedTaskRefs.size} محددة`;
   const edit = $('#editSelectedTasks');
@@ -84,7 +90,9 @@ function installTaskSelection() {
     }
     if (button.parentElement !== group) group.append(button);
   }
-  const hasTasks = !!app.querySelector('.task-row:not([data-virtual])');
+  const hasTasks = !!app.querySelector(
+    '.task-row:not([data-virtual]):not(.task-historical)',
+  );
   button.textContent = taskSelectionMode ? 'إنهاء التحديد' : 'تحديد عدة مهام';
   button.disabled = !hasTasks && !taskSelectionMode;
   button.title = button.disabled
@@ -114,7 +122,9 @@ function installTaskSelection() {
           id: card.dataset.taskId,
           date: card.dataset.taskDate || '',
         };
-        selectedTaskRefs.set(taskIdentity(ref), ref);
+        const task = rowTask(card);
+        if (task && !task.historical)
+          selectedTaskRefs.set(taskIdentity(task), ref);
       });
       refreshTaskSelection();
     };
@@ -374,9 +384,10 @@ function taskRow(
   if (path.has(key)) return '';
   path = new Set(path);
   path.add(key);
-  const children = ['period', 'series'].includes(mode)
-    ? []
-    : childTasks(t).filter((c) => !path.has(taskIdentity(c)));
+  const children =
+    t.historical || ['period', 'series'].includes(mode)
+      ? []
+      : childTasks(t).filter((c) => !path.has(taskIdentity(c)));
   const status = t.virtual ? 'pending' : outcome(t);
   const visibleChildren = children.filter(
     (c) => !context?.visible || context.visible.has(taskIdentity(c)),
@@ -406,19 +417,21 @@ function taskRow(
   const primary =
     mode === 'series'
       ? `<div class="task-row-primary"><button type="button" data-edit="${esc(t.id)}" title="تعديل السلسلة" aria-label="تعديل ${esc(t.name)}">${taskIcon('edit')}</button></div>`
-      : t.virtual
-        ? `<button type="button" data-task-edit title="إدارة الفروع المحفوظة" aria-label="إدارة ${esc(t.name)}">${taskIcon('edit')}</button>`
-        : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}" title="فعلتها" aria-label="فعلتها: ${esc(t.name)}">${taskIcon('check')}</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}" title="لم أفعلها" aria-label="لم أفعلها: ${esc(t.name)}">${taskIcon('cross')}</button><button type="button" data-task-edit title="تعديل" aria-label="تعديل ${esc(t.name)}">${taskIcon('edit')}</button></div><label class="row-slot-editor" dir="ltr" title="الخانات المنجزة / المتوقعة"><span class="sr-only">الخانات المنجزة</span><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span aria-hidden="true">/</span><output data-row-expected aria-label="الخانات المتوقعة">${taskExpectedSlots(t)}</output></label>${taskOrderField(key, context, t)}`;
-  return `<article class="task-row ${mode === 'planner' ? 'planner-task' : 'daily-task'} ${t.virtual ? 'task-family' : ''} ${status}" data-task-id="${esc(t.id)}" data-task-date="${esc(t.date || '')}" data-row-mode="${mode}" ${context?.matches?.has(key) ? 'data-project-match="true"' : ''} data-row-depth="${depth}" ${t.virtual ? 'data-virtual="true"' : ''} style="--task-indent:${Math.min(depth, 3)}">
+      : t.historical
+        ? '<button type="button" data-task-history>سجل النقل</button>'
+        : t.virtual
+          ? `<button type="button" data-task-edit title="إدارة الفروع المحفوظة" aria-label="إدارة ${esc(t.name)}">${taskIcon('edit')}</button>`
+          : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}" title="فعلتها" aria-label="فعلتها: ${esc(t.name)}">${taskIcon('check')}</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}" title="لم أفعلها" aria-label="لم أفعلها: ${esc(t.name)}">${taskIcon('cross')}</button><button type="button" data-task-edit title="تعديل" aria-label="تعديل ${esc(t.name)}">${taskIcon('edit')}</button></div><label class="row-slot-editor" dir="ltr" title="الخانات المنجزة / المتوقعة"><span class="sr-only">الخانات المنجزة</span><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span aria-hidden="true">/</span><output data-row-expected aria-label="الخانات المتوقعة">${taskExpectedSlots(t)}</output></label>${taskOrderField(key, context, t)}`;
+  return `<article class="task-row ${mode === 'planner' ? 'planner-task' : 'daily-task'} ${t.virtual ? 'task-family' : ''} ${t.historical ? 'task-historical' : ''} ${status}" data-task-id="${esc(t.id)}" data-task-date="${esc(t.date || '')}" data-row-mode="${mode}" ${context?.matches?.has(key) ? 'data-project-match="true"' : ''} data-row-depth="${depth}" ${t.virtual ? 'data-virtual="true"' : ''} style="--task-indent:${Math.min(depth, 3)}">
     <div class="task-row-heading planner-task-heading">
       ${visibleChildren.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
       <button type="button" class="task-row-select" data-task-select aria-expanded="false" aria-controls="taskTextPopover" title="${esc(fullText)}" data-task-context="${esc(contextLabel)}">
         <span class="task-row-status" role="img" aria-label="${mode === 'series' ? 'سلسلة متكررة' : { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[status]}">${taskIcon(mode === 'series' ? 'repeat' : status === 'done' ? 'check' : status === 'failed' ? 'cross' : 'circle')}</span>
-        <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${hideDescription ? '' : taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
+        <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${t.historical ? `<small class="transfer-badge">لم تُنجز ← ${esc(t.transferredTo)}</small>` : taskIsDeferred(t) ? '<small class="transfer-badge" title="مؤجلة — السجل داخل التعديل">↪ مؤجلة</small>' : ''}${hideDescription ? '' : taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
         <span class="task-row-metrics">${mode === 'series' || t.virtual ? '' : taskRowMetrics(t, children)}</span>
         ${children.length ? `<span class="task-row-count" title="الفروع المسجلة فعلتها / جميع الفروع">${children.filter((c) => outcome(c) === 'done').length}/${children.length}</span>` : ''}
       </button>
-      <div class="task-row-actions daily-task-controls">${primary}<details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}" title="إجراءات إضافية">${taskIcon('more')}</summary><div>${mode === 'series' ? `<button type="button" data-del="${esc(t.id)}">حذف السلسلة</button>` : t.virtual ? '<span>فروع محفوظة لأصل محذوف</span>' : `<button type="button" data-task-child>إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>`}</div></details></div>
+      <div class="task-row-actions daily-task-controls">${primary}<details class="task-row-secondary"><summary aria-label="المزيد من إجراءات ${esc(t.name)}" title="إجراءات إضافية">${taskIcon('more')}</summary><div>${t.historical ? '<span>سجل للقراءة فقط</span>' : mode === 'series' ? `<button type="button" data-del="${esc(t.id)}">حذف السلسلة</button>` : t.virtual ? '<span>فروع محفوظة لأصل محذوف</span>' : `<button type="button" data-task-child>إضافة فرعية</button><button type="button" data-task-delete>حذف المهمة</button>`}</div></details></div>
     </div>
     ${visibleChildren.length ? `<div id="${rowId}-children" class="task-children" ${expanded ? '' : 'hidden'}>${expanded ? visibleChildren.map((c) => taskRow(c, mode, depth + 1, path, context)).join('') : ''}</div>` : ''}
   </article>`;
@@ -692,6 +705,7 @@ function taskRowChanged(t, progressEdit = false) {
     status.setAttribute('role', 'status');
     document.body.append(status);
   }
+  t = findTask(t.id, t.date) || t;
   status.textContent = progressEdit
     ? 'حُفظت الخانات المنجزة'
     : outcome(t) === 'done'
@@ -739,9 +753,16 @@ function bindTaskCards(root = app, insideManager = false) {
       selectTaskRow(card, !card.classList.contains('is-selected'));
       return;
     }
+    if (t.historical) {
+      openTaskHistory(t);
+      return;
+    }
     if (target.dataset.outcome) {
-      if (t.date) setTaskOutcome(taskDay(t.date), t.id, target.dataset.outcome);
-      else setInboxOutcome(t, target.dataset.outcome);
+      if (target.dataset.outcome === 'failed') {
+        openTaskFailure(t);
+        return;
+      }
+      recordTaskOutcome(t, target.dataset.outcome);
       save();
       taskRowChanged(t);
       return;
@@ -820,8 +841,12 @@ function bindTaskCards(root = app, insideManager = false) {
       return;
     }
     if (n === completedSlots(t)) return;
-    if (t.date) (taskDay(t.date).taskProgress ??= {})[t.id] = n;
-    else t.completedSlotCount = n;
+    try {
+      recordTaskProgress(t, n);
+    } catch (error) {
+      toast(error.message);
+      return;
+    }
     save();
     taskRowChanged(t, true);
   });
@@ -892,11 +917,9 @@ function daySummary(key) {
     d = state.sunsetDays[key] || emptyDay();
   return {
     total: tasks.length,
-    done: tasks.filter((t) => taskCompletion(t) === 100).length,
-    checks: prayerOrder.reduce(
-      (n, p) => n + prayerCount(p, d),
-      0,
-    ),
+    done: tasks.filter((t) => !t.historical && taskCompletion(t) === 100)
+      .length,
+    checks: prayerOrder.reduce((n, p) => n + prayerCount(p, d), 0),
   };
 }
 function dateControls() {
@@ -1254,6 +1277,10 @@ function openMonthTaskMenu(anchor) {
     key = anchor.dataset.monthDate,
     t = findTask(id, key);
   if (!t) return;
+  if (t.historical) {
+    openTaskHistory(t);
+    return;
+  }
   const menu = document.createElement('div');
   menu.id = 'monthTaskMenu';
   menu.className = 'month-task-menu';
@@ -1339,7 +1366,12 @@ function openMonthTaskMenu(anchor) {
           closeMonthTaskMenu();
           return;
         }
-        setTaskOutcome(taskDay(key), id, b.dataset.monthOutcome);
+        if (b.dataset.monthOutcome === 'failed') {
+          closeMonthTaskMenu();
+          openTaskFailure(current);
+          return;
+        }
+        recordTaskOutcome(current, b.dataset.monthOutcome);
         closeMonthTaskMenu();
         save();
         taskReadScope(() => {
@@ -1368,7 +1400,7 @@ function monthTaskChip(t, entries = progressEntries()) {
     ],
     parent = t.parentId ? mainTask(t, entries) : null,
     progress = percentLabel(taskCompletion(t, entries));
-  return `<button type="button" class="month-task ${result}" data-month-task="${esc(t.id)}" data-month-date="${t.date}" title="${esc(t.name)}${parent ? ' — ضمن ' + esc(parent.name) : ''} — ${label} — التقدم ${progress}" aria-haspopup="dialog" aria-expanded="false" aria-controls="monthTaskMenu" aria-label="${esc(t.name)}${parent ? '، ضمن ' + esc(parent.name) : ''}، ${label}، التقدم ${progress}"><span aria-hidden="true">${{ done: '✓', failed: '✕', pending: '○' }[result]}</span><span class="month-task-text">${esc(t.name)}${parent ? `<small>↳ ${esc(parent.name)}</small>` : ''}</span></button>`;
+  return `<button type="button" class="month-task ${result}${t.historical ? ' task-historical' : ''}" data-month-task="${esc(t.id)}" data-month-date="${t.date}" title="${esc(t.name)}${parent ? ' — ضمن ' + esc(parent.name) : ''} — ${label} — التقدم ${progress}" aria-haspopup="dialog" aria-expanded="false" aria-controls="monthTaskMenu" aria-label="${esc(t.name)}${parent ? '، ضمن ' + esc(parent.name) : ''}، ${label}، التقدم ${progress}"><span aria-hidden="true">${{ done: '✓', failed: '✕', pending: '○' }[result]}</span><span class="month-task-text">${esc(t.name)}${t.historical ? `<small>← ${esc(t.transferredTo)}</small>` : taskIsDeferred(t) ? '<small>↪ مؤجلة</small>' : ''}${parent ? `<small>↳ ${esc(parent.name)}</small>` : ''}</span></button>`;
 }
 function refreshMonthTaskValues() {
   const entries = progressEntries(),
@@ -1462,10 +1494,7 @@ function renderTaskMonth() {
    .map(({ key, number, tasks }) => {
      const s = monthlySummary(tasks),
        d = state.sunsetDays[key] || emptyDay(),
-       prayerChecks = prayerOrder.reduce(
-         (n, p) => n + prayerCount(p, d),
-         0,
-       );
+       prayerChecks = prayerOrder.reduce((n, p) => n + prayerCount(p, d), 0);
      return `<section class="month-day ${key === today ? 'is-today' : ''}" aria-label="يوم ${key}"><button type="button" data-calendar-day="${key}" class="month-day-heading" ${key === today ? 'aria-current="date"' : ''} aria-label="${key}: ${s.total} مهام ظاهرة، ${s.done} تمت"><strong>${number}</strong><span>${s.done}/${s.total} تمت</span></button>${key <= today ? `<small class="month-prayer-checks">الصلاة ${prayerChecks}/${prayerCheckTotal()}</small>` : ''}<div class="month-tasks">${tasks.map(chip).join('')}</div></section>`;
    })
    .join(

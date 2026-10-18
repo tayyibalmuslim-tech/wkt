@@ -188,6 +188,10 @@ const server = http.createServer((req, res) => {
       browser,
       'http://127.0.0.1:' + server.address().port,
     );
+    await require('./task-transfers-browser.cjs')(
+      browser,
+      'http://127.0.0.1:' + server.address().port,
+    );
     await require('./accessibility-browser.cjs')(
       browser,
       'http://127.0.0.1:' + server.address().port,
@@ -204,3 +208,4 @@ const server = http.createServer((req, res) => {
   console.error(e);
   process.exitCode = 1;
 });
+

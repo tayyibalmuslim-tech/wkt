@@ -224,9 +224,11 @@
       }
       if (editing() && !initialLoad) {
         deferred = true;
-        report(dirty
-          ? 'جاري إرسال تغييراتك؛ ستظهر التحديثات بعد إنهاء التعديل المفتوح'
-          : 'تغييراتك محفوظة؛ ستظهر التحديثات بعد إنهاء التعديل المفتوح');
+        report(
+          dirty
+            ? 'جاري إرسال تغييراتك؛ ستظهر التحديثات بعد إنهاء التعديل المفتوح'
+            : 'تغييراتك محفوظة؛ ستظهر التحديثات بعد إنهاء التعديل المفتوح',
+        );
         return;
       }
       if (!dirty) {
@@ -520,6 +522,10 @@
       expectedSlots: 'الخانات المتوقعة',
       completedSlotCount: 'الخانات المنجزة',
       taskProgress: 'الخانات المنجزة',
+      executionHead:
+        'تعارض نقل أو تسجيل المهمة — اختر التنفيذ الحالي؛ السجلان محفوظان',
+      executionEvents: 'سجل التنفيذ والنقل',
+      executionBase: 'التقدم والموعد قبل أول نقل',
       projectIds: 'المشاريع',
       taskOrder: 'الترتيب',
       subtaskPosition: 'الترتيب',
@@ -582,7 +588,33 @@
         );
       return typeof v === 'boolean' ? (v ? 'نعم' : 'لا') : String(v);
     };
-    return `<div class="conflict-box"><h2>تعديلان على نفس البند</h2><p>اختر لكل بند ما تريد الاحتفاظ به. بقية تسجيلات الجهازين تُدمج تلقائيًا.</p><button id="backupConflict" class="secondary">تنزيل نسختي الحالية</button><div class="sync-conflicts">${conflicts.map((entry, index) => `<section><h3>${esc(label(entry) || 'بيانات الحساب')}</h3><button type="button" class="secondary" data-sync-choice="local" data-sync-index="${index}">هذا الجهاز: ${esc(value(entry.local).slice(0, 200))}</button><button type="button" class="secondary" data-sync-choice="remote" data-sync-index="${index}">الحساب: ${esc(value(entry.remote).slice(0, 200))}</button></section>`).join('')}</div><details><summary>استبدال نسخة كاملة (خيارات متقدمة)</summary><button id="useCloud" class="secondary">استخدام نسخة الحساب بالكامل</button><button id="useLocal" class="secondary">اعتماد نسختي الحالية بالكامل</button></details></div>`;
+    const executionChoice = (entry, side) => {
+      if (entry.path.at(-1) !== 'executionHead' || !side.exists)
+        return value(side);
+      const record = (snapshot) =>
+        entry.path
+          .slice(0, -1)
+          .reduce(
+            (current, part) =>
+              typeof part === 'object'
+                ? current?.find?.((t) => t.id === part.id)
+                : current?.[part],
+            snapshot,
+          );
+      let cloud;
+      try {
+        cloud = JSON.parse(remote?.payload || '{}');
+      } catch {
+        cloud = {};
+      }
+      const execution = [record(state), record(cloud)]
+        .map((t) => t?.executionEvents?.[side.value]?.value)
+        .find(Boolean);
+      if (!execution) return 'تنفيذ غير متاح — احتفظ بنسخة احتياطية';
+      const prayerLabels = ['الفجر', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
+      return `${execution.date || 'تحتاج توزيعًا'} · ${execution.prayers.map((p) => prayerLabels[p]).join('، ') || 'بدون فترة'} · ${execution.progress} خانة · ${{ pending: 'قيد التنفيذ', failed: 'لم تُنجز', done: 'أُنجزت' }[execution.status]}`;
+    };
+    return `<div class="conflict-box"><h2>تعديلان على نفس البند</h2><p>اختر لكل بند ما تريد الاحتفاظ به. بقية تسجيلات الجهازين تُدمج تلقائيًا.</p><button id="backupConflict" class="secondary">تنزيل نسختي الحالية</button><div class="sync-conflicts">${conflicts.map((entry, index) => `<section><h3>${esc(label(entry) || 'بيانات الحساب')}</h3><button type="button" class="secondary" data-sync-choice="local" data-sync-index="${index}">هذا الجهاز: ${esc(executionChoice(entry, entry.local).slice(0, 200))}</button><button type="button" class="secondary" data-sync-choice="remote" data-sync-index="${index}">الحساب: ${esc(executionChoice(entry, entry.remote).slice(0, 200))}</button></section>`).join('')}</div><details><summary>استبدال نسخة كاملة (خيارات متقدمة)</summary><button id="useCloud" class="secondary">استخدام نسخة الحساب بالكامل</button><button id="useLocal" class="secondary">اعتماد نسختي الحالية بالكامل</button></details></div>`;
   }
   function backupCurrent() {
     let a = document.createElement('a'),

@@ -17,7 +17,7 @@ run("plannerStatus='done';render()");assert.equal($('#plannerResults [data-task-
 run("plannerStatus='failed';render()");assert.ok($('#plannerResults [data-task-id]'));
 run("plannerStatus='all';render()");
 click('[data-task-edit]');let f=$('#plannerForm').elements;f.taskDate.value=run('date');$('#plannerForm').querySelectorAll('[name=taskPeriods]').forEach(b=>b.checked=b.value==='0');f.taskDate.dispatchEvent(new w.Event('change',{bubbles:true}));f.priority.value='1';f.expectedSlots.value='2';f.actionId.value=run('state.actions[0].id');f.startSlot.value=run('String(periodSlots(date,0)[0])');submit('#plannerForm');assert.equal(run('state.taskInbox.length'),0);assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');assert.equal(run('allTasksOn(date)[0].expectedSlots'),2);assert.equal(run('Object.keys(day().planned).length'),2);
-click('[data-planner-tab="day"]');assert.equal(w.document.querySelectorAll('#app [data-task-id]').length,1);let progress=$('[data-progress]');progress.value='1';progress.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(run('completedSlots(allTasksOn(date)[0])'),1);click('[data-outcome="done"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'done');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');click('[data-outcome="failed"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'pending');
+click('[data-planner-tab="day"]');assert.equal(w.document.querySelectorAll('#app [data-task-id]').length,1);let progress=$('[data-progress]');progress.value='1';progress.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(run('completedSlots(allTasksOn(date)[0])'),1);click('[data-outcome="done"]');assert.equal(run('outcome(allTasksOn(date)[0])'),'done');click('[data-outcome="failed"]');click('[data-failure-only]');assert.equal(run('outcome(allTasksOn(date)[0])'),'failed');click('[data-outcome="failed"]');click('[data-failure-only]');assert.equal(run('outcome(allTasksOn(date)[0])'),'pending');
 click('[data-task-child]');f=$('#plannerForm').elements;f.taskName.value='فرعية غدًا';f.taskDate.value=run('addDate(date,1)');$('#plannerForm').querySelectorAll('[name=taskPeriods]').forEach(b=>b.checked=b.value==='4');f.expectedSlots.value='3';submit('#plannerForm');assert.equal(run("allTasksOn(addDate(date,1))[0].parentId"),run('allTasksOn(date)[0].id'));
 click('[data-planner-tab="future"]');assert.equal($('#plannerResults .task-children [data-task-id]'),null);click('#plannerResults [data-task-toggle]');assert.match($('#plannerResults').textContent,/فرعية غدًا/);assert.equal(w.document.querySelectorAll('#plannerResults > [data-task-id]').length,1);assert.ok($('#plannerResults .task-children [data-task-id]'));
 run("state.repeat.push({id:'r',name:'متكررة أصلية',prayer:0,days:[0,1,2,3,4,5,6],priority:'low',expectedSlots:1,startDate:date});state.taskHistoryThrough=addDate(date,-2);state.taskHistoryStart=addDate(date,-1);state.repeat[0].startDate=addDate(date,-1);initializeTaskHistory();render()");
@@ -175,7 +175,7 @@ click('#projectDetails [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm'
 // Done overrides unfinished children without mutating them; undo restores computed progress.
 click('#projectDetails [data-task-id="pa"] [data-outcome="done"]');assert.equal(run("taskCompletion(findTask('pa',''))"),100);assert.equal(run("projectCompletion('weighted')"),50);assert.equal(run("completedSlots(findTask('a1',''))"),2);
 click('#projectDetails [data-task-id="pa"] [data-outcome="done"]');assert.equal(run("projectCompletion('weighted')"),12.5);
-click('#projectDetails [data-task-id="a1"] [data-outcome="failed"]');assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
+click('#projectDetails [data-task-id="a1"] [data-outcome="failed"]');click('[data-failure-only]');assert.equal($('[data-task-id="a1"] .task-progress-bar').value,50);
 // Moving out of and back into inbox preserves completed slots and percentage.
 click('#projectDetails [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value=run('date');submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',date))"),2);assert.equal(run("projectCompletion('weighted')"),12.5);
 click('#projectDetails [data-task-id="a1"] [data-task-edit]');f=$('#plannerForm').elements;f.taskDate.value='';submit('#plannerForm');assert.equal(run("completedSlots(findTask('a1',''))"),2);
@@ -236,8 +236,8 @@ assert.equal(run("outcome(findTask('legacy-month',date))"),'done');
 assert.equal(JSON.parse(w.localStorage.getItem('waqti-v1')).sunsetDays[run('date')].done['legacy-month'],true);
 assert.equal(run('monthlySummary(monthlyTasks(date)).percent'),100);
 click(monthChip('legacy-month'));click('[data-month-outcome="done"]');assert.equal(run("outcome(findTask('legacy-month',date))"),'pending');
-click(monthChip('legacy-month'));click('[data-month-outcome="failed"]');assert.equal(run('monthlySummary(monthlyTasks(date)).failed'),1);
-click(monthChip('legacy-month'));click('[data-month-outcome="failed"]');assert.equal(run("outcome(findTask('legacy-month',date))"),'pending');
+click(monthChip('legacy-month'));click('[data-month-outcome="failed"]');click('[data-failure-only]');assert.equal(run('monthlySummary(monthlyTasks(date)).failed'),1);
+click(monthChip('legacy-month'));click('[data-month-outcome="failed"]');click('[data-failure-only]');assert.equal(run("outcome(findTask('legacy-month',date))"),'pending');
 // Save visibility alone, without silently taking the editor's progress-only shortcut.
 click(monthChip('legacy-month'));click('[data-month-edit]');f=$('#plannerForm').elements;
 assert.equal(f.showInMonthlyCalendar.checked,true);f.showInMonthlyCalendar.checked=false;submit('#plannerForm');
@@ -521,3 +521,4 @@ assert.deepEqual(Array.from(run("taskProjectIds(findTask('link-dated',date))")),
 assert.equal(run("taskDay(date).tasks.filter(t=>t.id==='link-dated').length"),1);
 console.log('PASS: existing dated task gains project membership without copying or unrelated edits');
 assert.deepEqual(errors,[]);dom.window.close();
+

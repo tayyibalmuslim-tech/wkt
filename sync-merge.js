@@ -91,6 +91,11 @@ const WaqtiSyncMerge = (() => {
       return clash(b, l, r, path);
     }
     function visit(b, l, r, path) {
+      // The head selects one complete schedule/progress/outcome snapshot. Competing
+      // heads require an explicit choice; events from both branches remain saved.
+      if (['executionHead', 'executionBase'].includes(path.at(-1)))
+        return atom(b, l, r, path);
+      if (path.at(-2) === 'executionEvents') return atom(b, l, r, path);
       if (same(l, r)) return copy(l);
       if (known && same(l, b)) return copy(r);
       if (known && same(r, b)) return copy(l);
