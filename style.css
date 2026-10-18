@@ -5099,3 +5099,18 @@ main > header {
 .prayer-task-setting-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
 .prayer-task-setting-row input { flex: 1; min-width: 0; width: 0; }
 .prayer-task-setting-row button { flex-shrink: 0; padding: 7px 12px; }
+@media (max-width: 650px) {
+  .prayer-task-setting-row button { min-width: 40px; }
+}
+
+/* Transfer choices live in a dialog; task rows keep their existing height. */
+#taskTransfer, #taskHistory { width: min(420px, calc(100vw - 24px)); }
+.task-failure-options { display: flex; gap: 8px; }
+[data-transfer-form]:not([hidden]) { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+[data-transfer-form] .field { flex: 1 1 130px; }
+.transfer-badge { display: inline; margin-inline-start: 5px; font-size: 10px; color: var(--muted, #64748b); }
+.task-historical { opacity: .72; border-inline-start: 2px dashed #b7791f; }
+.task-transfer-history { font-size: 12px; margin-block: 8px; }
+.task-transfer-history ol, .task-transfer-history ul { padding-inline-start: 20px; max-height: 220px; overflow: auto; }
+.task-transfer-history li { margin-block: 6px; }
+.task-transfer-history small { display: block; overflow-wrap: anywhere; }

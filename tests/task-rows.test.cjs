@@ -197,6 +197,7 @@ try {
   input.dispatchEvent(new w.Event('change', { bubbles: true }));
   assert.equal(run("completedSlots(findTask('ui-grand',''))"), 2);
   own(grand, '[data-outcome="failed"]').click();
+  if ($('#taskTransfer')?.open) $('[data-failure-only]').click();
   assert.equal(
     own(grand, '.task-progress-bar').value,
     50,
@@ -263,11 +264,13 @@ try {
   assert.equal(run('window.uiRenderCount'), 0);
   chip.click();
   $('[data-month-outcome="failed"]').click();
+  if ($('#taskTransfer')?.open) $('[data-failure-only]').click();
   assert.equal(chip.classList.contains('failed'), true);
   assert.equal($('.month-summary').textContent.includes('لم أفعلها: 1'), true);
   run(`monthFilters.status='failed';render();window.uiRenderCount=0;`);
   $('[data-month-task="ui-daily"]').click();
   $('[data-month-outcome="failed"]').click();
+  if ($('#taskTransfer')?.open) $('[data-failure-only]').click();
   assert.equal($('[data-month-task="ui-daily"]'), null);
   assert.equal(run('window.uiRenderCount'), 0);
   // Filter reconciliation preserves the expanded family, selection and focus.
@@ -419,3 +422,4 @@ try {
 } finally {
   w.close();
 }
+

@@ -67,6 +67,7 @@ module.exports = async function calendarFitBrowser(browser, url) {
             );
           await chip.click();
           await page.locator('[data-month-outcome="failed"]').click();
+          await page.locator('[data-failure-only]').click();
           assert.equal(await chip.getAttribute('class'), 'month-task failed');
           await chip.click();
           await page.keyboard.press('Escape');
@@ -134,3 +135,4 @@ module.exports = async function calendarFitBrowser(browser, url) {
     await page.close();
   }
 };
+

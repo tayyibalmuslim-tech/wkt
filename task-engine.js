@@ -32,6 +32,7 @@ function actualTasksForSlot(key, n) {
   const p = prayerOrder.find((p) => periodSlots(key, p).includes(n)),
     entries = progressEntries();
   const available = allTasksOn(key).filter((t) => {
+    if (t.historical) return false;
     if (!taskInPeriod(t, p) || taskCompletion(t, entries) >= 100) return false;
     // A completed ancestor also finishes its branches without changing their records.
     const seen = new Set([taskIdentity(t)]);
@@ -43,9 +44,10 @@ function actualTasksForSlot(key, n) {
     }
     return true;
   });
-  return sortedTasks(available).map(
-    (t) => ({ ...t, parentName: t.parentId ? mainTask(t, entries).name : '' }),
-  );
+  return sortedTasks(available).map((t) => ({
+    ...t,
+    parentName: t.parentId ? mainTask(t, entries).name : '',
+  }));
 }
 
 // Cache derived reads only during one synchronous view/editor update. A save clears
@@ -107,6 +109,7 @@ function progressEntries() {
     const entries = [...taskEntries()],
       seen = new Set(entries.map(taskIdentity));
     for (const t of allTasksOn(date)) {
+      if (t.historical) continue;
       const key = taskIdentity(t);
       if (!seen.has(key)) {
         seen.add(key);
@@ -129,7 +132,8 @@ function parentTask(t, entries = progressEntries()) {
   return entries.find(
     (p) =>
       p.id === t.parentId &&
-      (t.parentDate === undefined || (p.date || '') === t.parentDate),
+      (t.parentDate === undefined ||
+        (p.executionBase?.date ?? p.date ?? '') === t.parentDate),
   );
 }
 function mainTask(t, entries) {
@@ -161,8 +165,19 @@ function mainTask(t, entries) {
 function taskGroups(list) {
   const entries = progressEntries(),
     groups = new Map();
+  const historicalParents = new Set(
+    list.filter((t) => t.historical).map((t) => t.id),
+  );
   for (const t of list) {
+    if (t.historical) {
+      groups.set(taskIdentity(t), t);
+      continue;
+    }
     const main = mainTask(t, entries);
+    if (main.executionBase && historicalParents.has(main.id)) {
+      groups.set(taskIdentity(t), t);
+      continue;
+    }
     groups.set(taskIdentity(main), main);
   }
   return sortedTasks([...groups.values()]);
@@ -237,15 +252,19 @@ function setTaskProjects(t, ids) {
   return t;
 }
 function taskIdentity(t) {
-  return JSON.stringify([t.id, t.date || '']);
+  if (t.historical)
+    return JSON.stringify([t.id, t.date, 'history', t.historicalEvent]);
+  return JSON.stringify([t.id, t.executionBase?.date ?? t.date ?? '']);
 }
 function childTasks(t, entries = progressEntries()) {
+  if (t.historical) return [];
   let children;
   if (!taskReadCache)
     children = entries.filter(
       (c) =>
         c.parentId === t.id &&
-        (c.parentDate === undefined || c.parentDate === (t.date || '')),
+        (c.parentDate === undefined ||
+          c.parentDate === (t.executionBase?.date ?? t.date ?? '')),
     );
   else {
     const index = taskEntryIndex(entries),
@@ -274,10 +293,11 @@ function moveSubtask(t, position) {
   siblings.splice(index, 1);
   siblings.splice(position - 1, 0, t);
   siblings.forEach((child, i) => {
-    const records = child.date
+    const sourceDate = child.executionBase?.date ?? child.date;
+    const records = sourceDate
       ? [
-          ...(state.sunsetDays[child.date]?.tasks || []),
-          ...(state.sunsetDays[child.date]?.repeatSnapshot || []),
+          ...(state.sunsetDays[sourceDate]?.tasks || []),
+          ...(state.sunsetDays[sourceDate]?.repeatSnapshot || []),
           ...(state.repeat || []),
         ]
       : state.taskInbox || [];
@@ -471,6 +491,450 @@ function initializeTaskHistory() {
   }
   if (changed) save();
 }
+// The task stays in its original storage bucket. Immutable execution events and
+// one conflict-checked head determine its current schedule, progress and outcome.
+// Historical cards are projections, never extra project tasks.
+function executionRecord(t) {
+  const key = t.executionBase?.date;
+  return (key ? state.sunsetDays[key]?.tasks : state.taskInbox)?.find(
+    (x) => x.id === t.id,
+  );
+}
+function executionValue(t) {
+  return t.executionEvents?.[t.executionHead]?.value || t.executionBase;
+}
+function executionChain(t) {
+  const chain = [],
+    seen = new Set();
+  let id = t.executionHead;
+  while (id && !seen.has(id)) {
+    seen.add(id);
+    const event = t.executionEvents?.[id];
+    if (!event) break;
+    chain.push(event);
+    id = event.previous;
+  }
+  return chain.reverse();
+}
+function taskIsDeferred(t) {
+  if (!t.executionBase) return false;
+  const chain = executionChain(t);
+  const canceled = new Set(
+    chain.filter((e) => e.kind === 'undo').map((e) => e.undoes),
+  );
+  return chain.some((e) => e.kind === 'transfer' && !canceled.has(e.id));
+}
+function executionProjection(t, value = executionValue(t)) {
+  return { ...t, ...value, recurrent: false };
+}
+function executionRows() {
+  return cachedTaskRead('executions', () => {
+    const byDate = new Map();
+    const put = (t) => {
+      if (!byDate.has(t.date)) byDate.set(t.date, []);
+      byDate.get(t.date).push(t);
+    };
+    for (const t of [
+      ...(state.taskInbox || []),
+      ...Object.values(state.sunsetDays).flatMap((d) => d.tasks || []),
+    ]) {
+      if (!t.executionBase) continue;
+      const current = executionProjection(t),
+        chain = executionChain(t);
+      put(current);
+      const canceled = new Set(
+        chain.filter((e) => e.kind === 'undo').map((e) => e.undoes),
+      );
+      const days = new Map();
+      for (const event of chain)
+        if (
+          event.kind === 'transfer' &&
+          !canceled.has(event.id) &&
+          event.from.date !== current.date
+        )
+          days.set(event.from.date, {
+            ...executionProjection(t, event.from),
+            historical: true,
+            historicalEvent: event.id,
+            transferredTo: event.value.date,
+            startSlot: null,
+          });
+      for (const row of days.values()) put(row);
+    }
+    return byDate;
+  });
+}
+function assertCurrentExecution(t) {
+  if (t.historical) throw Error('هذا سجل تاريخي؛ افتح المهمة الحالية للتعديل.');
+  if (!t.executionBase) {
+    const current = findTask(t.id, t.date);
+    if (!current || current.executionBase)
+      throw Error('تغيرت المهمة؛ أعد فتحها.');
+    return current;
+  }
+  const record = executionRecord(t);
+  if (!record || record.executionHead !== t.executionHead)
+    throw Error('تغيرت المهمة على جهاز آخر؛ أعد فتحها قبل الحفظ.');
+  return record;
+}
+function appendExecution(record, kind, value, extra = {}) {
+  const event = {
+    id: uid(),
+    previous: record.executionHead || '',
+    kind,
+    at: new Date().toISOString(),
+    value: structuredClone(value),
+    ...extra,
+  };
+  (record.executionEvents ??= {})[event.id] = event;
+  record.executionHead = event.id;
+  if (value.date) taskDay(value.date);
+  invalidateTaskReads();
+  return executionProjection(record);
+}
+function transferTask(t, newDate, periods = taskPeriods(t)) {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(newDate) ||
+    Number.isNaN(Date.parse(newDate + 'T12:00:00Z')) ||
+    new Date(newDate + 'T12:00:00Z').toISOString().slice(0, 10) !== newDate ||
+    !t.date ||
+    newDate <= t.date
+  )
+    throw Error('اختر يومًا لاحقًا ليوم المهمة.');
+  if (
+    !Array.isArray(periods) ||
+    new Set(periods).size !== periods.length ||
+    periods.some((p) => !Number.isInteger(p) || p < 0 || p > 4)
+  )
+    throw Error('فترة غير صالحة.');
+  assertCurrentExecution(t);
+  const snapshot = structuredClone(state);
+  try {
+    let record = t.executionBase
+      ? executionRecord(t)
+      : taskDay(t.date).tasks.find((x) => x.id === t.id);
+    if (!record) {
+      if (!t.recurrent) throw Error('لم تعد المهمة موجودة.');
+      // Both offline devices detach the same occurrence to the same identity.
+      record = {
+        ...structuredClone(t),
+        id: 'occurrence:' + t.date + ':' + t.id,
+        detachedFrom: t.id,
+        originalTaskId: t.id,
+      };
+      delete record.recurrent;
+      const d = taskDay(t.date);
+      d.tasks.push(record);
+      (d.excludedRepeat ??= {})[t.id] = true;
+      for (const child of [
+        ...(state.taskInbox || []),
+        ...Object.values(state.sunsetDays).flatMap((d) => d.tasks),
+      ])
+        if (
+          child.parentId === t.id &&
+          (child.parentDate === undefined || child.parentDate === t.date)
+        ) {
+          child.parentId = record.id;
+          child.parentDate = t.date;
+          child.parentName = record.name;
+        }
+      for (const project of state.projects || [])
+        if (project.taskOrder)
+          project.taskOrder = project.taskOrder.map((key) =>
+            key === taskIdentity(t)
+              ? taskIdentity({ ...record, date: t.date })
+              : key,
+          );
+    }
+    record.executionBase ??= {
+      date: t.date,
+      prayers: taskPeriods(t),
+      prayer: taskPeriods(t)[0] ?? null,
+      progress: completedSlots(t),
+      status: outcome(t),
+      startSlot: t.startSlot ?? null,
+    };
+    const from = structuredClone(executionValue(record));
+    const next = appendExecution(
+      record,
+      'transfer',
+      {
+        ...from,
+        date: newDate,
+        prayers: [...periods],
+        prayer: periods[0] ?? null,
+        status: 'pending',
+        startSlot: null,
+      },
+      { from },
+    );
+    removeTaskSchedule(t.date, t.id);
+    save();
+    return next;
+  } catch (error) {
+    state = snapshot;
+    invalidateTaskReads();
+    throw error;
+  }
+}
+function undoTaskTransfer(t) {
+  const record = assertCurrentExecution(t);
+  if (!record.executionBase) throw Error('لا يوجد نقل للتراجع عنه.');
+  const chain = executionChain(record),
+    canceled = new Set(
+      chain.filter((e) => e.kind === 'undo').map((e) => e.undoes),
+    );
+  const last = chain.findLast(
+    (e) => e.kind === 'transfer' && !canceled.has(e.id),
+  );
+  if (
+    !last ||
+    chain.slice(chain.indexOf(last) + 1).some((e) => e.kind === 'manual')
+  )
+    throw Error('لا يمكن التراجع بعد تعديل الموعد؛ سجل النقل محفوظ.');
+  const current = executionValue(record);
+  const keepOutcome = chain
+    .slice(chain.indexOf(last) + 1)
+    .some((e) => e.kind === 'outcome');
+  const snapshot = structuredClone(state);
+  try {
+    removeTaskSchedule(current.date, t.id);
+    const next = appendExecution(
+      record,
+      'undo',
+      {
+        ...last.from,
+        progress: current.progress,
+        status: keepOutcome ? current.status : last.from.status,
+      },
+      { undoes: last.id },
+    );
+    if (next.date) scheduleTask(next, next.startSlot);
+    save();
+    return next;
+  } catch (error) {
+    state = snapshot;
+    invalidateTaskReads();
+    throw error;
+  }
+}
+function recordTaskOutcome(t, value) {
+  assertCurrentExecution(t);
+  if (t.executionBase) {
+    const record = executionRecord(t),
+      current = executionValue(record);
+    appendExecution(record, 'outcome', {
+      ...current,
+      status: current.status === value ? 'pending' : value,
+    });
+  } else if (t.date) setTaskOutcome(taskDay(t.date), t.id, value);
+  else setInboxOutcome(t, value);
+}
+function recordTaskProgress(t, n) {
+  assertCurrentExecution(t);
+  if (!Number.isInteger(n) || n < 0 || n > 9999)
+    throw Error('خانات غير صالحة.');
+  if (t.executionBase) {
+    const record = executionRecord(t);
+    appendExecution(record, 'progress', {
+      ...executionValue(record),
+      progress: n,
+    });
+  } else {
+    const old = completedSlots(t);
+    if (t.date) {
+      const d = taskDay(t.date);
+      (d.taskProgress ??= {})[t.id] = n;
+    } else {
+      t.completedSlotCount = n;
+    }
+    logTaskProgress(t, n, old);
+  }
+}
+function logTaskProgress(t, value, old) {
+  if (value === old) return;
+  const event = {
+    id: uid(),
+    date: t.date || '',
+    at: new Date().toISOString(),
+    value,
+    delta: value - old,
+  };
+  const log = t.date
+    ? ((taskDay(t.date).taskProgressLog ??= {})[t.id] ??= {})
+    : (t.slotProgressLog ??= {});
+  log[event.id] = event;
+}
+function saveExecutionTask(original, next, progress, persist) {
+  const record = assertCurrentExecution(original),
+    snapshot = structuredClone(state);
+  try {
+    const current = executionValue(record),
+      previousName = record.name;
+    const value = {
+      ...current,
+      date: next.date || '',
+      prayers: taskPeriods(next),
+      prayer: taskPeriods(next)[0] ?? null,
+      startSlot: next.startSlot ?? null,
+      progress: progress ?? current.progress,
+    };
+    const changedSchedule =
+      current.date !== value.date ||
+      JSON.stringify(current.prayers) !== JSON.stringify(value.prayers);
+    removeTaskSchedule(current.date, original.id);
+    for (const [key, val] of Object.entries(next))
+      if (
+        ![
+          'id',
+          'date',
+          'prayer',
+          'prayers',
+          'startSlot',
+          'executionBase',
+          'executionEvents',
+          'executionHead',
+          'progress',
+          'status',
+          'historical',
+          'transferredTo',
+          'recurrent',
+        ].includes(key)
+      )
+        record[key] = val;
+    const item = appendExecution(
+      record,
+      changedSchedule ? 'manual' : 'edit',
+      value,
+    );
+    if (item.date) scheduleTask(item, item.startSlot);
+    if (record.name !== previousName)
+      for (const child of [
+        ...state.taskInbox,
+        ...Object.values(state.sunsetDays).flatMap((d) => d.tasks),
+      ])
+        if (child.parentId === record.id) child.parentName = record.name;
+    if (persist) save();
+    return item;
+  } catch (error) {
+    state = snapshot;
+    invalidateTaskReads();
+    throw error;
+  }
+}
+function taskTransferHistory(t) {
+  if (!t.executionBase) return '';
+  const record = executionRecord(t) || t;
+  const chain = executionChain(record),
+    active = new Set(chain.map((e) => e.id));
+  const undone = new Set(
+    chain.filter((e) => e.kind === 'undo').map((e) => e.undoes),
+  );
+  const events = Object.values(record.executionEvents || {})
+    .filter((e) => e.kind === 'transfer')
+    .sort((a, b) => a.at.localeCompare(b.at));
+  const label = (v) => v.prayers.map((p) => names[p]).join('، ') || 'بدون فترة';
+  const logs = Object.values({
+    ...record.slotProgressLog,
+    ...state.sunsetDays[record.executionBase.date]?.taskProgressLog?.[
+      record.detachedFrom || record.id
+    ],
+  });
+  return `<details class="task-transfer-history"><summary>سجل النقل (${events.length})</summary><ol>${events.map((e) => `<li>${esc(e.from.date)} ← ${esc(e.value.date)} · لم تُنجز${undone.has(e.id) ? ' · تم التراجع' : !active.has(e.id) ? ' · فرع محفوظ من تعارض مزامنة' : ''}<small>${esc(label(e.from))} ← ${esc(label(e.value))} · ${e.from.progress} / ${taskExpectedSlots(t)} خانة · <time>${esc(e.at)}</time></small></li>`).join('')}</ol><details><summary>سجل الخانات</summary><ul>${logs.map((e) => `<li>${esc(e.date)}: ${e.delta >= 0 ? '+' : ''}${e.delta}، الإجمالي ${e.value} · ${esc(e.at)}</li>`).join('')}<li>${esc(record.executionBase.date)}: الرصيد عند أول نقل ${record.executionBase.progress} خانة</li>${chain
+    .filter((e) => ['progress', 'edit'].includes(e.kind))
+    .map(
+      (e) =>
+        `<li>${esc(e.value.date || 'غير موزعة')}: الإجمالي ${e.value.progress} خانة · ${esc(e.at)}</li>`,
+    )
+    .join('')}</ul></details></details>`;
+}
+function openTaskHistory(t) {
+  let dialog = $('#taskHistory');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'taskHistory';
+    document.body.append(dialog);
+  }
+  dialog.innerHTML = `<div class="dialog-head"><h2>${esc(t.name)}</h2><button type="button" data-close-history aria-label="إغلاق">×</button></div>${t.historical ? `<p>لم تُنجز يوم ${esc(t.date)} · نُقلت إلى ${esc(t.transferredTo)}</p>` : ''}${taskTransferHistory(t)}<button type="button" data-current-task>المهمة الحالية</button>`;
+  dialog.querySelector('[data-close-history]').onclick = () => dialog.close();
+  dialog.querySelector('[data-current-task]').onclick = () => {
+    const record = executionRecord(t);
+    if (!record) {
+      toast('حُذفت المهمة');
+      dialog.close();
+      return;
+    }
+    dialog.close();
+    openPlannerEditor(executionProjection(record));
+  };
+  dialog.querySelector('details')?.setAttribute('open', '');
+  dialog.showModal();
+}
+function openTaskFailure(t) {
+  if (t.historical) {
+    openTaskHistory(t);
+    return;
+  }
+  // Undated inbox tasks have no original day to defer from.
+  if (!t.date) {
+    recordTaskOutcome(t, 'failed');
+    save();
+    taskRowChanged(t);
+    return;
+  }
+  let dialog = $('#taskTransfer');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'taskTransfer';
+    document.body.append(dialog);
+  }
+  const captured = state;
+  dialog.innerHTML = `<div class="dialog-head"><h2>${esc(t.name)}</h2><button type="button" data-transfer-close aria-label="إغلاق">×</button></div><div class="task-failure-options"><button type="button" data-failure-only>لم أنجزها</button><button type="button" data-transfer-option>نقل</button></div><form data-transfer-form hidden><label class="field">اليوم الجديد<input type="date" name="transferDate" required min="${addDate(t.date, 1)}" value="${addDate(t.date > activeDay() ? t.date : activeDay(), 1)}"></label><button type="button" data-transfer-tomorrow>غدًا</button><label class="field">الفترة<select name="transferPrayer"><option value="keep">نفس الفترة</option><option value="none">بدون فترة</option>${names.map((name, p) => `<option value="${p}">${name}</option>`).join('')}</select></label><button class="primary" type="submit">نقل</button></form><p role="alert" data-transfer-error></p>`;
+  const perform = (fn, refresh = true) => {
+    try {
+      if (state !== captured) throw Error('تغيرت البيانات؛ أعد فتح المهمة.');
+      fn();
+      dialog.close();
+      if (refresh) {
+        $('#plannerEditor')?.close();
+        render();
+      } else {
+        taskRowChanged(findTask(t.id, t.date) || t);
+        if (plannerTab === 'month') refreshMonthTaskValues();
+      }
+    } catch (error) {
+      dialog.querySelector('[data-transfer-error]').textContent = error.message;
+    }
+  };
+  dialog.querySelector('[data-transfer-close]').onclick = () => dialog.close();
+  dialog.querySelector('[data-failure-only]').onclick = () =>
+    perform(() => {
+      recordTaskOutcome(t, 'failed');
+      save();
+    }, false);
+  dialog.querySelector('[data-transfer-option]').onclick = () => {
+    dialog.querySelector('[data-transfer-form]').hidden = false;
+    dialog.querySelector('.task-failure-options').hidden = true;
+    dialog.querySelector('[name=transferDate]').focus();
+  };
+  dialog.querySelector('[data-transfer-tomorrow]').onclick = () => {
+    dialog.querySelector('[name=transferDate]').value = addDate(activeDay(), 1);
+  };
+  dialog.querySelector('form').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.currentTarget.elements,
+      p = f.transferPrayer.value;
+    perform(() => {
+      transferTask(
+        t,
+        f.transferDate.value,
+        p === 'keep' ? taskPeriods(t) : p === 'none' ? [] : [+p],
+      );
+      toast('تم النقل وحفظ عدم الإنجاز');
+    });
+  };
+  dialog.showModal();
+}
 function allTasksOn(key) {
   return cachedTaskRead('day:' + key, () => {
     const d = state.sunsetDays[key] || emptyDay();
@@ -479,12 +943,16 @@ function allTasksOn(key) {
         ? d.repeatSnapshot || []
         : repeatFor(key);
     return [
-      ...d.tasks,
+      ...d.tasks.filter((t) => !t.executionBase),
       ...repeats.filter((t) => !d.excludedRepeat?.[t.id]),
-    ].map((t) => ({ ...t, date: key }));
+    ]
+      .map((t) => ({ ...t, date: key }))
+      .concat(executionRows().get(key) || []);
   });
 }
 function outcome(t) {
+  if (t.historical) return 'failed';
+  if (t.executionBase) return t.status || executionValue(t).status;
   if (!t.date) return t.inboxOutcome || 'pending';
   const d = state.sunsetDays[t.date];
   return d?.done?.[t.id] ? 'done' : d?.failed?.[t.id] ? 'failed' : 'pending';
@@ -494,20 +962,28 @@ function setInboxOutcome(t, value) {
   else t.inboxOutcome = value;
 }
 function completedSlots(t) {
+  if (t.executionBase) return t.progress ?? executionValue(t).progress;
   return t.date
     ? state.sunsetDays[t.date]?.taskProgress?.[t.id] || 0
     : t.completedSlotCount || 0;
 }
 function taskEntries() {
   return cachedTaskRead('entries', () => [
-    ...Object.keys(state.sunsetDays).sort().flatMap(allTasksOn),
-    ...(state.taskInbox || []).map((t) => ({ ...t, date: '' })),
+    ...Object.keys(state.sunsetDays)
+      .sort()
+      .flatMap(allTasksOn)
+      .filter((t) => !t.historical),
+    ...(state.taskInbox || [])
+      .filter((t) => !t.executionBase)
+      .map((t) => ({ ...t, date: '' })),
+    ...(executionRows().get('') || []),
   ]);
 }
 function findTask(id, key) {
   return key
     ? allTasksOn(key).find((t) => t.id === id)
-    : (state.taskInbox || []).find((t) => t.id === id);
+    : (executionRows().get('') || []).find((t) => t.id === id) ||
+        (state.taskInbox || []).find((t) => t.id === id && !t.executionBase);
 }
 function parentName(t) {
   if (!t.parentId) return '';
@@ -612,6 +1088,7 @@ function scheduleTask(t, start) {
   }
 }
 function savePlannedTask(original, next, progress = null, persist = true) {
+  if (original?.historical) throw Error('السجل التاريخي للعرض فقط.');
   if (
     next.completionPercent !== undefined &&
     (!Number.isFinite(next.completionPercent) ||
@@ -624,6 +1101,8 @@ function savePlannedTask(original, next, progress = null, persist = true) {
     (!Number.isInteger(progress) || progress < 0 || progress > 9999)
   )
     throw Error('الخانات المنجزة يجب أن تكون بين ٠ و٩٩٩٩.');
+  if (original?.executionBase)
+    return saveExecutionTask(original, next, progress, persist);
   // Validate the schedule against a temporary copy before touching the real state.
   const snapshot = structuredClone(state);
   const previousOutcome = original ? outcome(original) : 'pending',
@@ -640,6 +1119,11 @@ function savePlannedTask(original, next, progress = null, persist = true) {
         state.taskInbox = state.taskInbox.filter((t) => t.id !== original.id);
     }
     let item = { showInMonthlyCalendar: true, ...next };
+    const previousLog = original?.date
+      ? state.sunsetDays[original.date]?.taskProgressLog?.[original.id]
+      : original?.slotProgressLog;
+    if (previousLog)
+      item.slotProgressLog = { ...item.slotProgressLog, ...previousLog };
     delete item.recurrent;
     if (original?.recurrent) {
       item.id = uid();
@@ -653,7 +1137,12 @@ function savePlannedTask(original, next, progress = null, persist = true) {
         (d[previousOutcome] ??= {})[item.id] = true;
       if (original?.date && (moved || original.recurrent)) {
         const old = taskDay(original.date);
-        for (const field of ['done', 'failed', 'taskProgress']) {
+        for (const field of [
+          'done',
+          'failed',
+          'taskProgress',
+          'taskProgressLog',
+        ]) {
           if (old[field]?.[original.id] !== undefined) {
             (d[field] ??= {})[item.id] = old[field][original.id];
             delete old[field][original.id];
@@ -675,6 +1164,7 @@ function savePlannedTask(original, next, progress = null, persist = true) {
       item.completedSlotCount = progress ?? previousSlots;
       state.taskInbox.push(item);
     }
+    if (progress !== null) logTaskProgress(item, progress, previousSlots);
     // Child names stay readable if the parent is subsequently removed.
     if (original)
       for (const child of [
@@ -693,13 +1183,16 @@ function savePlannedTask(original, next, progress = null, persist = true) {
     // Project ranks identify occurrences by both ID and date. Moving a task
     // (or detaching a recurring occurrence) must carry its saved rank with it.
     if (original) {
-      const oldKey = taskIdentity(original), newKey = taskIdentity(item);
+      const oldKey = taskIdentity(original),
+        newKey = taskIdentity(item);
       if (oldKey !== newKey)
         for (const project of state.projects || [])
           if (project.taskOrder?.includes(oldKey))
-            project.taskOrder = [...new Set(project.taskOrder.map(
-              (key) => key === oldKey ? newKey : key,
-            ))];
+            project.taskOrder = [
+              ...new Set(
+                project.taskOrder.map((key) => (key === oldKey ? newKey : key)),
+              ),
+            ];
     }
     if (persist) save();
     return item;
@@ -710,6 +1203,14 @@ function savePlannedTask(original, next, progress = null, persist = true) {
   }
 }
 function removePlannedTaskRecord(t) {
+  if (t.historical) throw Error('السجل التاريخي للعرض فقط.');
+  if (t.executionBase) {
+    removeTaskSchedule(t.date, t.id);
+    const source = t.executionBase.date;
+    const d = taskDay(source);
+    d.tasks = d.tasks.filter((x) => x.id !== t.id);
+    return;
+  }
   if (!t.date) state.taskInbox = state.taskInbox.filter((x) => x.id !== t.id);
   else {
     const d = taskDay(t.date);
@@ -812,6 +1313,10 @@ function openPlannerEditor(
   projectId = '',
   options = {},
 ) {
+  if (t?.historical) {
+    openTaskHistory(t);
+    return;
+  }
   let dialog = $('#plannerEditor');
   if (!dialog) {
     dialog = document.createElement('dialog');
@@ -829,7 +1334,7 @@ function openPlannerEditor(
     expectedSlots: 0,
     parentId: parent?.id,
     parentName: parent?.name,
-    parentDate: parent?.date || '',
+    parentDate: parent?.executionBase?.date ?? parent?.date ?? '',
     projectId: parent?.projectId || projectId,
     projectIds: parent
       ? effectiveProjectIds(parent)
@@ -839,6 +1344,24 @@ function openPlannerEditor(
   };
   dialog.innerHTML = `<div class="dialog-head"><h2 id="plannerTitle">${t ? 'تعديل المهمة' : parent ? 'إضافة مهمة فرعية' : 'إضافة مهمة'}</h2><button type="button" id="closePlanner" aria-label="إغلاق">×</button></div><form id="plannerForm"><div class="planner-main-fields"><label class="field">المهمة<input name="taskName" maxlength="150" required value="${esc(draft.name)}"></label><label class="field">الوصف<input name="taskDescription" maxlength="500" value="${esc(draft.description || '')}" placeholder="مثل: من 1 إلى 21"></label></div>${draft.parentId ? `<p>ضمن: ${esc(parentName(draft))}</p>` : ''}<div class="planner-fields">${taskFields(draft, true, !!t)}</div><details class="planner-schedule-details" ${draft.startSlot != null ? 'open' : ''}><summary>حجز وقت في المطلوب</summary><label class="field">البداية<select name="startSlot"></select></label><details class="planner-capacity-details"><summary>الخانات المتاحة</summary><p id="plannerCapacity" class="capacity-note"></p></details><p class="hint">يحجز الخانات المتوقعة بالفعل المرتبط، دون تغيير التسجيل الفعلي أو الإنجاز.</p></details>${t?.recurrent ? '<p class="hint">تعديل هذه النسخة يفصلها عن السلسلة لهذا اليوم فقط.</p>' : ''}<p id="plannerError" role="alert"></p><div class="planner-form-actions"><button class="primary">حفظ المهمة</button><button type="button" class="secondary" data-editor-cancel>إلغاء</button></div></form>${t ? '<div class="planner-edit-actions"><button type="button" id="editorAddChild" class="secondary">＋ إضافة مهمة فرعية</button><button type="button" id="editorDeleteTask" class="danger">حذف المهمة</button></div>' : ''}`;
   if (t) {
+    if (t.executionBase) {
+      const history = document.createElement('section');
+      history.innerHTML =
+        taskTransferHistory(t) +
+        '<button type="button" data-undo-transfer>تراجع عن آخر نقل</button><p role="alert" data-undo-error></p>';
+      dialog.append(history);
+      history.querySelector('[data-undo-transfer]').onclick = () => {
+        try {
+          const current = undoTaskTransfer(t);
+          dialog.close();
+          render();
+          openPlannerEditor(current);
+        } catch (error) {
+          history.querySelector('[data-undo-error]').textContent =
+            error.message;
+        }
+      };
+    }
     const children = childTasks(t);
     if (children.length) {
       const section = document.createElement('details');
@@ -977,7 +1500,7 @@ function openPlannerEditor(
         JSON.stringify(next.projectIds) === JSON.stringify(taskProjectIds(t));
       let savedTask = t;
       if (progressOnly) {
-        (taskDay(t.date).taskProgress ??= {})[t.id] = progress;
+        recordTaskProgress(t, progress);
         save();
       } else savedTask = savePlannedTask(t, next, progress);
       dialog.close();
@@ -1178,6 +1701,72 @@ function validatePlanning(s) {
   if (s.taskInbox !== undefined && !Array.isArray(s.taskInbox))
     throw Error('قائمة مهام غير صالحة');
   const checkTask = (t) => {
+    if (
+      t?.executionBase !== undefined ||
+      t?.executionEvents !== undefined ||
+      t?.executionHead !== undefined
+    ) {
+      const valueOK = (v) =>
+        v &&
+        typeof v === 'object' &&
+        !Array.isArray(v) &&
+        (v.date === '' || validDate(v.date)) &&
+        validTaskPeriods(v) &&
+        Number.isInteger(v.progress) &&
+        v.progress >= 0 &&
+        v.progress <= 9999 &&
+        ['pending', 'failed', 'done'].includes(v.status) &&
+        (v.startSlot === null ||
+          (Number.isInteger(v.startSlot) &&
+            v.startSlot >= 0 &&
+            v.startSlot <= 288));
+      const events = t.executionEvents;
+      if (
+        !valueOK(t.executionBase) ||
+        !validDate(t.executionBase.date) ||
+        !events ||
+        typeof events !== 'object' ||
+        Array.isArray(events) ||
+        typeof t.executionHead !== 'string' ||
+        !Object.hasOwn(events, t.executionHead)
+      )
+        throw Error('سجل نقل غير صالح.');
+      const valid = new Set();
+      for (const [id, e] of Object.entries(events)) {
+        if (
+          !e ||
+          e.id !== id ||
+          typeof e.previous !== 'string' ||
+          (e.previous && !Object.hasOwn(events, e.previous)) ||
+          ![
+            'transfer',
+            'undo',
+            'manual',
+            'progress',
+            'outcome',
+            'edit',
+          ].includes(e.kind) ||
+          typeof e.at !== 'string' ||
+          Number.isNaN(Date.parse(e.at)) ||
+          !valueOK(e.value) ||
+          (e.kind === 'transfer' &&
+            (!valueOK(e.from) ||
+              !e.from.date ||
+              !e.value.date ||
+              e.value.date <= e.from.date)) ||
+          (e.kind === 'undo' && events[e.undoes]?.kind !== 'transfer')
+        )
+          throw Error('عملية نقل غير صالحة.');
+        const seen = new Set();
+        let cursor = id;
+        while (cursor && !valid.has(cursor)) {
+          if (seen.has(cursor)) throw Error('دورة غير صالحة في سجل النقل.');
+          seen.add(cursor);
+          cursor = events[cursor]?.previous;
+        }
+        for (const key of seen) valid.add(key);
+      }
+    }
     if (
       !validTaskPeriods(t) &&
       !(t && t.prayer === undefined && t.prayers === undefined)
