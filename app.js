@@ -147,6 +147,58 @@ function range(p) {
 function tasks() {
   return allTasksOn(date).filter((t) => taskInPeriod(t, prayer));
 }
+function periodActionGroups(list) {
+  const entries = progressEntries();
+  const byAction = new Map();
+  for (const task of sortedTasks(list)) {
+    const actionId = task.actionId || '';
+    if (!byAction.has(actionId)) {
+      byAction.set(actionId, {
+        actionId,
+        action: state.actions.find((a) => a.id === actionId) || null,
+        families: new Map(),
+        count: 0,
+      });
+    }
+    const group = byAction.get(actionId);
+    const main = task.historical ? task : mainTask(task, entries);
+    const rootKey = taskIdentity(main);
+    if (!group.families.has(rootKey))
+      group.families.set(rootKey, { main, tasks: [] });
+    group.families.get(rootKey).tasks.push(task);
+    group.count++;
+  }
+  const actionOrder = new Map(state.actions.map((a, i) => [a.id, i]));
+  return [...byAction.values()].sort((a, b) => {
+    const position = (g) =>
+      !g.actionId
+        ? Number.MAX_SAFE_INTEGER
+        : actionOrder.get(g.actionId) ?? Number.MAX_SAFE_INTEGER - 1;
+    return position(a) - position(b);
+  });
+}
+function renderPeriodTaskGroups(list) {
+  if (!list.length)
+    return '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>';
+  return periodActionGroups(list)
+    .map((group) => {
+      const actionName = group.action?.name ||
+        (group.actionId ? 'فعل مرتبط محذوف' : 'بدون فعل مرتبط');
+      const families = [...group.families.values()].map(({ main, tasks }) => {
+        const key = taskIdentity(main);
+        const own = tasks.find((t) => taskIdentity(t) === key);
+        const children = tasks.filter((t) => taskIdentity(t) !== key);
+        if (!children.length)
+          return own ? compactTaskCard(own) : '';
+        const parentHeading = own
+          ? `<div class="period-family-root">${compactTaskCard(own)}</div>`
+          : `<div class="period-family-heading"><strong title="${esc(main.name)}">${esc(main.name)}</strong><span>المهمة الرئيسية</span></div>`;
+        return `<section class="period-task-family" aria-label="فروع ${esc(main.name)}">${parentHeading}<div class="period-family-children">${children.map(compactTaskCard).join('')}</div></section>`;
+      }).join('');
+      return `<section class="period-action-group" aria-label="مهام فعل ${esc(actionName)}"><h3 class="period-action-heading"><span>${esc(actionName)}</span><span class="period-action-count">${group.count}</span></h3><div class="period-action-tasks">${families}</div></section>`;
+    })
+    .join('');
+}
 function colorText(c) {
   let rgb = c.match(/\w\w/g).map((x) => parseInt(x, 16));
   return rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114 > 150
@@ -327,7 +379,7 @@ function renderDay() {
         !!d.actualNotes?.[n % 144],
     ).length,
     done = prayerDayCount(d);
-  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / ${prayerCheckTotal()} من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCheckTasks(i).length > 0 && prayerCount(i) === prayerCheckTasks(i).length ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/${prayerCheckTasks(i).length}</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${sortedTasks(tasks()).map(compactTaskCard).join('') || '<p class="empty-note">مساحة لأهم ما تريد إنجازه.</p>'}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
+  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / ${prayerCheckTotal()} من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCheckTasks(i).length > 0 && prayerCount(i) === prayerCheckTasks(i).length ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/${prayerCheckTasks(i).length}</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${renderPeriodTaskGroups(tasks())}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
     taskGroups(allTasksOn(date))
       .map((t) => compactTaskGroup(t))
       .join('') || '<p class="empty-note">لا توجد مهام لهذا اليوم.</p>'
