@@ -69,6 +69,8 @@ function installTaskSelection() {
       !app.querySelector('.task-row') &&
       !app.querySelector('#plannerSearch'))
   ) {
+    $('#toggleTaskSelection')?.remove();
+    $('#taskSelectionToolbar')?.remove();
     refreshTaskSelection();
     return;
   }
@@ -78,22 +80,9 @@ function installTaskSelection() {
     button.type = 'button';
     button.id = 'toggleTaskSelection';
     button.className = 'secondary';
-    (
-      app.querySelector('.project-page-actions') || app.querySelector('.top')
-    ).append(button);
   }
-  const search = app.querySelector('#projectSearch, #plannerSearch');
-  if (search) {
-    const label = search.closest('label');
-    let group = label.parentElement;
-    if (!group.classList.contains('task-selection-search')) {
-      group = document.createElement('div');
-      group.className = 'task-selection-search';
-      label.replaceWith(group);
-      group.append(label);
-    }
-    if (button.parentElement !== group) group.append(button);
-  }
+  const headerActions = document.querySelector('main > header .sync-header');
+  if (button.parentElement !== headerActions) headerActions.prepend(button);
   const hasTasks = !!app.querySelector(
     '.task-row:not([data-virtual]):not(.task-historical)',
   );

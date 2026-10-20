@@ -225,11 +225,11 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       render();
     });
     assert.equal(
-      await page.locator('.task-selection-search #plannerSearch').count(),
+      await page.locator('#plannerSearch').count(),
       1,
     );
     assert.equal(
-      await page.locator('.task-selection-search #toggleTaskSelection').count(),
+      await page.locator('main > header #toggleTaskSelection').count(),
       1,
     );
     await page.locator('#toggleTaskSelection').click();
@@ -583,4 +583,5 @@ module.exports = async function selectedTasksBrowser(browser, url) {
     await page.close();
   }
 };
+
 
