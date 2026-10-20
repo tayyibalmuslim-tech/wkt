@@ -57,15 +57,15 @@ function refreshTaskSelection() {
 function installTaskSelection() {
   if (
     taskSelectionState !== state ||
-    !['projects', 'dashboard'].includes(view)
+    !['projects', 'dashboard', 'day'].includes(view)
   ) {
     selectedTaskRefs.clear();
     taskSelectionMode = false;
     taskSelectionState = state;
   }
   if (
-    !['projects', 'dashboard'].includes(view) ||
-    (view !== 'projects' &&
+    !['projects', 'dashboard', 'day'].includes(view) ||
+    (!['projects', 'day'].includes(view) &&
       !app.querySelector('.task-row') &&
       !app.querySelector('#plannerSearch'))
   ) {
@@ -100,7 +100,9 @@ function installTaskSelection() {
   button.textContent = taskSelectionMode ? 'إنهاء التحديد' : 'تحديد عدة مهام';
   button.disabled = !hasTasks && !taskSelectionMode;
   button.title = button.disabled
-    ? selectedProject
+    ? view === 'day'
+      ? 'لا توجد مهام في هذا اليوم للتحديد'
+      : selectedProject
       ? 'لا توجد مهام ظاهرة في هذا المشروع للتحديد'
       : 'اختر مشروعًا لبدء تحديد مهامه'
     : 'اختر مهام لتعديلها جماعيًا أو حذفها';
@@ -1693,4 +1695,5 @@ function renderTaskWeek() {
       }),
   );
 }
+
 
