@@ -103,8 +103,31 @@ try {
   assert.ok(inGroup(groupB, 'child-other').querySelector('[data-outcome="done"]'));
   inGroup(groupB, 'child-other').querySelector('[data-outcome="done"]').click();
   assert.equal(run("outcome(findTask('child-other',date))"), 'done');
+  // Daily ordering is saved per date and must never reorder period/project data.
+  run(`day().tasks = ['a','b','c'].map(id => ({id,name:id,date,prayer:3}));
+    invalidateTaskReads();render();`);
+  const ids = (root) => [...w.document.querySelectorAll(root + ' .task-row')].map(r => r.dataset.taskId);
+  const before = ids('#dailyTaskCards');
+  const input = $('#allDayTaskCards [data-task-id="c"] [data-day-task-order]');
+  assert.ok(input);
+  input.value = '1';
+  input.dispatchEvent(new w.Event('change', {bubbles:true}));
+  assert.deepEqual(ids('#allDayTaskCards'), ['c','a','b']);
+  assert.deepEqual(ids('#dailyTaskCards'), before);
+  assert.deepEqual(JSON.parse(run('JSON.stringify(day().tasks.map(t=>t.id))')), ['a','b','c']);
+  assert.ok(JSON.parse(w.localStorage.getItem('waqti-v1')).sunsetDays[run('date')].taskOrder);
+  run('render()');
+  assert.deepEqual(ids('#allDayTaskCards'), ['c','a','b']);
+  assert.equal($('#dailyTaskCards [data-day-task-order]'), null);
+  const invalid = $('#allDayTaskCards [data-day-task-order]');
+  invalid.value = '99';
+  invalid.dispatchEvent(new w.Event('change', {bubbles:true}));
+  assert.equal(invalid.value, '1');
+  run(`date='2099-01-02';day().tasks=['a','b','c'].map(id=>({id,name:id,date,prayer:3}));render();`);
+  assert.deepEqual(ids('#allDayTaskCards'), ['a','b','c']);
   assert.deepEqual(errors, []);
   console.log('Period task grouping checks passed.');
 } finally {
   dom.window.close();
 }
+
