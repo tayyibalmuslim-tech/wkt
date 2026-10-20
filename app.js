@@ -147,10 +147,27 @@ function range(p) {
 function tasks() {
   return allTasksOn(date).filter((t) => taskInPeriod(t, prayer));
 }
-function periodActionGroups(list) {
+function dayTaskOrder(list, key = date) {
+  const saved = state.sunsetDays[key]?.taskOrder || [];
+  const ranks = new Map(saved.map((id, i) => [id, i]));
+  return sortedTasks(list).sort((a, b) =>
+    (ranks.get(taskIdentity(a)) ?? Infinity) -
+    (ranks.get(taskIdentity(b)) ?? Infinity));
+}
+function moveDayTask(task, position) {
+  const ordered = dayTaskOrder(allTasksOn(date));
+  const index = ordered.findIndex((t) => taskIdentity(t) === taskIdentity(task));
+  if (index < 0 || !Number.isInteger(position) || position < 1 || position > ordered.length)
+    return false;
+  ordered.splice(position - 1, 0, ordered.splice(index, 1)[0]);
+  day().taskOrder = ordered.map(taskIdentity);
+  save();
+  return true;
+}
+function periodActionGroups(list, dailyOrder = false) {
   const entries = progressEntries();
   const byAction = new Map();
-  for (const task of sortedTasks(list)) {
+  for (const task of dailyOrder ? dayTaskOrder(list) : sortedTasks(list)) {
     const actionId = task.actionId || '';
     if (!byAction.has(actionId)) {
       byAction.set(actionId, {
@@ -174,13 +191,19 @@ function periodActionGroups(list) {
       !g.actionId
         ? Number.MAX_SAFE_INTEGER
         : actionOrder.get(g.actionId) ?? Number.MAX_SAFE_INTEGER - 1;
+    if (dailyOrder) return 0; // Insertion order follows this day's task order.
     return position(a) - position(b);
   });
 }
-function renderPeriodTaskGroups(list, emptyMessage = 'مساحة لأهم ما تريد إنجازه.') {
+function renderPeriodTaskGroups(list, emptyMessage = 'مساحة لأهم ما تريد إنجازه.', dailyOrder = false) {
   if (!list.length)
     return `<p class="empty-note">${esc(emptyMessage)}</p>`;
-  return periodActionGroups(list)
+  const context = dailyOrder ? {
+    dayOrder: new Map(dayTaskOrder(list).map((t, i) => [taskIdentity(t), i + 1])),
+    dayOrderTotal: list.length,
+  } : null;
+  const card = (t) => compactTaskCard(t, context);
+  return periodActionGroups(list, dailyOrder)
     .map((group) => {
       const actionName = group.action?.name ||
         (group.actionId ? 'فعل مرتبط محذوف' : 'بدون فعل مرتبط');
@@ -189,11 +212,11 @@ function renderPeriodTaskGroups(list, emptyMessage = 'مساحة لأهم ما �
         const own = tasks.find((t) => taskIdentity(t) === key);
         const children = tasks.filter((t) => taskIdentity(t) !== key);
         if (!children.length)
-          return own ? compactTaskCard(own) : '';
+          return own ? card(own) : '';
         const parentHeading = own
-          ? `<div class="period-family-root">${compactTaskCard(own)}</div>`
+          ? `<div class="period-family-root">${card(own)}</div>`
           : `<div class="period-family-heading"><strong title="${esc(main.name)}">${esc(main.name)}</strong><span>المهمة الرئيسية</span></div>`;
-        return `<section class="period-task-family" aria-label="فروع ${esc(main.name)}">${parentHeading}<div class="period-family-children">${children.map(compactTaskCard).join('')}</div></section>`;
+        return `<section class="period-task-family" aria-label="فروع ${esc(main.name)}">${parentHeading}<div class="period-family-children">${children.map(card).join('')}</div></section>`;
       }).join('');
       return `<section class="period-action-group" aria-label="مهام فعل ${esc(actionName)}"><h3 class="period-action-heading"><span>${esc(actionName)}</span><span class="period-action-count">${group.count}</span></h3><div class="period-action-tasks">${families}</div></section>`;
     })
@@ -380,7 +403,7 @@ function renderDay() {
     ).length,
     done = prayerDayCount(d);
   app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / ${prayerCheckTotal()} من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCheckTasks(i).length > 0 && prayerCount(i) === prayerCheckTasks(i).length ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/${prayerCheckTasks(i).length}</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button><button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${renderPeriodTaskGroups(tasks())}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div><div class="legend">${state.categories.map((a) => `<span><i class="dot" style="background:${a.color}"></i>${esc(a.name)}</span>`).join('')}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
-    renderPeriodTaskGroups(allTasksOn(date), 'لا توجد مهام لهذا اليوم.')
+    renderPeriodTaskGroups(allTasksOn(date), 'لا توجد مهام لهذا اليوم.', true)
   }</div></section></div>`;
   observeDailySlotGrid();
   $('#bulkSlots').onclick = () => openPicker(range(prayer)[0], 'actual', true);
@@ -986,3 +1009,4 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) tickCalendar();
 });
 window.addEventListener('focus', tickCalendar);
+

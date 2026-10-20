@@ -5188,3 +5188,11 @@ main > header {
     margin-inline-start: 5px;
   }
 }
+
+
+/* Ordering is local to the all-day list. */
+.task-row .day-task-order { flex: 0 0 30px; margin: 0; grid-column: 1; grid-row: 1/3; align-self: center; }
+.task-row .day-task-order input {
+  width: 30px; min-width: 0; height: 28px; padding: 2px;
+  text-align: center; font-size: 12px;
+}
