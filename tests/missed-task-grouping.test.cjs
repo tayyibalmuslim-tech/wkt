@@ -60,7 +60,7 @@ try {
   const projects = () => $('[data-planner-section="projects"]');
   const withoutProject = () => $('[data-planner-section="unassigned"]');
   const actionNames = [run('state.actions[0].name'), run('state.actions[1].name')];
-  assert.equal(w.document.querySelectorAll('[data-planner-project]').length, 2);
+  assert.equal(w.document.querySelectorAll('[data-planner-project]').length, 3);
   const currentProjects = projects();
   assert.ok(currentProjects.textContent.includes('المشروع ألف'));
   assert.equal(currentProjects.querySelectorAll('.period-action-group').length, 2);
@@ -110,3 +110,4 @@ try {
 } finally {
   dom.window.close();
 }
+

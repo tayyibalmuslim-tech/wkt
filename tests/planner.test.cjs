@@ -376,7 +376,7 @@ console.log('PASS: project task order, family grouping, independent projects, pe
 // Unscheduled and missed task lists separate projects from independent tasks.
 run("state.sunsetDays={};state.repeat=[];state.projects=[{id:'group-p',name:'المشروع الأول'},{id:'group-q',name:'المشروع الثاني'}];state.taskInbox=[{id:'gp',name:'أصل المشروع الأول',priority:3,projectId:'group-p'},{id:'gc',name:'فرع موروث',priority:3,parentId:'gp',parentDate:''},{id:'gq',name:'مهمة المشروع الثاني',priority:3,projectId:'group-q'},{id:'free',name:'مهمة مستقلة',priority:3}];plannerQuery='';plannerPriority=plannerStatus='all';view='dashboard';plannerTab='inbox';render()");
 const projectSection=()=>$('#plannerResults [data-planner-section="projects"]'),unassignedSection=()=>$('#plannerResults [data-planner-section="unassigned"]');
-assert.equal(w.document.querySelectorAll('[data-planner-project]').length,2);
+assert.equal(w.document.querySelectorAll('[data-planner-project]').length,3);
 if(!projectSection().querySelector('[data-task-id="gc"]'))click('[data-planner-section="projects"] [data-task-id="gp"] [data-task-toggle]');assert.ok(projectSection().querySelector('[data-task-id="gp"] [data-task-id="gc"]'));
 assert.ok(unassignedSection().querySelector('[data-task-id="free"]'));
 assert.equal(unassignedSection().querySelector('[data-task-id="gc"]'),null);
@@ -521,4 +521,5 @@ assert.deepEqual(Array.from(run("taskProjectIds(findTask('link-dated',date))")),
 assert.equal(run("taskDay(date).tasks.filter(t=>t.id==='link-dated').length"),1);
 console.log('PASS: existing dated task gains project membership without copying or unrelated edits');
 assert.deepEqual(errors,[]);dom.window.close();
+
 

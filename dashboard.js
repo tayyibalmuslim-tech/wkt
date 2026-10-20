@@ -1038,7 +1038,8 @@ function groupedPlannerTasks(list) {
     else ids.forEach((id) => byProject.get(id).push(t));
   }
   const available = projects.filter((p) => byProject.get(p.id).length);
-  if (!available.some((p) => p.id === plannerProjectTabs[plannerTab]))
+  if (plannerProjectTabs[plannerTab] !== 'all' &&
+      !available.some((p) => p.id === plannerProjectTabs[plannerTab]))
     plannerProjectTabs[plannerTab] = available[0]?.id || '';
   const selected = plannerProjectTabs[plannerTab],
     cards = (tasks, projectId = '') => {
@@ -1061,7 +1062,7 @@ function groupedPlannerTasks(list) {
         : taskGroups(tasks);
       return roots.map((t) => taskCard(t, context)).join('');
     };
-  return `<section class="planner-task-section" data-planner-section="projects"><h2>مهام المشاريع</h2>${available.length ? `<div class="planner-tabs" role="group" aria-label="مشاريع المهام">${available.map((p) => `<button type="button" class="secondary ${p.id === selected ? 'chosen' : ''}" data-planner-project="${esc(p.id)}" aria-pressed="${p.id === selected}">${esc(p.name)} (${taskGroups(byProject.get(p.id)).length})</button>`).join('')}</div><div class="planner-project-tasks">${cards(byProject.get(selected), selected)}</div>` : '<p class="empty-note">لا توجد مهام تابعة لمشاريع تطابق التصفية.</p>'}</section>
+  return `<section class="planner-task-section" data-planner-section="projects"><h2>مهام المشاريع</h2>${available.length ? `<div class="planner-tabs" role="group" aria-label="مشاريع المهام"><button type="button" class="secondary ${selected === 'all' ? 'chosen' : ''}" data-planner-project="all" aria-pressed="${selected === 'all'}">جميع المشاريع (${available.length})</button>${available.map((p) => `<button type="button" class="secondary ${p.id === selected ? 'chosen' : ''}" data-planner-project="${esc(p.id)}" aria-pressed="${p.id === selected}">${esc(p.name)} (${taskGroups(byProject.get(p.id)).length})</button>`).join('')}</div><div class="planner-project-tasks">${selected === 'all' ? available.map((p) => `<section class="planner-project-group" aria-label="${esc(p.name)}"><h3>${esc(p.name)}</h3>${cards(byProject.get(p.id), p.id)}</section>`).join('') : cards(byProject.get(selected), selected)}</div>` : '<p class="empty-note">لا توجد مهام تابعة لمشاريع تطابق التصفية.</p>'}</section>
  <section class="planner-task-section" data-planner-section="unassigned"><h2>مهام بدون مشروع (${taskGroups(unassigned).length})</h2>${cards(unassigned) || '<p class="empty-note">لا توجد مهام بدون مشروع تطابق التصفية.</p>'}</section>`;
 }
 const dashboardPositions = new Map();
@@ -1673,3 +1674,4 @@ function renderTaskWeek() {
       }),
   );
 }
+

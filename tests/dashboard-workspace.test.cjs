@@ -144,7 +144,7 @@ try {
     $('[data-planner-section="projects"]').querySelectorAll(
       '[data-planner-project]',
     ).length,
-    1,
+    2,
   );
   own(row('past-a'), '[data-task-select]').click();
   own(row('past-a'), '[data-outcome="done"]').click();
@@ -197,4 +197,5 @@ try {
 } finally {
   dom.window.close();
 }
+
 
