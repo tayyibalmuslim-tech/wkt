@@ -505,7 +505,7 @@ function taskRow(
           : `<div class="task-row-primary"><button type="button" data-outcome="done" aria-pressed="${status === 'done'}" title="فعلتها" aria-label="فعلتها: ${esc(t.name)}">${taskIcon('check')}</button><button type="button" data-outcome="failed" aria-pressed="${status === 'failed'}" title="لم أفعلها" aria-label="لم أفعلها: ${esc(t.name)}">${taskIcon('cross')}</button><button type="button" data-task-edit title="تعديل" aria-label="تعديل ${esc(t.name)}">${taskIcon('edit')}</button></div><label class="row-slot-editor" dir="ltr" title="الخانات المنجزة / المتوقعة"><span class="sr-only">الخانات المنجزة</span><input data-progress type="number" min="0" max="9999" step="1" inputmode="numeric" value="${completedSlots(t)}" aria-label="الخانات المنجزة: ${esc(t.name)}"><span aria-hidden="true">/</span><output data-row-expected aria-label="الخانات المتوقعة">${taskExpectedSlots(t)}</output></label>${context?.dayOrder ? '' : taskOrderField(key, context, t)}`;
   return `<article class="task-row ${mode === 'planner' ? 'planner-task' : 'daily-task'} ${t.virtual ? 'task-family' : ''} ${t.historical ? 'task-historical' : ''} ${status}" data-task-id="${esc(t.id)}" data-task-date="${esc(t.date || '')}" data-row-mode="${mode}" ${context?.matches?.has(key) ? 'data-project-match="true"' : ''} data-row-depth="${depth}" ${t.virtual ? 'data-virtual="true"' : ''} style="--task-indent:${Math.min(depth, 3)}">
     <div class="task-row-heading planner-task-heading">
-      ${context?.dayOrder?.has(key) ? `<label class="day-task-order" title="ترتيب المهمة في كل مهام اليوم؛ مع الحفاظ على مجموعات الأفعال والمهام الرئيسية"><input type="number" min="1" max="${context.dayOrderTotal}" step="1" inputmode="numeric" value="${context.dayOrder.get(key)}" data-day-task-order aria-label="ترتيب ${esc(t.name)} في اليوم"></label>` : visibleChildren.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
+      ${context?.dayOrder?.has(key) ? `<label class="day-task-order" title="ترتيب المهمة في كل مهام اليوم"><input type="number" min="1" max="${context.dayOrderTotal}" step="1" inputmode="numeric" value="${context.dayOrder.get(key)}" data-day-task-order aria-label="ترتيب ${esc(t.name)} في اليوم"></label>` : visibleChildren.length ? `<button type="button" class="task-row-toggle" data-task-toggle aria-controls="${rowId}-children" aria-expanded="${expanded}" aria-label="${expanded ? 'طي' : 'فتح'} فروع ${esc(t.name)}">${taskIcon('chevron')}</button>` : '<span class="task-row-spacer" aria-hidden="true"></span>'}
       <button type="button" class="task-row-select" data-task-select aria-expanded="false" aria-controls="taskTextPopover" title="${esc(fullText)}" data-task-context="${esc(contextLabel)}">
         <span class="task-row-status" role="img" aria-label="${mode === 'series' ? 'سلسلة متكررة' : { done: 'فعلتها', failed: 'لم أفعلها', pending: 'لم تُسجل' }[status]}">${taskIcon(mode === 'series' ? 'repeat' : status === 'done' ? 'check' : status === 'failed' ? 'cross' : 'circle')}</span>
         <span class="task-row-copy"><strong class="daily-task-name">${esc(t.name)}</strong>${t.historical ? `<small class="transfer-badge">لم تُنجز ← ${esc(t.transferredTo)}</small>` : taskIsDeferred(t) ? '<small class="transfer-badge" title="مؤجلة — السجل داخل التعديل">↪ مؤجلة</small>' : ''}${hideDescription ? '' : taskDescription(t)}${mode === 'period' && t.parentId ? `<small class="row-parent">↳ ${esc(parentName(t))}</small>` : ''}</span>
@@ -875,7 +875,7 @@ function bindTaskCards(root = app, insideManager = false) {
         return;
       }
       preserveTaskScroll(() => {
-        root.innerHTML = renderPeriodTaskGroups(allTasksOn(date), 'لا توجد مهام لهذا اليوم.', true);
+        root.innerHTML = renderOrderedDayTasks(allTasksOn(date));
         bindTaskCards(root);
         const row = [...root.querySelectorAll('.task-row')].find(
           (card) => taskIdentity(rowTask(card)) === taskIdentity(task));
@@ -1696,5 +1696,6 @@ function renderTaskWeek() {
       }),
   );
 }
+
 
 
