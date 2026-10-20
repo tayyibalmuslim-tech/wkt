@@ -1033,7 +1033,8 @@ function dashboardTaskCard(task) {
 }
 function dashboardFilterContext(list) {
   // Missed rows use explicit action/parent groups, not recursively expanded cards.
-  if (plannerTab === 'missed' || !plannerQuery.trim()) return null;
+  if (plannerTab === 'missed' ||
+      (plannerTab !== 'day' && !plannerQuery.trim())) return null;
   const visible = new Set(list.map(taskIdentity)),
     forced = new Set();
   for (const task of list) {
