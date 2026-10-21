@@ -1019,3 +1019,4 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('focus', tickCalendar);
 
+
