@@ -53,7 +53,7 @@ try {
   assert.ok($('#taskSelectionToolbar'));
   const style=w.document.createElement('style');
   style.textContent=fs.readFileSync(path.join(root,'style.css'),'utf8');w.document.head.append(style);
-  assert.equal(w.getComputedStyle($('#taskSelectionToolbar')).position,'static');
+  assert.equal(w.getComputedStyle($('#taskSelectionToolbar')).position,'fixed');
   const sameButton=$('#toggleTaskSelection');
   w.innerWidth=390;w.dispatchEvent(new w.Event('resize'));
   assert.equal($('.mobile-navigation #toggleTaskSelection'),sameButton);
@@ -91,4 +91,5 @@ try {
   assert.deepEqual(errors,[]);
   console.log('PASS: daily top selection button, empty day, duplicate rows, select visible, bulk actions and prayer navigation');
 } finally {dom.window.close();}
+
 

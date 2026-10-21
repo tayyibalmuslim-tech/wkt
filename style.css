@@ -4511,21 +4511,32 @@ dialog#projectGoalsEditor {
 
 /* Selection is an explicit mode; normal rows keep their compact controls. */
 .task-selection-toolbar {
-  position: static;
+  position: fixed;
+  top: calc(var(--navigation-height) + 4px);
+  inset-inline: 8px;
+  z-index: 19;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px 8px;
-  margin-bottom: 8px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 3px 6px;
+  margin: 0;
+  overflow-x: auto;
+  white-space: nowrap;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: var(--font-sm);
+  font-size: 12px;
+  scrollbar-width: thin;
 }
+.task-selection-toolbar > * { flex-shrink: 0; }
 .task-selection-toolbar button {
-  min-height: 40px;
-  padding: 6px 8px;
+  min-height: 30px;
+  padding: 3px 7px;
+  font-size: 12px;
+}
+body > main:has(#taskSelectionToolbar) {
+  padding-top: calc(var(--navigation-height) + 48px);
 }
 .task-selection-toolbar button:disabled {
   opacity: 0.55;
@@ -5195,7 +5206,7 @@ main > header {
   text-align: center; font-size: 12px;
 }
 
-/* The selection toggle belongs to the navigation; its actions scroll normally. */
+/* The selection toggle belongs to the navigation. */
 nav #toggleTaskSelection {
   font-size: 12px;
   white-space: normal;
@@ -5218,3 +5229,4 @@ nav #toggleTaskSelection {
 .prayer-action-add .field:first-child { flex:1; min-width:130px; }
 .prayer-action-add input { width:65px; }
 @media(max-width:480px) { .prayer-action-slots { flex-direction:column; gap:0; } .prayer-action-setting { gap:3px; } }
+
