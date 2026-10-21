@@ -229,7 +229,7 @@ module.exports = async function selectedTasksBrowser(browser, url) {
       1,
     );
     assert.equal(
-      await page.locator('main > header #toggleTaskSelection').count(),
+      await page.locator('nav #toggleTaskSelection').count(),
       1,
     );
     await page.locator('#toggleTaskSelection').click();

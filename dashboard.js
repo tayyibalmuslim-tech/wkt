@@ -54,6 +54,17 @@ function refreshTaskSelection() {
   const transfer = $('#transferSelectedTasks');
   if (transfer) transfer.disabled = !selectedTaskRefs.size;
 }
+function positionTaskSelectionButton(button) {
+  const navigation = document.querySelector(
+    innerWidth <= 900 ? '.mobile-navigation' : 'body > aside nav',
+  );
+  if (navigation && button.parentElement !== navigation)
+    navigation.insertBefore(button, navigation.querySelector('#navigationMore'));
+}
+window.addEventListener('resize', () => {
+  const button = document.querySelector('#toggleTaskSelection');
+  if (button) positionTaskSelectionButton(button);
+});
 function installTaskSelection() {
   if (
     taskSelectionState !== state ||
@@ -81,8 +92,7 @@ function installTaskSelection() {
     button.id = 'toggleTaskSelection';
     button.className = 'secondary';
   }
-  const headerActions = document.querySelector('main > header .sync-header');
-  if (button.parentElement !== headerActions) headerActions.prepend(button);
+  positionTaskSelectionButton(button);
   const hasTasks = !!app.querySelector(
     '.task-row:not([data-virtual]):not(.task-historical)',
   );

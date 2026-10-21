@@ -66,7 +66,7 @@ try {
   );
   assert.equal($('#toggleTaskSelection').disabled, false);
   assert.equal(
-    $('main > header .sync-header'),
+    $('body > aside nav'),
     $('#toggleTaskSelection').parentElement,
   );
   $('#projectSearch').value = 'بحث لا يطابق أي مهمة';
@@ -522,4 +522,5 @@ try {
 } finally {
   w.close();
 }
+
 
