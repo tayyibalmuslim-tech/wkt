@@ -46,7 +46,7 @@ const run = w.dashboardRun,
 try {
   run(`state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[];
     view='day';prayer=3;render();`);
-  assert.ok($('.top #toggleTaskSelection'));
+  assert.ok($('main > header #toggleTaskSelection'));
   assert.equal($('#toggleTaskSelection').disabled,true);
   run(`day().tasks=[{id:'a',name:'ألف',prayer:3},{id:'b',name:'باء',prayer:4}];render();`);
   $('#toggleTaskSelection').click();
@@ -72,6 +72,11 @@ try {
   $('#toggleTaskSelection').click();
   assert.equal($('#taskSelectionToolbar'),null);
   assert.equal($('[data-select-task]'),null);
+  run("view='settings';render()");
+  assert.equal($('#toggleTaskSelection'),null,'button removed outside task views');
+  run("view='day';render()");
+  assert.ok($('main > header #toggleTaskSelection'));
+  assert.equal(w.document.querySelectorAll('#toggleTaskSelection').length,1);
   assert.deepEqual(errors,[]);
   console.log('PASS: daily top selection button, empty day, duplicate rows, select visible, bulk actions and prayer navigation');
 } finally {dom.window.close();}
