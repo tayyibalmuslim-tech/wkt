@@ -5203,3 +5203,18 @@ nav #toggleTaskSelection {
 .mobile-navigation:has(> #toggleTaskSelection) {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
+
+
+/* Compact prayer plans share the existing action/category colors. */
+.prayer-action-summary { display:flex; flex-wrap:wrap; gap:2px 9px; padding:3px 7px; text-align:start; min-width:0; }
+.prayer-action-chip { display:inline-flex; align-items:baseline; gap:4px; font-size:11px; line-height:1.5; max-width:100%; overflow-wrap:anywhere; }
+.prayer-action-chip .dot, .prayer-action-name .dot { width:6px; height:6px; flex:0 0 6px; align-self:center; margin:0; }
+.prayer-action-setting { display:flex; align-items:center; gap:5px; padding:5px 0; }
+.prayer-action-name { display:flex; align-items:center; gap:5px; flex:1; min-width:0; overflow-wrap:anywhere; font-size:13px; }
+.prayer-action-slots { display:flex; align-items:center; gap:4px; font-size:11px; }
+.prayer-action-slots input { width:58px; min-width:0; padding:5px; }
+.prayer-action-setting button { min-width:28px; padding:4px 7px; }
+.prayer-action-add { display:flex; align-items:end; gap:7px; flex-wrap:wrap; margin-top:8px; }
+.prayer-action-add .field:first-child { flex:1; min-width:130px; }
+.prayer-action-add input { width:65px; }
+@media(max-width:480px) { .prayer-action-slots { flex-direction:column; gap:0; } .prayer-action-setting { gap:3px; } }
