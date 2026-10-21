@@ -160,6 +160,11 @@
   function normalized(s) {
     const next = structuredClone(s);
     SlotTools.migrate(next);
+    // Empty plans on old clients are a known base, so first additions merge by
+    // prayer and action ID rather than replacing another device's whole plan.
+    next.prayerActionPlans = Object.fromEntries(
+      [0, 1, 2, 3, 4].map((p) => [p, next.prayerActionPlans?.[p] || []]),
+    );
     return next;
   }
   function reconciliation(
@@ -534,6 +539,7 @@
       prayers: 'الفترات',
       checks: 'تسجيل الصلاة',
       prayerTasks: 'مهام الصلاة',
+      prayerActionPlans: 'الأفعال المخططة للصلوات',
       offsets: 'تعديل المواقيت',
       times: 'المواقيت',
       sunsetDays: 'اليوم',
@@ -818,3 +824,4 @@
   });
   badge();
 })();
+

@@ -247,6 +247,33 @@ async function pump(hub, clients, limit = 30) {
   a.login();
   b.login();
   await pump(hub, [a, b]);
+  // First plans from legacy data merge across two independently signed-in devices.
+  const recordingBeforePlans = JSON.stringify(a.data().sunsetDays);
+  a.save(`state.prayerActionPlans={0:[{id:${JSON.stringify(action)},slots:6}]};`);
+  b.save(`state.prayerActionPlans={2:[{id:${JSON.stringify(action)},slots:4}]};`);
+  a.runTimers();b.runTimers();
+  await pump(hub,[a,b]);
+  for (const c of [a,b]) {
+    assert.equal(c.data().prayerActionPlans[0][0].slots,6);
+    assert.equal(c.data().prayerActionPlans[2][0].slots,4);
+    assert.equal(JSON.stringify(c.data().sunsetDays),recordingBeforePlans);
+  }
+  a.save(`state.prayerActionPlans[0].push({id:${JSON.stringify(other)},slots:2});`);
+  b.save('state.prayerActionPlans[0][0].slots=8;');
+  a.runTimers();b.runTimers();await pump(hub,[a,b]);
+  for(const c of [a,b]) {
+    assert.equal(c.data().prayerActionPlans[0].length,2);
+    assert.equal(c.data().prayerActionPlans[0][0].slots,8);
+  }
+  a.save('state.prayerActionPlans[0].reverse();');
+  b.save('state.prayerActionPlans[0][0].slots=9;');
+  a.runTimers();b.runTimers();await pump(hub,[a,b]);
+  assert.equal(b.data().prayerActionPlans[0][0].id,other);
+  assert.equal(a.data().prayerActionPlans[0][1].slots,9);
+  a.save('state.prayerActionPlans[0].splice(0,1);');
+  await pump(hub,[a,b]);
+  assert.equal(b.data().prayerActionPlans[0].length,1);
+  console.log('PASS: prayer plans first-add, count/add, reorder/edit and deletion synchronize without touching recordings');
   const initial = hub.writes;
   a.save(
     `taskDay(date).slots[1]=${JSON.stringify(action)};taskDay(date).actualNotes={1:'desktop'};`,
@@ -680,3 +707,4 @@ async function pump(hub, clients, limit = 30) {
   console.error(error);
   process.exitCode = 1;
 });
+
