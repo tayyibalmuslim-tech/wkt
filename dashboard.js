@@ -269,6 +269,9 @@ function applyCompletedVisibility() {
       node.hidden = false;
       delete node.dataset.completedHidden;
     });
+    app.querySelectorAll('.period-action-group').forEach((group) => {
+      group.querySelector('.period-action-count').textContent = group.querySelectorAll('.task-row').length;
+    });
     return;
   }
   const hide = (node, value) => {
@@ -279,6 +282,19 @@ function applyCompletedVisibility() {
   app.querySelectorAll('.task-row').forEach((card) => {
     const task = rowTask(card);
     hide(card, task && taskCompletion(task) === 100);
+  });
+  // Group wrappers and their badges must follow the rows hidden inside them.
+  // Reset wrappers first so a group hidden by an earlier update can reappear.
+  app.querySelectorAll('.period-task-family, .period-action-group').forEach((group) => hide(group, false));
+  const visibleRows = (group) => [...group.querySelectorAll('.task-row')].filter(
+    (row) => !row.hidden && !row.parentElement.closest('.task-row[hidden]'));
+  app.querySelectorAll('.period-task-family').forEach((family) => {
+    hide(family, visibleRows(family).length === 0);
+  });
+  app.querySelectorAll('.period-action-group').forEach((group) => {
+    const count = visibleRows(group).length;
+    group.querySelector('.period-action-count').textContent = count;
+    hide(group, count === 0);
   });
   app.querySelectorAll('[data-month-task]').forEach((chip) => {
     const task = findTask(chip.dataset.monthTask, chip.dataset.monthDate);
@@ -1685,5 +1701,6 @@ function renderTaskWeek() {
       }),
   );
 }
+
 
 
