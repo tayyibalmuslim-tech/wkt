@@ -3559,6 +3559,66 @@ dialog#plannerEditor {
   margin-top: 10px;
   padding: 10px 0;
 }
+.task-checklist {
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.task-checklist-heading,
+.task-checklist-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.task-checklist-heading {
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.task-checklist-heading h3 {
+  margin: 0;
+  font-size: var(--font-base);
+}
+.task-checklist-heading span {
+  color: var(--color-secondary);
+  font-size: var(--font-xs);
+}
+.task-checklist-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.task-checklist-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-done);
+}
+.task-checklist-row input[type="text"],
+.task-checklist-add input {
+  min-width: 0;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 8px;
+}
+.task-checklist-row.is-done input[type="text"] {
+  text-decoration: line-through;
+  color: var(--color-secondary);
+}
+.task-checklist-row button {
+  min-height: 32px;
+  padding: 2px;
+}
+.task-checklist-add input {
+  flex: 1;
+}
+.task-checklist-add button {
+  flex: none;
+  min-height: 34px;
+  padding: 5px 10px;
+}
 #plannerEditor .editor-subtasks > summary {
   font-weight: 650;
   font-size: var(--font-sm);
@@ -5229,4 +5289,3 @@ nav #toggleTaskSelection {
 .prayer-action-add .field:first-child { flex:1; min-width:130px; }
 .prayer-action-add input { width:65px; }
 @media(max-width:480px) { .prayer-action-slots { flex-direction:column; gap:0; } .prayer-action-setting { gap:3px; } }
-
