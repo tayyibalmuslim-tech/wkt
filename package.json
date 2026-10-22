@@ -2,7 +2,7 @@
   "name": "waqti",
   "private": true,
   "scripts": {
-    "test": "node tests/prayer-action-plans.test.cjs && node tests/completed-task-groups.test.cjs && node tests/day-task-filter.test.cjs && node tests/day-selection.test.cjs && node tests/all-projects-tab.test.cjs && node tests/follow-up.test.cjs && node tests/follow-up-integration.test.cjs && node tests/task-transfers.test.cjs && node tests/prayer-tasks.test.cjs && node tests/planner.test.cjs && node tests/task-rows.test.cjs && node tests/inline-controls.test.cjs && node tests/project-goals.test.cjs && node tests/selected-tasks.test.cjs && node tests/project-workspace.test.cjs && node tests/dashboard-workspace.test.cjs && node tests/merged-slots.test.cjs && node tests/day-workspace.test.cjs && node tests/period-task-grouping.test.cjs && node tests/missed-task-grouping.test.cjs && node tests/performance.test.cjs && node tests/tafsir-performance.test.cjs && node tests/slots-ten-minutes.test.cjs && node tests/sync-merge.test.cjs && node tests/sync.test.cjs",
+    "test": "node tests/subtask-checklist.test.cjs && node tests/prayer-action-plans.test.cjs && node tests/completed-task-groups.test.cjs && node tests/day-task-filter.test.cjs && node tests/day-selection.test.cjs && node tests/all-projects-tab.test.cjs && node tests/follow-up.test.cjs && node tests/follow-up-integration.test.cjs && node tests/task-transfers.test.cjs && node tests/prayer-tasks.test.cjs && node tests/planner.test.cjs && node tests/task-rows.test.cjs && node tests/inline-controls.test.cjs && node tests/project-goals.test.cjs && node tests/selected-tasks.test.cjs && node tests/project-workspace.test.cjs && node tests/dashboard-workspace.test.cjs && node tests/merged-slots.test.cjs && node tests/day-workspace.test.cjs && node tests/period-task-grouping.test.cjs && node tests/missed-task-grouping.test.cjs && node tests/performance.test.cjs && node tests/tafsir-performance.test.cjs && node tests/slots-ten-minutes.test.cjs && node tests/sync-merge.test.cjs && node tests/sync.test.cjs",
     "test:browser": "node tests/month-browser.cjs",
     "test:prayer-plans:browser": "node tests/prayer-action-plans-browser.cjs",
     "test:slots": "node tests/slots-ten-minutes.test.cjs",
@@ -16,5 +16,3 @@
     "node": ">=24.15.0"
   }
 }
-
-

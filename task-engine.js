@@ -1359,6 +1359,96 @@ function attachTaskActionPicker(form) {
 function formProjectField(dialog, t) {
   // Subtasks can keep inherited memberships or override them in their own picker.
 }
+function attachTaskChecklist(form, task) {
+  if (!task.parentId) return () => undefined;
+  const items = structuredClone(task.checklist || []),
+    section = document.createElement('section');
+  section.className = 'task-checklist';
+  section.setAttribute('aria-labelledby', 'taskChecklistTitle');
+  section.innerHTML = '<div class="task-checklist-heading"><h3 id="taskChecklistTitle">قائمة تحقق</h3><span data-checklist-count aria-live="polite"></span></div><div data-checklist-items></div><div class="task-checklist-add"><input type="text" maxlength="500" aria-label="بند جديد في قائمة التحقق" placeholder="اكتب بندًا جديدًا…" data-checklist-new><button type="button" class="secondary" data-checklist-add>＋ إضافة</button></div><p class="hint">تُحفظ البنود مع حفظ المهمة.</p>';
+  form.querySelector('#plannerError').before(section);
+  const list = section.querySelector('[data-checklist-items]'),
+    composer = section.querySelector('[data-checklist-new]'),
+    add = section.querySelector('[data-checklist-add]');
+  const updateCount = () => {
+    section.querySelector('[data-checklist-count]').textContent =
+      `${items.filter((item) => item.done).length} / ${items.length}`;
+    add.disabled = items.length >= 200;
+  };
+  const appendRow = (item) => {
+    const row = document.createElement('div'),
+      check = document.createElement('input'),
+      text = document.createElement('input'),
+      remove = document.createElement('button');
+    row.className = 'task-checklist-row';
+    row.dataset.checklistId = item.id;
+    row.classList.toggle('is-done', item.done);
+    check.type = 'checkbox';
+    check.checked = item.done;
+    text.type = 'text';
+    text.maxLength = 500;
+    text.value = item.text;
+    text.setAttribute('aria-label', 'نص بند قائمة التحقق');
+    const label = () => {
+      check.setAttribute('aria-label', 'إنجاز: ' + text.value);
+      remove.setAttribute('aria-label', 'حذف: ' + text.value);
+    };
+    check.onchange = () => {
+      item.done = check.checked;
+      row.classList.toggle('is-done', item.done);
+      updateCount();
+    };
+    text.oninput = () => { item.text = text.value; label(); };
+    text.onkeydown = (event) => {
+      if (event.key === 'Enter' && !event.isComposing) {
+        event.preventDefault();
+        composer.focus();
+      }
+    };
+    remove.type = 'button';
+    remove.className = 'secondary';
+    remove.textContent = '×';
+    remove.onclick = () => {
+      items.splice(items.indexOf(item), 1);
+      row.remove();
+      updateCount();
+      composer.focus();
+    };
+    label();
+    row.append(check, text, remove);
+    list.append(row);
+  };
+  add.onclick = () => {
+    const text = composer.value.trim();
+    if (text && items.length < 200) {
+      const item = { id: uid(), text, done: false };
+      items.push(item);
+      appendRow(item);
+      composer.value = '';
+      updateCount();
+    }
+    composer.focus();
+  };
+  composer.onkeydown = (event) => {
+    if (event.key === 'Enter' && !event.isComposing) {
+      event.preventDefault();
+      add.click();
+    }
+  };
+  items.forEach(appendRow);
+  updateCount();
+  return () => {
+    // Include a typed last item even if the user goes straight to Save.
+    if (composer.value.trim()) {
+      if (items.length >= 200) throw Error('الحد الأقصى لقائمة التحقق ٢٠٠ بند.');
+      add.click();
+    }
+    const checklist = items.map((item) => ({ ...item, text: item.text.trim() }));
+    if (checklist.some((item) => !item.text))
+      throw Error('اكتب نصًا لكل بند في قائمة التحقق أو احذف البند الفارغ.');
+    return checklist;
+  };
+}
 function openPlannerEditor(
   t = null,
   parent = null,
@@ -1443,6 +1533,7 @@ function openPlannerEditor(
   }
   const form = $('#plannerForm'),
     f = form.elements;
+  const readChecklist = attachTaskChecklist(form, draft);
   attachTaskActionPicker(form);
   attachTaskProjectSummary(form, draft);
   const refresh = () => {
@@ -1512,6 +1603,7 @@ function openPlannerEditor(
       const selectedProjects = selectedProjectIds(form, draft);
       const next = {
           ...draft,
+          ...(draft.parentId ? { checklist: readChecklist() } : {}),
           name,
           description: f.taskDescription.value.trim(),
           showInMonthlyCalendar: f.showInMonthlyCalendar.checked,
@@ -1542,6 +1634,7 @@ function openPlannerEditor(
         next.showInMonthlyCalendar === (t.showInMonthlyCalendar !== false) &&
         next.name === t.name &&
         next.description === (t.description || '') &&
+        JSON.stringify(next.checklist || []) === JSON.stringify(t.checklist || []) &&
         next.date === t.date &&
         JSON.stringify(taskPeriods(next)) === JSON.stringify(taskPeriods(t)) &&
         next.priority === taskPriority(t) &&
@@ -1831,6 +1924,18 @@ function validatePlanning(s) {
       (typeof t.description !== 'string' || t.description.length > 500)
     )
       throw Error('وصف مهمة غير صالح');
+    if (
+      t.checklist !== undefined &&
+      (!Array.isArray(t.checklist) ||
+        t.checklist.length > 200 ||
+        t.checklist.some((item) =>
+          !item || typeof item.id !== 'string' || !item.id ||
+          typeof item.text !== 'string' || !item.text.trim() ||
+          item.text.length > 500 || typeof item.done !== 'boolean'
+        ) ||
+        new Set(t.checklist.map((item) => item.id)).size !== t.checklist.length)
+    )
+      throw Error('قائمة تحقق غير صالحة');
     if (
       t.showInMonthlyCalendar !== undefined &&
       typeof t.showInMonthlyCalendar !== 'boolean'
