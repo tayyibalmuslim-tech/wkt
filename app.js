@@ -76,18 +76,18 @@ function toast(s) {
 
 // Store an absolute deadline: closing the app never resets the three-hour wait.
 function reminderSignature(reminder) {
-  return JSON.stringify([reminder?.text, reminder?.nextAt]);
+  return JSON.stringify([reminder?.enabled, reminder?.nextAt]);
 }
 function checkReminder() {
   const dialog = $('#reminderDialog'), r = state.reminder;
   if (!dialog) return;
-  const valid = r?.enabled === true && typeof r.text === 'string' && r.text.trim() &&
-    Number.isFinite(r.nextAt) && r.nextAt > 0;
+  const valid = r?.enabled === true && Number.isFinite(r.nextAt) && r.nextAt > 0;
   if (dialog.open && (!valid || dialog.dataset.reminder !== reminderSignature(r)))
     dialog.close();
   if (!valid || document.hidden || dialog.open || Date.now() < r.nextAt ||
       document.querySelector('dialog[open]')) return;
-  $('#reminderMessage').textContent = r.text;
+  if (!window.HeartReminder) return;
+  window.HeartReminder.showSections();
   dialog.dataset.reminder = reminderSignature(r);
   dialog.showModal();
 }
@@ -102,19 +102,14 @@ function acknowledgeReminder() {
 }
 function mountReminderSettings() {
   const r = state.reminder;
-  app.insertAdjacentHTML('afterbegin', `<section class="panel" id="reminderSettings"><h2>تذكير كل 3 ساعات</h2><p class="hint">اكتب رسالة تظهر أمامك كل 3 ساعات. إذا أغلقت التطبيق ومرّت المدة، تظهر عند فتحه. يبدأ الموعد الأول بعد 3 ساعات من الحفظ.</p><form id="reminderForm"><label class="field">نص التذكير<textarea id="reminderText" rows="3" maxlength="4000" dir="auto" placeholder="اكتب ما تريد تذكير نفسك به">${esc(typeof r?.text === 'string' ? r.text : '')}</textarea></label><label><input type="checkbox" id="reminderEnabled" ${r?.enabled === true ? 'checked' : ''}> تفعيل التذكير</label><div class="form"><button class="primary" type="submit">حفظ التذكير</button></div></form></section>`);
+  app.insertAdjacentHTML('afterbegin', `<section class="panel" id="reminderSettings"><h2>تذكير القلب — كل 3 ساعات</h2><p class="hint">لحظة لذكر الله: اختر حالتك واقرأ آية وحديثًا. يظهر التذكير في موعده داخل التطبيق، أو عند العودة إليه بعد انقضاء المدة. يبدأ الموعد الأول بعد 3 ساعات من التفعيل، والموعد التالي بعد 3 ساعات من إغلاق التذكير.</p><form id="reminderForm"><label><input type="checkbox" id="reminderEnabled" ${r?.enabled === true ? 'checked' : ''}> تفعيل تذكير القلب</label><div class="form"><button class="primary" type="submit">حفظ التذكير</button></div></form></section>`);
   $('#reminderForm').onsubmit = (e) => {
     e.preventDefault();
-    const text = $('#reminderText').value.trim(), enabled = $('#reminderEnabled').checked;
-    if (enabled && !text) {
-      toast('اكتب نص التذكير أولًا');
-      $('#reminderText').focus();
-      return;
-    }
+    const enabled = $('#reminderEnabled').checked;
     const previous = state.reminder;
-    const unchanged = previous?.text === text && previous?.enabled === enabled &&
+    const unchanged = previous?.enabled === enabled &&
       Number.isFinite(previous?.nextAt) && previous.nextAt > 0;
-    state.reminder = { text, enabled, nextAt: unchanged ? previous.nextAt : Date.now() + 3 * 60 * 60 * 1000 };
+    state.reminder = { ...previous, enabled, nextAt: unchanged ? previous.nextAt : Date.now() + 3 * 60 * 60 * 1000 };
     save();
     checkReminder();
     toast(enabled ? 'تم حفظ التذكير وتفعيله' : 'تم حفظ التذكير وهو متوقف');
@@ -1139,6 +1134,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 $('#downloadBackup').onclick = downloadBackup;
+window.HeartReminder?.mount();
 $('#acknowledgeReminder').onclick = acknowledgeReminder;
 $('#reminderDialog').addEventListener('cancel', (e) => {
   e.preventDefault();

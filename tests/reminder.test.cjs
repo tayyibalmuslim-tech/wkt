@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const THREE_HOURS = 3 * 60 * 60 * 1000;
 const source = ['vendor/adhan.js', 'calendar.js', 'categories.js', 'slots.js',
   'task-engine.js', 'dashboard.js', 'projects.js', 'tafsir-default.js',
-  'follow-up.js', 'app.js'].map(f => fs.readFileSync(f, 'utf8')).join('\n');
+  'follow-up.js', 'heart-reminder-data.js', 'heart-reminder.js', 'app.js'].map(f => fs.readFileSync(f, 'utf8')).join('\n');
 function boot(saved, time) {
   const dom = new JSDOM(fs.readFileSync('index.html', 'utf8'), {
     url: 'https://test.local', runScripts: 'outside-only', pretendToBeVisual: true,
@@ -25,7 +25,7 @@ let b = boot(null, now);
 const text = '<img src=x onerror=alert(1)>\nتذكر هدفك';
 try {
   b.run("view='settings';render()");
-  b.w.document.querySelector('#reminderText').value = text;
+  assert.equal(b.w.document.querySelector('#reminderText'), null);
   b.w.document.querySelector('#reminderEnabled').checked = true;
   b.w.document.querySelector('#reminderForm').dispatchEvent(new b.w.Event('submit', { cancelable: true }));
   const deadline = b.run('state.reminder.nextAt');
@@ -36,6 +36,9 @@ try {
   // Saving unchanged settings must not postpone the due time.
   b.w.document.querySelector('#reminderForm').dispatchEvent(new b.w.Event('submit', { cancelable: true }));
   assert.equal(b.run('state.reminder.nextAt'), deadline);
+  // Existing custom text remains in user data but is never rendered or required.
+  b.run('state.reminder.text=' + JSON.stringify(text));
+  b.run('save()');
   const saved = b.w.localStorage.getItem('waqti-v1');
   b.dom.window.close();
   // Reopen after a long absence: one message, no backlog of missed reminders.
@@ -43,7 +46,8 @@ try {
   b = boot(saved, now);
   const dialog = b.w.document.querySelector('#reminderDialog');
   assert.equal(dialog.open, true);
-  assert.equal(b.w.document.querySelector('#reminderMessage').textContent, text);
+  assert.equal(b.w.document.querySelectorAll('.heart-section').length, 11);
+  assert.equal(b.w.document.querySelector('#heartTitle').textContent, 'ماذا يحتاج قلبك الآن؟');
   assert.equal(dialog.querySelector('img'), null);
   b.w.document.querySelector('#acknowledgeReminder').click();
   assert.equal(dialog.open, false);
@@ -72,5 +76,26 @@ try {
   b.w.document.querySelector('#reminderDialog').dispatchEvent(new b.w.Event('cancel', { cancelable: true }));
   assert.equal(b.w.document.querySelector('#reminderDialog').open, false);
   assert.equal(b.run('state.reminder.nextAt'), now + THREE_HOURS * 11);
+  // Reminder records from old and new clients work with no text dependency.
+  b.run("state.reminder={enabled:true,nextAt:Date.now()-1,text:''};checkReminder()");
+  assert.equal(b.w.document.querySelector('#reminderDialog').open, true);
+  b.run("state.reminder.enabled=false;checkReminder()");
+  assert.equal(b.w.document.querySelector('#reminderDialog').open, false);
+  // A deadline changed by sync must not be acknowledged by an older open dialog.
+  b.run("state.reminder={enabled:true,nextAt:Date.now()-1};checkReminder()");
+  b.run("state.reminder.nextAt=Date.now()+12345;acknowledgeReminder()");
+  assert.equal(b.run('state.reminder.nextAt'), now + THREE_HOURS * 10 + 12345);
+  // A hidden page defers the reminder until it becomes visible, without rescheduling.
+  Object.defineProperty(b.w.document,'hidden',{value:true,configurable:true});
+  b.run("state.reminder.nextAt=Date.now()-1;checkReminder()");
+  assert.equal(b.w.document.querySelector('#reminderDialog').open,false);
+  Object.defineProperty(b.w.document,'hidden',{value:false,configurable:true});
+  b.w.document.dispatchEvent(new b.w.Event('visibilitychange'));
+  assert.equal(b.w.document.querySelector('#reminderDialog').open,true);
+  const category = b.w.document.querySelector('.heart-section'); category.click();
+  const heading=b.w.document.querySelector('#heartTitle').textContent;
+  b.run('checkReminder();checkReminder()');
+  assert.equal(b.w.document.querySelector('#heartTitle').textContent,heading);
+  assert.equal(b.w.document.querySelectorAll('dialog[open]').length,1);
   console.log('Reminder: persisted deadlines, reopening, recurrence, disabling, safe text, dialog deferral and Escape passed');
 } finally { b.dom.window.close(); }
