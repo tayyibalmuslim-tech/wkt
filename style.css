@@ -5289,3 +5289,18 @@ nav #toggleTaskSelection {
 .prayer-action-add .field:first-child { flex:1; min-width:130px; }
 .prayer-action-add input { width:65px; }
 @media(max-width:480px) { .prayer-action-slots { flex-direction:column; gap:0; } .prayer-action-setting { gap:3px; } }
+
+#reminderDialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+#reminderMessage {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 1.25rem;
+  line-height: 1.9;
+  max-height: 55dvh;
+  overflow-y: auto;
+}
+#reminderText { width: 100%; box-sizing: border-box; resize: vertical; }

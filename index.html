@@ -314,6 +314,12 @@
         </button>
       </form>
     </dialog>
+    <dialog id="reminderDialog" aria-labelledby="reminderTitle" aria-describedby="reminderMessage">
+      <h2 id="reminderTitle">تذكيرك</h2>
+      <p id="reminderMessage" dir="auto"></p>
+      <p class="hint">سيظهر مجددًا بعد 3 ساعات من تأكيد القراءة.</p>
+      <button type="button" id="acknowledgeReminder" class="primary full" autofocus>قرأت التذكير</button>
+    </dialog>
     <div id="toast" role="status"></div>
     <script src="vendor/adhan.js"></script>
     <script src="calendar.js"></script>

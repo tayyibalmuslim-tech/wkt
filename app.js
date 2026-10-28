@@ -74,6 +74,53 @@ function toast(s) {
   setTimeout(() => ($('#toast').style.display = 'none'), 2300);
 }
 
+// Store an absolute deadline: closing the app never resets the three-hour wait.
+function reminderSignature(reminder) {
+  return JSON.stringify([reminder?.text, reminder?.nextAt]);
+}
+function checkReminder() {
+  const dialog = $('#reminderDialog'), r = state.reminder;
+  if (!dialog) return;
+  const valid = r?.enabled === true && typeof r.text === 'string' && r.text.trim() &&
+    Number.isFinite(r.nextAt) && r.nextAt > 0;
+  if (dialog.open && (!valid || dialog.dataset.reminder !== reminderSignature(r)))
+    dialog.close();
+  if (!valid || document.hidden || dialog.open || Date.now() < r.nextAt ||
+      document.querySelector('dialog[open]')) return;
+  $('#reminderMessage').textContent = r.text;
+  dialog.dataset.reminder = reminderSignature(r);
+  dialog.showModal();
+}
+function acknowledgeReminder() {
+  const dialog = $('#reminderDialog'), r = state.reminder;
+  if (!dialog?.open) return;
+  if (r?.enabled && dialog.dataset.reminder === reminderSignature(r)) {
+    r.nextAt = Date.now() + 3 * 60 * 60 * 1000;
+    save();
+  }
+  dialog.close();
+}
+function mountReminderSettings() {
+  const r = state.reminder;
+  app.insertAdjacentHTML('afterbegin', `<section class="panel" id="reminderSettings"><h2>تذكير كل 3 ساعات</h2><p class="hint">اكتب رسالة تظهر أمامك كل 3 ساعات. إذا أغلقت التطبيق ومرّت المدة، تظهر عند فتحه. يبدأ الموعد الأول بعد 3 ساعات من الحفظ.</p><form id="reminderForm"><label class="field">نص التذكير<textarea id="reminderText" rows="3" maxlength="4000" dir="auto" placeholder="اكتب ما تريد تذكير نفسك به">${esc(typeof r?.text === 'string' ? r.text : '')}</textarea></label><label><input type="checkbox" id="reminderEnabled" ${r?.enabled === true ? 'checked' : ''}> تفعيل التذكير</label><div class="form"><button class="primary" type="submit">حفظ التذكير</button></div></form></section>`);
+  $('#reminderForm').onsubmit = (e) => {
+    e.preventDefault();
+    const text = $('#reminderText').value.trim(), enabled = $('#reminderEnabled').checked;
+    if (enabled && !text) {
+      toast('اكتب نص التذكير أولًا');
+      $('#reminderText').focus();
+      return;
+    }
+    const previous = state.reminder;
+    const unchanged = previous?.text === text && previous?.enabled === enabled &&
+      Number.isFinite(previous?.nextAt) && previous.nextAt > 0;
+    state.reminder = { text, enabled, nextAt: unchanged ? previous.nextAt : Date.now() + 3 * 60 * 60 * 1000 };
+    save();
+    checkReminder();
+    toast(enabled ? 'تم حفظ التذكير وتفعيله' : 'تم حفظ التذكير وهو متوقف');
+  };
+}
+
 function downloadBackup(includeReference = false) {
   if (window.WaqtiSync?.canExport && !window.WaqtiSync.canExport()) {
     toast('انتظر تحميل بيانات الحساب قبل تصديرها');
@@ -275,6 +322,7 @@ function render() {
   installCompletedToggle();
   installTaskSelection();
   ActionCategories.showIntro(state, save);
+  checkReminder();
 }
 let dailySlotsObserver;
 function dailySlotPieces(indices, d, columns) {
@@ -805,6 +853,7 @@ function renderSettings() {
   app.innerHTML = `<h1>المواقيت والتقويم</h1><p>مواقيت تلقائية كل يوم، ويوم جديد عند المغرب.</p><section id="prayerActionSettings" class="panel"></section><section id="prayerTaskSettings" class="panel"></section><section class="panel"><h2>الموقع والحساب</h2><p>الموقع الحالي: <strong>${esc(state.location.name)}</strong> · ${esc(state.location.zone)}</p><div class="form"><button class="secondary" id="locate">◎ استخدام موقعي الحالي</button><button class="secondary" id="cairo">القاهرة</button></div><p class="hint">الحساب يتم داخل جهازك. التوقيت الصيفي يُطبّق حسب المنطقة الزمنية المختارة.</p><form id="locationForm"><div class="form"><label class="field">اسم المكان<input name="place" required value="${esc(state.location.name)}"></label><label class="field">خط العرض<input name="lat" type="number" step="any" min="-60" max="60" required value="${state.location.lat}"></label><label class="field">خط الطول<input name="lon" type="number" step="any" min="-180" max="180" required value="${state.location.lon}"></label><label class="field">المنطقة الزمنية<input name="zone" required dir="ltr" value="${esc(state.location.zone)}" placeholder="Africa/Cairo"></label><label class="field">طريقة الحساب<select name="method"><option value="Egyptian" ${state.method === 'Egyptian' ? 'selected' : ''}>الهيئة المصرية للمساحة</option><option value="MuslimWorldLeague" ${state.method === 'MuslimWorldLeague' ? 'selected' : ''}>رابطة العالم الإسلامي</option><option value="Karachi" ${state.method === 'Karachi' ? 'selected' : ''}>جامعة كراتشي</option></select></label></div><button class="primary">حفظ الموقع</button></form><p class="hint">المناطق المدعومة بين خطي عرض ٦٠ جنوبًا و٦٠ شمالًا. راجع المواقيت المحسوبة مع مسجدك.</p></section><section class="panel"><h2>مواقيت اليوم المختار</h2><div class="settings-times">${prayerOrder.map((i) => `<div class="field">${names[i]}<strong>${displayTime(prayerTimes()[i])}</strong></div>`).join('')}</div><form id="offsetForm"><p>تعديل اختياري بالدقائق لمطابقة مسجدك (٠ = الوقت المحسوب)</p><div class="settings-times">${names.map((n, i) => `<label class="field">${n}<input name="o${i}" type="number" min="-30" max="30" value="${state.offsets[i]}" required></label>`).join('')}</div><label class="field">تصحيح التاريخ الهجري<select name="hijri">${[-2, -1, 0, 1, 2].map((n) => `<option value="${n}" ${state.hijriOffset === n ? 'selected' : ''}>${n === 0 ? 'بدون تعديل' : n + ' يوم'}</option>`).join('')}</select></label><p class="hint">التاريخ الهجري بحسب تقويم أم القرى الحسابي، وقد يختلف عن إعلان الرؤية المحلي. التصحيح يغيّر عرض التاريخ فقط.</p><button class="primary">حفظ التعديلات</button></form></section><section class="panel"><h2>كيف يبدأ يومك؟</h2><p>اليوم يبدأ مع المغرب وينتهي مع المغرب التالي. منتصف الليل يغيّر التاريخ الميلادي فقط؛ مهامك وعلامات إنجازك تظل في نفس اليوم. التاريخ في خانة الاختيار هو تاريخ نهار اليوم الإسلامي؛ مثلًا اختيار الجمعة يشمل مغرب الخميس.</p></section><section class="panel"><h2>نسختك الاحتياطية</h2><p>الحفظ على الجهاز دائمًا، والمزامنة تعمل بعد تسجيل الدخول. يحتوي الملف على بياناتك الحالية: المهام والمشاريع والخانات والإنجازات والإعدادات، ويمكن استعادتها لاحقًا.</p><div class="form"><button id="export" class="secondary">↓ تصدير البيانات</button><label class="secondary" style="cursor:pointer">↑ استيراد نسخة<input type="file" id="import" accept="application/json" hidden></label></div></section>`;
   mountPrayerTaskSettings();
   mountPrayerActionSettings();
+  mountReminderSettings();
   function applyLocation(loc, method = state.method) {
     let prev = state.location,
       oldMethod = state.method;
@@ -1090,6 +1139,13 @@ document.addEventListener('keydown', (e) => {
   }
 });
 $('#downloadBackup').onclick = downloadBackup;
+$('#acknowledgeReminder').onclick = acknowledgeReminder;
+$('#reminderDialog').addEventListener('cancel', (e) => {
+  e.preventDefault();
+  acknowledgeReminder();
+});
+// A reminder due during editing appears as soon as the other dialog closes.
+document.addEventListener('close', () => checkReminder(), true);
 document.querySelectorAll('nav button').forEach(
   (b) =>
     (b.onclick = () => {
@@ -1102,10 +1158,15 @@ document.querySelectorAll('nav button').forEach(
 render();
 
 setInterval(tickCalendar, 1000);
+setInterval(checkReminder, 15000);
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) tickCalendar();
+  if (!document.hidden) {
+    tickCalendar();
+    checkReminder();
+  }
 });
 window.addEventListener('focus', tickCalendar);
+window.addEventListener('focus', checkReminder);
 
 
 
