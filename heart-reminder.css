@@ -51,8 +51,6 @@
 .heart-intro { font-size: 13px; color: var(--heart-muted); margin: 8px 0 0; line-height: 1.7; }
 .heart-reference { color: var(--heart-muted); font-size: 12px; line-height: 1.9; text-decoration: underline; text-underline-offset: 3px; }
 .heart-note { font-size: 13px; line-height: 1.8; margin: 12px 0 0; color: var(--heart-muted); }
-.heart-text-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; border-top: 1px solid var(--heart-border); padding-top: 6px; }
-.heart-position { font-size: 12px; color: var(--heart-muted); direction: ltr; }
 .heart-bottom { color: var(--heart-ink); flex: 0 0 auto; border-top: 1px solid var(--heart-border); padding: 8px 20px max(8px, env(safe-area-inset-bottom)); }
 #heartFooter { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
 #heartFooter button { color: var(--heart-ink); border: 1px solid var(--heart-border); font-size: 13px; }

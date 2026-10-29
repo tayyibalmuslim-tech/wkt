@@ -1,7 +1,9 @@
 /* Local reader only. Scheduling and persistence remain owned by app.js. */
 window.HeartReminder = (() => {
   'use strict';
-  let section = null, verseIndex = 0, hadithIndex = 0, collection = null;
+  let section = null, current = null;
+  const cycleMemory = new Map();
+  const cyclePrefix = 'wkt-heart-cycle-v1:';
   const $ = s => document.querySelector(s);
   const paths = {
     sunrise: 'M3 17h18M5 13l-2-2m16 2 2-2M12 3v3M7 8 5 6m12 2 2-2M7 17a5 5 0 0 1 10 0',
@@ -52,8 +54,42 @@ window.HeartReminder = (() => {
       status.textContent = 'تم النسخ مع المرجع';
     } catch { status.textContent = 'تعذر النسخ؛ يمكنك تحديد النص ونسخه يدويًا'; }
   }
-  function card(item, type, index, total, navigate) {
+  // One shuffled bag per section. Consumption is saved when a text is shown,
+  // so reopening the section or reloading never restarts an unfinished cycle.
+  function drawNext(selected) {
+    const entries = [...selected.verses.map(item => ({ item, type: 'verse' })),
+      ...selected.hadiths.map(item => ({ item, type: 'hadith' }))];
+    const ids = entries.map(entry => entry.item.id), key = cyclePrefix + selected.id;
+    let cycle = cycleMemory.get(key);
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved !== null) cycle = JSON.parse(saved);
+    } catch { /* Storage unavailable: retain the in-memory cycle. */ }
+    const valid = cycle && JSON.stringify(cycle.ids) === JSON.stringify(ids) &&
+      Array.isArray(cycle.remaining) && new Set(cycle.remaining).size === cycle.remaining.length &&
+      cycle.remaining.every(id => ids.includes(id)) && ids.includes(cycle.last) &&
+      !cycle.remaining.includes(cycle.last);
+    if (!valid) cycle = { ids, remaining: [], last: null };
+    if (!cycle.remaining.length) {
+      cycle.remaining = [...ids];
+      for (let i = cycle.remaining.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cycle.remaining[i], cycle.remaining[j]] = [cycle.remaining[j], cycle.remaining[i]];
+      }
+      // Avoid repeating the last text at the boundary between completed cycles.
+      if (cycle.remaining.length > 1 && cycle.remaining[0] === cycle.last)
+        [cycle.remaining[0], cycle.remaining[1]] = [cycle.remaining[1], cycle.remaining[0]];
+    }
+    const id = cycle.remaining.shift();
+    cycle.last = id;
+    cycleMemory.set(key, cycle);
+    try { localStorage.setItem(key, JSON.stringify(cycle)); } catch { /* Readable offline even if storage is full. */ }
+    return entries.find(entry => entry.item.id === id);
+  }
+  function card(item, type) {
     const quran = type === 'verse', article = el('article', 'heart-text-card' + (quran ? ' heart-quran-card' : ''));
+    article.dataset.contentId = item.id;
+    article.dataset.contentType = type;
     const top = el('div', 'heart-card-top');
     top.append(el('span', '', quran ? 'من كتاب الله' : 'من السنة النبوية'), button('نسخ', () => copy(quran ? `﴿${item.text}﴾\n${verseReference(item)}` : `${hadithText(item)}\n${hadithReference(item)}${item.note ? '\nملاحظة: ' + item.note : ''}`), 'heart-copy'));
     article.append(top);
@@ -67,62 +103,35 @@ window.HeartReminder = (() => {
     }
     article.append(sourceLink(quran ? verseReference(item) + ' · نص تنزيل' : hadithReference(item), item.sourceUrl));
     if (item.note) article.append(el('p', 'heart-note', item.note));
-    if (navigate) {
-      const nav = el('div', 'heart-text-nav'); nav.setAttribute('aria-label', quran ? 'التنقل بين الآيات' : 'التنقل بين الأحاديث');
-      const prev = button('السابق', () => navigate(-1)), next = button('التالي', () => navigate(1));
-      prev.setAttribute('aria-label', quran ? 'الآية السابقة' : 'الحديث السابق');
-      next.setAttribute('aria-label', quran ? 'الآية التالية' : 'الحديث التالي');
-      nav.append(prev, el('span', 'heart-position', `${index + 1} / ${total}`), next); article.append(nav);
-    }
     return article;
   }
   function renderReader(focusHeading = false) {
-    const body = $('#heartBody'), footer = $('#heartFooter');
-    $('#heartTitle').textContent = collection ? (collection === 'verses' ? 'كل الآيات' : 'كل الأحاديث') : section.shortTitle;
+    $('#heartTitle').textContent = section.shortTitle;
     $('#heartTitle').title = section.title;
-    $('#heartSubtitle').textContent = collection ? section.shortTitle : 'اقرأ على مهل، وخذ ما يعينك على العمل';
+    $('#heartSubtitle').textContent = 'اقرأ على مهل، وخذ ما يعينك على العمل';
     $('#heartBack').hidden = false;
-    body.replaceChildren(); footer.replaceChildren(); $('#heartStatus').textContent = '';
-    if (collection) {
-      const verses = collection === 'verses';
-      (verses ? section.verses : section.hadiths).forEach((item, i) => body.append(card(item, verses ? 'verse' : 'hadith', i)));
-      footer.append(button('العودة إلى القراءة', () => { collection = null; renderReader(true); }));
-    } else {
-      body.append(card(section.verses[verseIndex], 'verse', verseIndex, section.verses.length, delta => {
-        verseIndex = (verseIndex + delta + section.verses.length) % section.verses.length;
-        updateCard('verse', delta);
-      }));
-      body.append(card(section.hadiths[hadithIndex], 'hadith', hadithIndex, section.hadiths.length, delta => {
-        hadithIndex = (hadithIndex + delta + section.hadiths.length) % section.hadiths.length;
-        updateCard('hadith', delta);
-      }));
-      footer.append(button('كل الآيات', () => { collection = 'verses'; renderReader(true); }), button('كل الأحاديث', () => { collection = 'hadiths'; renderReader(true); }));
-    }
-    body.scrollTop = 0;
+    $('#heartBody').replaceChildren(card(current.item, current.type));
+    $('#heartBody').scrollTop = 0;
+    $('#heartStatus').textContent = '';
+    const next = button('التالي', () => {
+      current = drawNext(section);
+      renderReader();
+      $('#heartNext').focus({ preventScroll: true });
+      $('#heartStatus').textContent = current.type === 'verse' ? 'آية من كتاب الله' : 'حديث نبوي';
+    });
+    next.id = 'heartNext';
+    $('#heartFooter').replaceChildren(next);
     if (focusHeading) $('#heartTitle').focus({ preventScroll: true });
   }
-  // Replace one card to retain the other text, scroll position and keyboard focus.
-  function updateCard(type, delta) {
-    const verses = type === 'verse', list = verses ? section.verses : section.hadiths, index = verses ? verseIndex : hadithIndex;
-    const current = $('#heartBody').children[verses ? 0 : 1];
-    const replacement = card(list[index], type, index, list.length, step => {
-      if (verses) verseIndex = (verseIndex + step + list.length) % list.length;
-      else hadithIndex = (hadithIndex + step + list.length) % list.length;
-      updateCard(type, step);
-    });
-    current.replaceWith(replacement);
-    replacement.querySelectorAll('.heart-text-nav button')[delta < 0 ? 0 : 1].focus({ preventScroll: true });
-    $('#heartStatus').textContent = verses ? `الآية ${index + 1} من ${list.length}` : `الحديث ${index + 1} من ${list.length}`;
-  }
   function showSections(focusId) {
-    section = null; collection = null;
+    section = null; current = null;
     $('#heartTitle').textContent = 'ماذا يحتاج قلبك الآن؟';
     $('#heartTitle').removeAttribute('title');
     $('#heartSubtitle').textContent = 'اختر ما يعينك على ذكر الله والعمل بما يرضيه';
     $('#heartBack').hidden = true;
     const body = $('#heartBody'), grid = el('div', 'heart-sections');
     for (const item of window.HeartReminderData) {
-      const b = button('', () => { section = item; verseIndex = 0; hadithIndex = 0; renderReader(true); }, 'heart-section');
+      const b = button('', () => { section = item; current = drawNext(item); renderReader(true); }, 'heart-section');
       b.dataset.section = item.id;
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
@@ -136,8 +145,7 @@ window.HeartReminder = (() => {
   }
   function mount() {
     $('#heartBack').onclick = () => {
-      if (collection) { collection = null; renderReader(true); }
-      else showSections(section?.id);
+      showSections(section?.id);
     };
   }
   return { mount, showSections };

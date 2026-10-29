@@ -29,42 +29,97 @@ for (const s of data) {
   }
 }
 const $=s=>w.document.querySelector(s), $$=s=>Array.from(w.document.querySelectorAll(s));
+const key = id => 'wkt-heart-cycle-v1:' + id;
+const shown = () => $('.heart-text-card').dataset.contentId;
+function assertSingle(section) {
+  assert.equal($$('.heart-text-card').length,1);
+  const quran=$('.heart-text-card').dataset.contentType==='verse';
+  assert.equal($$('.heart-verse').length,quran?1:0);
+  assert.equal($$('.heart-hadith').length,quran?0:section.hadiths.find(h=>h.id===shown()).segments.length);
+  assert.equal($('#heartTitle').textContent,section.shortTitle);
+  assert.ok($('#heartNext'));
+}
 $('#reminderDialog').open=true;
+w.Math.random=()=>0.37;
 w.HeartReminder.mount(); w.HeartReminder.showSections();
 assert.equal($$('.heart-section').length,11);
 try {
   for (const section of data) {
     $(`[data-section="${section.id}"]`).click();
-    assert.equal($$('.heart-text-card').length,2);
-    assert.equal($('.heart-verse').textContent,`﴿${section.verses[0].text}﴾`);
-    assert.equal($('#heartTitle').textContent,section.shortTitle);
-    // Independent loops reach every text exactly once, then wrap; previous wraps back.
-    for (const type of ['verse','hadith']) {
-      const quran=type==='verse', entries=quran?section.verses:section.hadiths;
-      const content=()=>$(quran?'.heart-verse':'.heart-hadith').textContent;
-      const next=()=>$(quran?'[aria-label="الآية التالية"]':'[aria-label="الحديث التالي"]').click();
-      const prev=()=>$(quran?'[aria-label="الآية السابقة"]':'[aria-label="الحديث السابق"]').click();
-      for (const entry of entries) {
-        assert.ok(content().includes(quran?entry.text:entry.segments[0]));
-        next();
+    const expected=[...section.verses,...section.hadiths].map(x=>x.id).sort();
+    let last;
+    for(let cycle=0;cycle<2;cycle++) {
+      const seen=[];
+      for(let i=0;i<expected.length;i++) {
+        assertSingle(section);
+        const id=shown();
+        assert.ok(!seen.includes(id),'No repeated text before the complete section has appeared');
+        if(i===0 && last) assert.notEqual(id,last,'No immediate repeat across cycles');
+        seen.push(id); last=id;
+        if(i<expected.length-1) $('#heartNext').click();
       }
-      assert.ok(content().includes(quran?entries[0].text:entries[0].segments[0]));
-      prev(); assert.ok(content().includes(quran?entries.at(-1).text:entries.at(-1).segments[0]));
+      if(cycle===0) assert.notDeepEqual(seen,[...section.verses,...section.hadiths].map(x=>x.id));
+      assert.deepEqual(seen.sort(),expected);
+      assert.equal(JSON.parse(w.localStorage.getItem(key(section.id))).remaining.length,0);
+      if(cycle===0) $('#heartNext').click();
     }
-    const footerButtons=$$('#heartFooter button'); footerButtons[0].click();
-    assert.equal($$('.heart-verse').length,section.verses.length);
-    assert.equal($$('.heart-hadith').length,0);
     $('#heartBack').click();
-    $$('#heartFooter button')[1].click();
-    assert.equal($$('.heart-text-card').length,section.hadiths.length);
-    assert.equal($$('.heart-hadith').length,section.hadiths.reduce((n,h)=>n+h.segments.length,0));
-    for (const h of section.hadiths) if(h.note) assert.ok(!$$('.heart-hadith').some(b=>b.textContent.includes(h.note)));
-    $('#heartBack').click(); $('#heartBack').click();
     assert.equal($$('.heart-section').length,11);
     assert.equal(w.document.activeElement.dataset.section,section.id);
   }
-  // Rendered religious text is treated as text, even if a future data edit contains markup.
-  const v=data[0].verses[0], original=v.text; v.text='<img src=x onerror=alert(1)>';
-  $('.heart-section').click(); assert.equal($('#heartBody img'),null); v.text=original;
-  console.log('Heart reader: 11 sections, 53 canonical passages, 33 hadiths; all navigation, boundaries, notes and focus passed');
+  // Selecting sections consumes only the one selected; reopening advances rather than resets.
+  const section=data[0], other=data[1];
+  $(`[data-section="${section.id}"]`).click();
+  const first=shown(), progress=JSON.parse(w.localStorage.getItem(key(section.id)));
+  const otherBefore=w.localStorage.getItem(key(other.id));
+  w.HeartReminder.showSections();
+  assert.equal(w.localStorage.getItem(key(section.id)),JSON.stringify(progress));
+  $(`[data-section="${section.id}"]`).click();
+  assert.equal(shown(),progress.remaining[0]);assert.notEqual(shown(),first);
+  assert.equal(w.localStorage.getItem(key(other.id)),otherBefore);
+  const pending=JSON.parse(w.localStorage.getItem(key(section.id))).remaining[0];
+  // Recreate the reader as a reload would do and resume the persisted bag.
+  w.eval(fs.readFileSync('heart-reminder.js','utf8'));w.HeartReminder.mount();w.HeartReminder.showSections();
+  $(`[data-section="${section.id}"]`).click();assert.equal(shown(),pending);
+  assert.equal(w.document.activeElement.id,'heartTitle');
+  $('#heartNext').click();assert.equal(w.document.activeElement.id,'heartNext');
+  // A sequential second tab observes the same saved progress rather than a fresh bag.
+  const second = new JSDOM(fs.readFileSync('index.html','utf8'),{url:'https://test.local',runScripts:'outside-only'});
+  try {
+    for (const file of ['heart-reminder-data.js','heart-reminder.js']) second.window.eval(fs.readFileSync(file,'utf8'));
+    second.window.localStorage.setItem(key(section.id),w.localStorage.getItem(key(section.id)));
+    const expectedNext=JSON.parse(w.localStorage.getItem(key(section.id))).remaining[0];
+    second.window.document.querySelector('#reminderDialog').open=true;
+    second.window.HeartReminder.mount();second.window.HeartReminder.showSections();
+    second.window.document.querySelector(`[data-section="${section.id}"]`).click();
+    assert.equal(second.window.document.querySelector('.heart-text-card').dataset.contentId,expectedNext);
+  } finally { second.window.close(); }
+  // Corrupt saved data cannot create missing/duplicate cards or crash reading.
+  for(const value of ['{broken','null',JSON.stringify({ids:section.verses.map(v=>v.id),remaining:['missing'],last:'missing'})]) {
+    w.localStorage.setItem(key(section.id),value);w.HeartReminder.showSections();
+    $(`[data-section="${section.id}"]`).click();assertSingle(section);
+  }
+  // Plain text safety and editorial notes still hold for every shuffled item.
+  const v=section.verses[0],original=v.text;v.text='<img src=x onerror=alert(1)>';
+  w.HeartReminder.showSections();$(`[data-section="${section.id}"]`).click();
+  for(let i=0;i<section.verses.length+section.hadiths.length;i++) {
+    assert.equal($('#heartBody img'),null);
+    if(shown()===v.id) assert.ok($('.heart-verse').textContent.includes('<img'));
+    $('#heartNext').click();
+  }
+  v.text=original;
+  for(const section of data) {
+    w.HeartReminder.showSections();$(`[data-section="${section.id}"]`).click();
+    for(let i=0;i<section.verses.length+section.hadiths.length;i++) {
+      for(const h of section.hadiths) if(h.note) assert.ok(!$$('.heart-hadith').some(b=>b.textContent.includes(h.note)));
+      $('#heartNext').click();
+    }
+  }
+  // Storage failures degrade to a session bag with the same non-repetition rule.
+  Object.defineProperty(w,'localStorage',{value:{getItem(){throw Error('blocked');},setItem(){throw Error('full');}},configurable:true});
+  w.eval(fs.readFileSync('heart-reminder.js','utf8'));w.HeartReminder.mount();
+  w.HeartReminder.showSections();$(`[data-section="${other.id}"]`).click();
+  const count=other.verses.length+other.hadiths.length, seen=new Set();
+  for(let i=0;i<count;i++) {assert.ok(!seen.has(shown()));seen.add(shown());$('#heartNext').click();}
+  console.log('Heart reader: 11 sections / 53 canonical passages / 33 hadiths; one card, shuffled complete cycles, reload, section isolation, boundaries, storage recovery, notes and focus passed');
 } finally { w.close(); }
