@@ -26,10 +26,27 @@ const text = '<img src=x onerror=alert(1)>\nتذكر هدفك';
 try {
   b.run("view='settings';render()");
   assert.equal(b.w.document.querySelector('#reminderText'), null);
+  const beforePreview = b.run('JSON.stringify(state)');
+  b.w.document.querySelector('#previewReminder').click();
+  assert.equal(b.w.document.querySelector('#reminderDialog').open, true);
+  assert.equal(b.w.document.querySelectorAll('.heart-section').length, 11);
+  b.run('checkReminder()');
+  assert.equal(b.w.document.querySelector('#reminderDialog').open, true);
+  b.w.document.querySelector('#reminderDialog').dispatchEvent(new b.w.Event('cancel', {cancelable:true}));
+  assert.equal(b.w.document.querySelector('#reminderDialog').open, false);
+  assert.equal(b.run('JSON.stringify(state)'), beforePreview);
   b.w.document.querySelector('#reminderEnabled').checked = true;
   b.w.document.querySelector('#reminderForm').dispatchEvent(new b.w.Event('submit', { cancelable: true }));
   const deadline = b.run('state.reminder.nextAt');
   assert.equal(deadline, now + THREE_HOURS);
+  const beforeEnabledPreview = b.run('JSON.stringify(state.reminder)');
+  b.w.document.querySelector('#previewReminder').click();
+  b.w.document.querySelector('.heart-section').click();
+  const previewHeading=b.w.document.querySelector('#heartTitle').textContent;
+  b.run('checkReminder();previewReminder()');
+  assert.equal(b.w.document.querySelector('#heartTitle').textContent, previewHeading);
+  b.w.document.querySelector('#acknowledgeReminder').click();
+  assert.equal(b.run('JSON.stringify(state.reminder)'), beforeEnabledPreview);
   b.at(deadline - 1);
   b.run('checkReminder()');
   assert.equal(b.w.document.querySelector('#reminderDialog').open, false);
@@ -97,5 +114,16 @@ try {
   b.run('checkReminder();checkReminder()');
   assert.equal(b.w.document.querySelector('#heartTitle').textContent,heading);
   assert.equal(b.w.document.querySelectorAll('dialog[open]').length,1);
+  // A real reminder becoming due during preview is still due after preview closes.
+  b.run('acknowledgeReminder();state.reminder.nextAt=Date.now()+1000;previewReminder()');
+  const dueDuringPreview=b.run('state.reminder.nextAt');
+  b.at(dueDuringPreview+1);
+  b.run('checkReminder()');
+  assert.equal(b.w.document.querySelector('#reminderDialog').dataset.preview,'true');
+  b.run('acknowledgeReminder()');
+  assert.equal(b.run('state.reminder.nextAt'),dueDuringPreview);
+  b.w.document.querySelector('#reminderDialog').dispatchEvent(new b.w.Event('close'));
+  assert.equal(b.w.document.querySelector('#reminderDialog').open,true);
+  assert.notEqual(b.w.document.querySelector('#reminderDialog').dataset.preview,'true');
   console.log('Reminder: persisted deadlines, reopening, recurrence, disabling, safe text, dialog deferral and Escape passed');
 } finally { b.dom.window.close(); }

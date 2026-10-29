@@ -25,6 +25,15 @@ const server = http.createServer((req,res) => {
           document.querySelectorAll('dialog[open]').forEach(d=>d.close());
           eval("state.starterIntroPending=false;state.reminder={enabled:true,nextAt:Date.now()-1,text:'old'};save();checkReminder();");
         });
+        // Preview also works while reminders are disabled and preserves their deadline.
+        await page.evaluate(()=>eval("acknowledgeReminder();state.reminder.enabled=false;view='settings';render();"));
+        const beforePreview=await page.evaluate(()=>eval('JSON.stringify(state.reminder)'));
+        await page.getByRole('button',{name:'تجربة تذكير القلب',exact:true}).click();
+        await page.evaluate(()=>eval('checkReminder()'));
+        assert.equal(await page.locator('#reminderDialog').evaluate(el=>el.open),true);
+        await page.keyboard.press('Escape');
+        assert.equal(await page.evaluate(()=>eval('JSON.stringify(state.reminder)')),beforePreview);
+        await page.evaluate(()=>eval("state.reminder.enabled=true;state.reminder.nextAt=Date.now()-1;save();checkReminder();"));
         const dialog=page.locator('#reminderDialog');
         assert.equal(await dialog.locator('.heart-section').count(),11);
         assert.equal(await page.locator('dialog[open]').count(),1);
