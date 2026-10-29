@@ -54,38 +54,38 @@ const server = http.createServer((req,res) => {
         for(let i=0;i<15;i++) {await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement===document.body || document.querySelector('#reminderDialog').contains(document.activeElement)),true);}
         await page.locator('[data-section="resolve"]').click();
         await page.evaluate(()=>document.fonts.ready);
-        assert.equal(await dialog.locator('.heart-text-card').count(),2);
-        assert.equal(await dialog.locator('.heart-verse').count(),1);
-        assert.equal(await dialog.locator('.heart-hadith').count(),1);
-        const firstVerse=await dialog.locator('.heart-verse').textContent();
-        await dialog.getByRole('button',{name:'الآية التالية',exact:true}).click();
-        assert.notEqual(await dialog.locator('.heart-verse').textContent(),firstVerse);
-        assert.equal(await page.evaluate(()=>document.activeElement.getAttribute('aria-label')),'الآية التالية');
-        await dialog.getByRole('button',{name:'الآية السابقة',exact:true}).press('Enter');
-        assert.equal(await dialog.locator('.heart-verse').textContent(),firstVerse);
-        await dialog.locator('.heart-copy').first().click();
+        assert.equal(await dialog.locator('.heart-text-card').count(),1);
+        const firstId=await dialog.locator('.heart-text-card').getAttribute('data-content-id');
+        const firstText=await dialog.locator('.heart-verse, .heart-hadith').first().textContent();
+        await dialog.locator('.heart-copy').click();
         const copied=await page.evaluate(()=>navigator.clipboard.readText());
-        assert.ok(copied.includes(firstVerse) && copied.includes('العنكبوت: 69'));
+        assert.ok(copied.includes(firstText));
+        assert.ok(copied.includes('العنكبوت:') || copied.includes('آل عمران:') || copied.includes('البقرة:') || copied.includes('صحيح'));
+        await dialog.getByRole('button',{name:'التالي',exact:true}).press('Enter');
+        assert.notEqual(await dialog.locator('.heart-text-card').getAttribute('data-content-id'),firstId);
+        assert.equal(await page.evaluate(()=>document.activeElement.id),'heartNext');
         await geometry();
-        await dialog.getByRole('button',{name:'كل الآيات',exact:true}).click();
-        assert.equal(await dialog.locator('.heart-verse').count(),5);
-        await dialog.locator('#heartBody').evaluate(el=>el.scrollTop=el.scrollHeight);await geometry();
-        await page.locator('#heartBack').click();
         await page.locator('#heartBack').click();
         assert.equal(await page.evaluate(()=>document.activeElement.dataset.section),'resolve');
-        // Every section and every full list remains reachable offline, with no data fetches.
+        // Complete shuffled cycles remain reachable offline, with no data fetches.
         const before=requests.length;
         await context.setOffline(true);
         const sections=await page.evaluate(()=>window.HeartReminderData.map(s=>({id:s.id,q:s.verses.length,h:s.hadiths.length})));
         for(const s of sections) {
           await page.locator(`[data-section="${s.id}"]`).click();
-          await geometry();
-          await dialog.getByRole('button',{name:'كل الآيات',exact:true}).click();
-          assert.equal(await dialog.locator('.heart-text-card').count(),s.q);
-          await geometry();await page.locator('#heartBack').click();
-          await dialog.getByRole('button',{name:'كل الأحاديث',exact:true}).click();
-          assert.equal(await dialog.locator('.heart-text-card').count(),s.h);
-          await geometry();await page.locator('#heartBack').click();await page.locator('#heartBack').click();
+          const count=s.q+s.h;
+          const remaining=await page.evaluate(id=>JSON.parse(localStorage.getItem('wkt-heart-cycle-v1:'+id)).remaining.length,s.id);
+          for(let i=0;i<=remaining;i++) await dialog.getByRole('button',{name:'التالي',exact:true}).click();
+          const seen=new Set();
+          for(let i=0;i<count;i++) {
+            assert.equal(await dialog.locator('.heart-text-card').count(),1);
+            await geometry();
+            const id=await dialog.locator('.heart-text-card').getAttribute('data-content-id');
+            assert.ok(!seen.has(id));seen.add(id);
+            if(i<count-1) await dialog.getByRole('button',{name:'التالي',exact:true}).click();
+          }
+          assert.equal(seen.size,count);
+          await page.locator('#heartBack').click();
         }
         assert.equal(requests.length,before);
         await context.setOffline(false);
@@ -101,7 +101,7 @@ const server = http.createServer((req,res) => {
         assert.ok(Math.abs(deadline-Date.now()-3*60*60*1000)<5000);
         await page.reload();assert.equal(await dialog.evaluate(el=>el.open),false);
         assert.deepEqual(errors,[]);
-        console.log(`PASS heart reader ${width}x${height} ${colorScheme}: layout, focus, copy, complete offline lists, recurrence, reload`);
+        console.log(`PASS heart reader ${width}x${height} ${colorScheme}: layout, focus, copy, single-card offline shuffle cycles, recurrence, reload`);
         await context.close();
       }
     }
