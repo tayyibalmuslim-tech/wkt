@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="categories.css" />
     <link rel="stylesheet" href="follow-up.css" />
+    <link rel="stylesheet" href="heart-reminder.css" />
   </head>
   <body>
     <aside>
@@ -314,11 +315,19 @@
         </button>
       </form>
     </dialog>
-    <dialog id="reminderDialog" aria-labelledby="reminderTitle" aria-describedby="reminderMessage">
-      <h2 id="reminderTitle">تذكيرك</h2>
-      <p id="reminderMessage" dir="auto"></p>
-      <p class="hint">سيظهر مجددًا بعد 3 ساعات من تأكيد القراءة.</p>
-      <button type="button" id="acknowledgeReminder" class="primary full" autofocus>قرأت التذكير</button>
+    <dialog id="reminderDialog" aria-labelledby="heartTitle" aria-describedby="heartSubtitle" dir="rtl" lang="ar">
+      <header class="heart-header">
+        <div class="heart-topbar">
+          <span class="heart-brand">تذكير القلب</span>
+          <button type="button" id="heartBack" hidden>رجوع</button>
+          <button type="button" id="acknowledgeReminder" aria-label="إغلاق تذكير القلب" autofocus>إغلاق ×</button>
+        </div>
+        <h2 id="heartTitle" tabindex="-1">ماذا يحتاج قلبك الآن؟</h2>
+        <p id="heartSubtitle">اختر ما يعينك على ذكر الله والعمل بما يرضيه</p>
+      </header>
+      <div id="heartBody"></div>
+      <footer class="heart-bottom"><div id="heartFooter"></div></footer>
+      <p id="heartStatus" role="status" aria-live="polite"></p>
     </dialog>
     <div id="toast" role="status"></div>
     <script src="vendor/adhan.js"></script>
@@ -330,6 +339,8 @@
     <script src="projects.js"></script>
     <script src="tafsir-default.js"></script>
     <script src="follow-up.js"></script>
+    <script src="heart-reminder-data.js"></script>
+    <script src="heart-reminder.js"></script>
     <script src="app.js"></script>
     <script src="vendor/firebase-app-compat.js"></script>
     <script src="vendor/firebase-auth-compat.js"></script>
