@@ -229,6 +229,46 @@ async function pump(hub, clients, limit = 30) {
   throw Error('sync did not settle');
 }
 (async () => {
+  // The sync page exports the active snapshot, including offline pending edits.
+  {
+    const hub = new Hub(), c = client(hub);
+    let blob, filename;
+    c.w.URL.createObjectURL = (value) => { blob = value; return 'blob:backup'; };
+    c.w.URL.revokeObjectURL = () => {};
+    c.w.HTMLAnchorElement.prototype.click = function () { filename = this.download; };
+    c.account();
+    assert.equal(c.w.document.querySelector('#exportSyncBackup').disabled, true);
+    c.login(null);
+    c.save("state.taskInbox=[{id:'export-task',name:'Guest backup'}]");
+    const guest = c.data();
+    c.w.document.querySelector('#exportSyncBackup').click();
+    const read = () => new Promise((resolve, reject) => {
+      const reader = new c.w.FileReader();
+      reader.onload = () => resolve(JSON.parse(reader.result));
+      reader.onerror = reject;
+      reader.readAsText(blob);
+    });
+    assert.deepEqual(await read(), guest);
+    assert.match(filename, /^waqti-backup-.*\.json$/);
+    c.login();
+    await pump(hub, [c]);
+    c.connect(false);
+    c.save("state.taskInbox=[{id:'pending-export',name:'Pending offline edit'}]");
+    const pending = c.data(), writes = hub.writes, cached = c.storage();
+    c.w.document.querySelector('#exportSyncBackup').click();
+    assert.deepEqual(await read(), pending);
+    assert.deepEqual(c.data(), pending);
+    assert.deepEqual(c.storage(), cached);
+    assert.equal(hub.writes, writes);
+    assert.deepEqual(c.errors, []);
+    c.dom.window.close();
+    const cold = client(new Hub(), null, {}, false);
+    cold.login();
+    cold.account();
+    assert.equal(cold.w.document.querySelector('#exportSyncBackup').disabled, true);
+    cold.dom.window.close();
+    console.log('PASS: sync-page backup exports guest and pending offline data without changing state or cloud');
+  }
   const hub = new Hub(),
     a = client(hub);
   a.w.run(
@@ -707,4 +747,3 @@ async function pump(hub, clients, limit = 30) {
   console.error(error);
   process.exitCode = 1;
 });
-
