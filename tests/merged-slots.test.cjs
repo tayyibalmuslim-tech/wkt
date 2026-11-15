@@ -147,6 +147,19 @@ try {
     snapshot,
     'grouping only changes presentation',
   );
+  // Clock follows the configured zone, advances without replacing focused cells,
+  // and never marks another logical day (including after midnight).
+  run(`view='day';date='2026-11-15';prayer=4;render();highlightCurrentSlot(new Date('2026-11-14T22:05:00Z'))`);
+  assert.equal(w.document.querySelectorAll('[aria-current="time"]').length, 2);
+  assert.equal(slot(144).getAttribute('aria-current'), 'time');
+  const liveButton = slot(144);
+  liveButton.focus();
+  run(`highlightCurrentSlot(new Date('2026-11-14T22:10:00Z'))`);
+  assert.equal(liveButton.hasAttribute('aria-current'), false);
+  assert.equal(slot(145).getAttribute('aria-current'), 'time');
+  assert.equal(w.document.activeElement, liveButton);
+  run(`highlightCurrentSlot(new Date('2026-11-15T22:10:00Z'))`);
+  assert.equal(w.document.querySelectorAll('.slot-now').length, 0);
   // Project content follows document scroll, remembered per project.
   run(
     `state.projects=[{id:'scroll-a',name:'أ'},{id:'scroll-b',name:'ب'}];state.taskInbox=[{id:'scroll-task',name:'مهمة',projectId:'scroll-a'}];view='projects';selectedProject='scroll-a';render();projectWindowScroll(360);selectProject('scroll-b')`,
