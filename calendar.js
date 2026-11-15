@@ -190,6 +190,7 @@ function tickCalendar() {
     let label = $('#civilToday');
     if (label) label.textContent = gregorianLabel();
   }
+  highlightCurrentSlot();
 }
 
 function displayTime(value) {

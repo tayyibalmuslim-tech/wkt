@@ -383,6 +383,38 @@ function slotButtonAt(n, kind) {
     ) || []),
   ].find((button) => +button.dataset.slot <= n && n < +button.dataset.pieceEnd);
 }
+// Update presentation only; do not rebuild the grid or interrupt slot editing.
+function highlightCurrentSlot(now = new Date()) {
+  const grid = $('#dailySlots');
+  if (!grid) return;
+  const civil = zonedDate(now);
+  const current = date === activeDay(now)
+    ? Math.floor(minute(clockAt(now)) / SlotTools.minutes) + (civil === date ? 144 : 0)
+    : -1;
+  grid.querySelectorAll('[data-slot]').forEach((button) => {
+    const start = +button.dataset.slot, end = +button.dataset.pieceEnd;
+    const live = start <= current && current < end;
+    button.classList.toggle('slot-now', live);
+    if (live) {
+      button.setAttribute('aria-current', 'time');
+      button.style.setProperty('--now-offset', `${100 * (current - start) / (end - start)}%`);
+      button.style.setProperty('--now-width', `${100 / (end - start)}%`);
+    } else {
+      button.removeAttribute('aria-current');
+      button.style.removeProperty('--now-offset');
+      button.style.removeProperty('--now-width');
+    }
+    let badge = button.querySelector('.slot-now-badge');
+    if (live && button.dataset.kind === 'actual') {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'slot-now-badge';
+        badge.textContent = 'الآن';
+        button.append(badge);
+      }
+    } else badge?.remove();
+  });
+}
 function renderDailySlotGrid() {
   const grid = $('#dailySlots');
   if (!grid) return;
@@ -404,6 +436,7 @@ function renderDailySlotGrid() {
     [...grid.children].forEach((node, i) => {
       node.slotMarkup = markup[i];
     });
+    highlightCurrentSlot();
     grid.dataset.columns = columns;
     app.scrollTop = appScroll;
     if (page) page.scrollTop = pageScroll;
@@ -436,6 +469,7 @@ function renderDailySlotGrid() {
   [...grid.children].forEach((node) => {
     if (!used.has(node)) node.remove();
   });
+  highlightCurrentSlot();
   grid.dataset.columns = columns;
   if (focusSlot)
     slotButtonAt(focusSlot.n, focusSlot.kind)?.focus({ preventScroll: true });
