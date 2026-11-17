@@ -240,12 +240,9 @@
         acknowledge(cloud, rev, cloud);
         return;
       }
-      // Old dirty caches have no base. The matching revision recovers it safely;
-      // otherwise only explicit per-field choices can reconcile unknown edits.
-      if (!baseKnown && rev === baseRevision) {
-        baseState = structuredClone(cloud);
-        baseKnown = true;
-      }
+      // A revision alone cannot reconstruct a missing base: a deferred editor
+      // may still contain older fields at an acknowledged revision. Never turn
+      // those stale fields into deletions/overwrites of the other device.
       const merged = reconciliation(cloud);
       if (merged.conflicts.length) {
         conflicts = merged.conflicts;
@@ -265,7 +262,7 @@
       if (view === 'account') renderAccount();
     }
   }
-  function schedule(delay = 180) {
+  function schedule(delay = 0) {
     clearTimeout(timer);
     if (user && ready && dirty && !conflict && online && !writing)
       timer = setTimeout(flush, delay);
@@ -295,10 +292,7 @@
           if (!current && expected > 0) return;
           const revision = current?.revision || 0;
           const cloud = decode(current) || fresh();
-          const merged =
-            !known && revision === expected
-              ? { state: local, conflicts: [] }
-              : reconciliation(cloud, local, base, known);
+          const merged = reconciliation(cloud, local, base, known);
           if (merged.conflicts.length) return;
           const mergedPayload = JSON.stringify(merged.state);
           if (mergedPayload.length > 4000000) throw Error('sync-payload-limit');
@@ -371,7 +365,7 @@
             ? '● تمت المزامنة'
             : 'نسخة الحساب محفوظة على الجهاز'
           : conflict
-            ? 'يوجد تعارض؛ اختر نسخة من الحساب والمزامنة'
+            ? 'يوجد تعارض في بند؛ راجعه من الحساب والمزامنة'
             : online
               ? 'جاري المزامنة…'
               : 'محفوظ محليًا؛ في انتظار الاتصال',
@@ -621,7 +615,7 @@
       const prayerLabels = ['الفجر', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
       return `${execution.date || 'تحتاج توزيعًا'} · ${execution.prayers.map((p) => prayerLabels[p]).join('، ') || 'بدون فترة'} · ${execution.progress} خانة · ${{ pending: 'قيد التنفيذ', failed: 'لم تُنجز', done: 'أُنجزت' }[execution.status]}`;
     };
-    return `<div class="conflict-box"><h2>تعديلان على نفس البند</h2><p>اختر لكل بند ما تريد الاحتفاظ به. بقية تسجيلات الجهازين تُدمج تلقائيًا.</p><button id="backupConflict" class="secondary">تنزيل نسختي الحالية</button><div class="sync-conflicts">${conflicts.map((entry, index) => `<section><h3>${esc(label(entry) || 'بيانات الحساب')}</h3><button type="button" class="secondary" data-sync-choice="local" data-sync-index="${index}">هذا الجهاز: ${esc(executionChoice(entry, entry.local).slice(0, 200))}</button><button type="button" class="secondary" data-sync-choice="remote" data-sync-index="${index}">الحساب: ${esc(executionChoice(entry, entry.remote).slice(0, 200))}</button></section>`).join('')}</div><details><summary>استبدال نسخة كاملة (خيارات متقدمة)</summary><button id="useCloud" class="secondary">استخدام نسخة الحساب بالكامل</button><button id="useLocal" class="secondary">اعتماد نسختي الحالية بالكامل</button></details></div>`;
+    return `<div class="conflict-box"><h2>تعديلان على نفس البند</h2><p>اختر لكل بند ما تريد الاحتفاظ به. بقية تسجيلات الجهازين تُدمج تلقائيًا.</p><button id="backupConflict" class="secondary">تنزيل نسختي الحالية</button><div class="sync-conflicts">${conflicts.map((entry, index) => `<section><h3>${esc(label(entry) || 'بيانات الحساب')}</h3><button type="button" class="secondary" data-sync-choice="local" data-sync-index="${index}">هذا الجهاز: ${esc(executionChoice(entry, entry.local).slice(0, 200))}</button><button type="button" class="secondary" data-sync-choice="remote" data-sync-index="${index}">الحساب: ${esc(executionChoice(entry, entry.remote).slice(0, 200))}</button></section>`).join('')}</div></div>`;
   }
   function backupCurrent() {
     let a = document.createElement('a'),
@@ -743,30 +737,6 @@
               receive(remote);
             }),
         );
-        $('#useCloud').onclick = () => {
-          if (!confirm('استخدام نسخة الحساب بدل تعديلات هذا الجهاز؟')) return;
-          try {
-            const s = decode(remote) || fresh();
-            acknowledge(s, remote?.revision || 0, s);
-          } catch {
-            error = 'نسخة الحساب غير صالحة';
-            badge();
-          }
-        };
-        $('#useLocal').onclick = () => {
-          if (!confirm('اعتماد نسخة هذا الجهاز بدل نسخة الحساب؟')) return;
-          baseRevision = remote?.revision || 0;
-          baseState = decode(remote) || fresh();
-          baseKnown = true;
-          conflict = false;
-          conflicts = [];
-          mergeChoices.clear();
-          deferred = false;
-          dirty = true;
-          persist();
-          report('جاري المزامنة…');
-          schedule();
-        };
       }
     }
   }

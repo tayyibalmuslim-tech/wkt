@@ -247,6 +247,47 @@ async function pump(hub, clients, limit = 30) {
   a.login();
   b.login();
   await pump(hub, [a, b]);
+  // Missing base metadata at the SAME revision must not authorize a whole-state
+  // overwrite. This can happen after a quota fallback while rendering is deferred.
+  {
+    const isolated = new Hub(), cloud = clone(seed), stale = clone(seed);
+    cloud.taskInbox[0].description = 'Saved on phone';
+    stale.taskInbox[0].name = 'Desktop pending';
+    isolated.records.set('same-account', {
+      revision: 7, payload: JSON.stringify(cloud), updatedAt: 1234,
+    });
+    const device = client(isolated, seed, {
+      'waqti-account-same-account': JSON.stringify({
+        state: stale, baseRevision: 7, dirty: true,
+      }),
+    });
+    device.login();
+    await pump(isolated, [device]);
+    assert.equal(isolated.writes, 0, 'missing base cannot silently replace cloud');
+    assert.equal(JSON.parse(isolated.records.get('same-account').payload)
+      .taskInbox[0].description, 'Saved on phone');
+    device.account();
+    assert.ok(device.w.document.querySelector('[data-sync-choice]'));
+    assert.equal(device.w.document.querySelector('#useCloud, #useLocal'), null);
+    // The same safety rule applies inside the transaction when an editor has
+    // deferred the incoming snapshot and a saved edit starts an upload.
+    const editingDevice = client(isolated, seed, device.storage(), false);
+    editingDevice.login();
+    editingDevice.w.run("view='projects';selectedProject='p';render();openPlannerEditor(findTask('inbox',''));");
+    editingDevice.connect(true);
+    editingDevice.save('state.taskInbox[0].priority=1');
+    await pump(isolated, [editingDevice]);
+    assert.equal(isolated.writes, 0, 'transaction must also require a real base');
+    assert.equal(editingDevice.data().taskInbox[0].priority, 1);
+    editingDevice.dom.window.close();
+    device.dom.window.close();
+  }
+  // Start uploading on the next event-loop turn, without a debounce wait.
+  a.save("state.taskInbox[0].description='Immediate upload'");
+  a.runTimers(0);
+  assert.equal(hub.pending.length, 1, 'saved edit is queued immediately');
+  await pump(hub, [a, b]);
+  assert.equal(b.data().taskInbox[0].description, 'Immediate upload');
   // First plans from legacy data merge across two independently signed-in devices.
   const recordingBeforePlans = JSON.stringify(a.data().sunsetDays);
   a.save(`state.prayerActionPlans={0:[{id:${JSON.stringify(action)},slots:6}]};`);
