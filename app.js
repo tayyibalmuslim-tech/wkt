@@ -816,10 +816,24 @@ function prayerActionSummary(p) {
   }).join('');
   return items ? `<span class="prayer-action-summary" aria-label="الأفعال المخططة لصلاة ${names[p]}" title="خانات مخططة فقط">${items}</span>` : '';
 }
+function prayerActionCapacity(p, plans) {
+  const total = range(p).length;
+  const actionIds = new Set(state.actions.map((action) => action.id));
+  const used = plans.reduce((sum, plan) => sum + (actionIds.has(plan.id) ? plan.slots : 0), 0);
+  const remaining = Math.max(0, total - used);
+  const excess = used - total;
+  return `<span>إجمالي الخانات <strong data-plan-total>${total}</strong></span>
+    <span>المشغول بالخطة <strong data-plan-used>${used}</strong></span>
+    <span>المتبقي <strong data-plan-remaining>${remaining}</strong></span>
+    ${excess > 0 ? `<strong class="prayer-action-excess" data-plan-excess>تجاوز السعة بـ ${excess} خانة</strong>` : ''}`;
+}
 function mountPrayerActionSettings(p = prayer) {
   const panel = $('#prayerActionSettings');
   const list = prayerActionPlans(p);
-  panel.innerHTML = `<h2>الأفعال المخططة لكل صلاة</h2><p class="hint">خطة ثابتة لكل الأيام؛ الأعداد خانات مخططة فقط ولا تسجل إنجازًا أو تحجز الوقت. تُحفظ التغييرات مباشرة.</p><label class="field">الصلاة<select id="prayerActionPrayer">${prayerOrder.map((i) => `<option value="${i}" ${i === p ? 'selected' : ''}>${names[i]}</option>`).join('')}</select></label><div class="prayer-action-settings-list">${list.map((plan, index) => {
+  panel.innerHTML = `<h2>الأفعال المخططة لكل صلاة</h2><p class="hint">خطة ثابتة لكل الأيام؛ الأعداد خانات مخططة فقط ولا تسجل إنجازًا أو تحجز الوقت. تُحفظ التغييرات مباشرة.</p><label class="field">الصلاة<select id="prayerActionPrayer">${prayerOrder.map((i) => `<option value="${i}" ${i === p ? 'selected' : ''}>${names[i]}</option>`).join('')}</select></label>
+    <p class="hint">سعة الفترة حسب مواقيت اليوم المختار · <bdi>${date}</bdi></p>
+    <div class="capacity-note prayer-action-capacity" role="status" aria-atomic="true">${prayerActionCapacity(p, list)}</div>
+    <div class="prayer-action-settings-list">${list.map((plan, index) => {
     const action = state.actions.find((a) => a.id === plan.id);
     return `<div class="prayer-action-setting" data-plan-id="${esc(plan.id)}"><span class="prayer-action-name"><i class="dot" style="background:${action ? ActionCategories.color(state, action) : '#e5e7eb'}" aria-hidden="true"></i>${esc(action?.name || 'فعل محذوف')}</span><label class="prayer-action-slots">الخانات<input type="number" min="1" max="144" step="1" value="${plan.slots}" aria-label="خانات ${esc(action?.name || 'الفعل المحذوف')}"></label><button type="button" class="secondary" data-plan-move="-1" ${index === 0 ? 'disabled' : ''} aria-label="تقديم ${esc(action?.name || 'الفعل')}">↑</button><button type="button" class="secondary" data-plan-move="1" ${index === list.length - 1 ? 'disabled' : ''} aria-label="تأخير ${esc(action?.name || 'الفعل')}">↓</button><button type="button" class="secondary" data-plan-delete aria-label="حذف ${esc(action?.name || 'الفعل')} من التخطيط">×</button></div>`;
   }).join('') || '<p class="empty-note">لم تحدد أفعالًا لهذه الصلاة.</p>'}</div><form id="addPrayerAction" class="prayer-action-add"><label class="field">الفعل<select name="action" required><option value="">اختر فعلًا</option>${state.categories.map((c) => `<optgroup label="${esc(c.name)}">${state.actions.filter((a) => a.categoryId === c.id && !list.some((plan) => plan.id === a.id)).map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</optgroup>`).join('')}</select></label><label class="field">الخانات<input name="slots" type="number" min="1" max="144" step="1" value="1" required></label><button class="primary" type="submit">إضافة</button></form>`;
@@ -828,6 +842,7 @@ function mountPrayerActionSettings(p = prayer) {
     (state.prayerActionPlans ??= {})[p] = next;
     save();
     if (redraw) mountPrayerActionSettings(p);
+    else panel.querySelector('.prayer-action-capacity').innerHTML = prayerActionCapacity(p, next);
   };
   panel.querySelectorAll('[data-plan-id]').forEach((row, index) => {
     const input = row.querySelector('input');
