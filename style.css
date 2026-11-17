@@ -346,6 +346,27 @@ input[type='checkbox'] {
   font-size: 11px;
   color: var(--muted);
 }
+.period-action-totals {
+  margin-top: 12px;
+}
+.period-action-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding-block: 7px;
+}
+.period-action-row + .period-action-row {
+  border-top: 1px solid var(--line);
+}
+.period-action-label {
+  font-size: 12px;
+}
+.period-action-row .legend {
+  margin-top: 0;
+  gap: 4px 12px;
+  overflow-wrap: anywhere;
+}
 .dot {
   display: inline-block;
   width: 8px;
