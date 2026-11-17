@@ -43,6 +43,13 @@ const run = w.dayRun,
     );
 try {
   run("state.starterIntroPending=false;state.sunsetDays={};state.repeat=[];state.taskInbox=[];state.projects=[];prayer=0;view='settings';render()");
+  const assertCapacity = (prayer, used) => {
+    const total = run(`range(${prayer}).length`);
+    const values = ['total', 'used', 'remaining'].map(key => +$(`[data-plan-${key}]`).textContent);
+    assert.deepEqual(values, [total, used, Math.max(0, total - used)]);
+    assert.equal($('[data-plan-excess]')?.textContent, used > total ? `تجاوز السعة بـ ${used - total} خانة` : undefined);
+  };
+  assertCapacity(0, 0);
   const actions = run('state.actions.slice(0,3).map(a=>a.id)');
   const baseline = run('JSON.stringify({days:state.sunsetDays,repeat:state.repeat,inbox:state.taskInbox,projects:state.projects,checks:state.prayerTasks})');
   const add = (id, slots) => {
@@ -52,21 +59,28 @@ try {
   };
   add(actions[0],6);add(actions[1],4);add(actions[2],2);
   assert.equal(run('prayerActionPlans(0).length'),3);
+  assertCapacity(0, 12);
   const first=$('[data-plan-id] input'), otherPanel=$('#prayerTaskSettings');
+  first.value=144;first.dispatchEvent(new w.Event('change'));
+  assertCapacity(0, 150);
   first.value=9;first.dispatchEvent(new w.Event('change'));
   assert.equal($('[data-plan-id] input'),first,'count change retains DOM and focus');
   assert.equal($('#prayerTaskSettings'),otherPanel);
   assert.equal(run('prayerActionPlans(0)[0].slots'),9);
+  assertCapacity(0, 15);
   first.value=0;first.dispatchEvent(new w.Event('change'));
   assert.equal(run('prayerActionPlans(0)[0].slots'),9);
   $('[data-plan-move="1"]').click();
   assert.equal(run('prayerActionPlans(0)[1].id'),actions[0]);
   $('#prayerActionPrayer').value=2;$('#prayerActionPrayer').dispatchEvent(new w.Event('change'));
+  assertCapacity(2, 0);
   add(actions[0],3);
+  assertCapacity(2, 3);
   assert.equal(run('prayerActionPlans(2)[0].slots'),3);
   assert.equal(run('prayerActionPlans(0)[1].slots'),9);
   $('[data-plan-delete]').click();
   assert.equal(run('prayerActionPlans(2).length'),0);
+  assertCapacity(2, 0);
   assert.ok(run('state.actions.some(a=>a.id==='+JSON.stringify(actions[0])+')'));
   assert.equal(run('JSON.stringify({days:state.sunsetDays,repeat:state.repeat,inbox:state.taskInbox,projects:state.projects,checks:state.prayerTasks})'),baseline,'planning leaves all recording data unchanged');
   run("view='day';render()");
@@ -79,6 +93,7 @@ try {
   assert.equal(w.document.querySelectorAll('[data-prayer="0"] .prayer-action-chip').length,2);
   run("view='settings';render()");
   assert.match($('#prayerActionSettings').textContent,/فعل محذوف/);
+  assertCapacity(0, 6);
   const saved=w.localStorage.getItem('waqti-v1');
   run('state=JSON.parse('+JSON.stringify(saved)+');validate(state);render()');
   assert.equal(run('prayerActionPlans(0).length'),3,'plans survive local reload/backup validation');

@@ -5280,6 +5280,16 @@ nav #toggleTaskSelection {
 .prayer-action-summary { display:flex; flex-wrap:wrap; gap:2px 9px; padding:3px 7px; text-align:start; min-width:0; }
 .prayer-action-chip { display:inline-flex; align-items:baseline; gap:4px; font-size:11px; line-height:1.5; max-width:100%; overflow-wrap:anywhere; }
 .prayer-action-chip .dot, .prayer-action-name .dot { width:6px; height:6px; flex:0 0 6px; align-self:center; margin:0; }
+.prayer-action-capacity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  margin-block: 6px;
+  padding: 6px 10px;
+}
+.prayer-action-excess {
+  color: var(--color-failed);
+}
 .prayer-action-setting { display:flex; align-items:center; gap:5px; padding:5px 0; }
 .prayer-action-name { display:flex; align-items:center; gap:5px; flex:1; min-width:0; overflow-wrap:anywhere; font-size:13px; }
 .prayer-action-slots { display:flex; align-items:center; gap:4px; font-size:11px; }
