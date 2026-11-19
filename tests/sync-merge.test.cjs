@@ -161,3 +161,20 @@ console.log('SYNC_MERGE_240_MS', Math.round(performance.now() - start));
 console.log(
   'PASS: three-way independent edits, atomic time/outcome bundles, entity deletion/order, memberships, explicit field conflicts and compact offline bases',
 );
+
+
+// Occurrence plans reconcile independently from templates and actual recordings.
+{
+  const original = { prayerActionPlans: { 0: [{ id: 'a', slots: 6 }] },
+    sunsetDays: { today: { slots: {}, checks: {}, tasks: [], done: {} } } };
+  const local = clone(original), remote = clone(original);
+  local.sunsetDays.today.prayerActionPlans = { 0: [{ id: 'a', slots: 3 }] };
+  remote.sunsetDays.today.prayerActionPlans = { 2: [] };
+  remote.sunsetDays.today.slots[1] = 'a';
+  const result = Merge.merge(original, local, remote);
+  assert.equal(result.conflicts.length, 0);
+  assert.deepEqual(result.state.sunsetDays.today.prayerActionPlans,
+    { 0: [{ id: 'a', slots: 3 }], 2: [] });
+  assert.deepEqual(result.state.prayerActionPlans, original.prayerActionPlans);
+  assert.deepEqual(result.state.sunsetDays.today.slots, { 1: 'a' });
+}

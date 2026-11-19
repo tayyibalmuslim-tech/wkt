@@ -663,6 +663,7 @@ function openPrayer(p = prayer) {
   modal
     .querySelectorAll('[data-edit-check]')
     .forEach((b) => (b.onclick = () => openCheckEditor(b.dataset.editCheck)));
+  mountPrayerActionSettings(p, true);
   if (!modal.open) modal.showModal();
 }
 $('#closePrayer').onclick = () => $('#prayerDialog').close();
@@ -834,8 +835,9 @@ function renderRepeatLegacy(edit = null) {
   );
 }
 // Planning references only: never write slot maps, outcomes, tasks or progress.
-function prayerActionPlans(p) {
-  return state.prayerActionPlans?.[p] || [];
+function prayerActionPlans(p, key = date) {
+  return (key ? state.sunsetDays[key]?.prayerActionPlans?.[p] : undefined)
+    ?? state.prayerActionPlans?.[p] ?? [];
 }
 function prayerActionSummary(p) {
   const items = prayerActionPlans(p).map((plan) => {
@@ -856,37 +858,58 @@ function prayerActionCapacity(p, plans) {
     <span>المتبقي <strong data-plan-remaining>${remaining}</strong></span>
     ${excess > 0 ? `<strong class="prayer-action-excess" data-plan-excess>تجاوز السعة بـ ${excess} خانة</strong>` : ''}`;
 }
-function mountPrayerActionSettings(p = prayer) {
-  const panel = $('#prayerActionSettings');
-  const list = prayerActionPlans(p);
-  panel.innerHTML = `<h2>الأفعال المخططة لكل صلاة</h2><p class="hint">خطة ثابتة لكل الأيام؛ الأعداد خانات مخططة فقط ولا تسجل إنجازًا أو تحجز الوقت. تُحفظ التغييرات مباشرة.</p><label class="field">الصلاة<select id="prayerActionPrayer">${prayerOrder.map((i) => `<option value="${i}" ${i === p ? 'selected' : ''}>${names[i]}</option>`).join('')}</select></label>
+function mountPrayerActionSettings(p = prayer, daily = false) {
+  const panel = $(daily ? '#prayerOccurrenceActions' : '#prayerActionSettings');
+  const key = daily ? date : null;
+  const formId = daily ? 'addPrayerOccurrenceAction' : 'addPrayerAction';
+  const captured = state;
+  const readPlans = () => prayerActionPlans(p, key);
+  const list = readPlans();
+  panel.innerHTML = `${daily
+    ? `<h3>الأفعال المخططة لهذه الصلاة</h3><p class="hint">تعديلات صلاة ${names[p]} ليوم <bdi>${date}</bdi> فقط. تُحفظ التغييرات مباشرة.</p><button type="button" class="secondary" data-reset-plan ${state.sunsetDays[key]?.prayerActionPlans?.[p] === undefined ? 'disabled' : ''}>العودة للخطة العامة</button>`
+    : '<h2>الأفعال المخططة لكل صلاة</h2><p class="hint">خطة ثابتة لكل الأيام. تُحفظ التغييرات مباشرة.</p>'}
+    ${daily ? '' : `<label class="field">الصلاة<select id="prayerActionPrayer">${prayerOrder.map((i) => `<option value="${i}" ${i === p ? 'selected' : ''}>${names[i]}</option>`).join('')}</select></label>`}
     <p class="hint">سعة الفترة حسب مواقيت اليوم المختار · <bdi>${date}</bdi></p>
     <div class="capacity-note prayer-action-capacity" role="status" aria-atomic="true">${prayerActionCapacity(p, list)}</div>
     <div class="prayer-action-settings-list">${list.map((plan, index) => {
     const action = state.actions.find((a) => a.id === plan.id);
     return `<div class="prayer-action-setting" data-plan-id="${esc(plan.id)}"><span class="prayer-action-name"><i class="dot" style="background:${action ? ActionCategories.color(state, action) : '#e5e7eb'}" aria-hidden="true"></i>${esc(action?.name || 'فعل محذوف')}</span><label class="prayer-action-slots">الخانات<input type="number" min="1" max="144" step="1" value="${plan.slots}" aria-label="خانات ${esc(action?.name || 'الفعل المحذوف')}"></label><button type="button" class="secondary" data-plan-move="-1" ${index === 0 ? 'disabled' : ''} aria-label="تقديم ${esc(action?.name || 'الفعل')}">↑</button><button type="button" class="secondary" data-plan-move="1" ${index === list.length - 1 ? 'disabled' : ''} aria-label="تأخير ${esc(action?.name || 'الفعل')}">↓</button><button type="button" class="secondary" data-plan-delete aria-label="حذف ${esc(action?.name || 'الفعل')} من التخطيط">×</button></div>`;
-  }).join('') || '<p class="empty-note">لم تحدد أفعالًا لهذه الصلاة.</p>'}</div><form id="addPrayerAction" class="prayer-action-add"><label class="field">الفعل<select name="action" required><option value="">اختر فعلًا</option>${state.categories.map((c) => `<optgroup label="${esc(c.name)}">${state.actions.filter((a) => a.categoryId === c.id && !list.some((plan) => plan.id === a.id)).map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</optgroup>`).join('')}</select></label><label class="field">الخانات<input name="slots" type="number" min="1" max="144" step="1" value="1" required></label><button class="primary" type="submit">إضافة</button></form>`;
-  $('#prayerActionPrayer').onchange = (e) => mountPrayerActionSettings(+e.target.value);
+  }).join('') || '<p class="empty-note">لم تحدد أفعالًا لهذه الصلاة.</p>'}</div><form id="${formId}" class="prayer-action-add"><label class="field">الفعل<select name="action" required><option value="">اختر فعلًا</option>${state.categories.map((c) => `<optgroup label="${esc(c.name)}">${state.actions.filter((a) => a.categoryId === c.id && !list.some((plan) => plan.id === a.id)).map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</optgroup>`).join('')}</select></label><label class="field">الخانات<input name="slots" type="number" min="1" max="144" step="1" value="1" required></label><button class="primary" type="submit">إضافة</button></form>`;
+  if (!daily) panel.querySelector('#prayerActionPrayer').onchange = (e) => mountPrayerActionSettings(+e.target.value, daily);
   const commit = (next, redraw = true) => {
-    (state.prayerActionPlans ??= {})[p] = next;
+    if (state !== captured || (daily && date !== key)) return;
+    if (daily) (day().prayerActionPlans ??= {})[p] = next;
+    else (state.prayerActionPlans ??= {})[p] = next;
     save();
-    if (redraw) mountPrayerActionSettings(p);
+    if (daily) {
+      render();
+      const reset = panel.querySelector('[data-reset-plan]');
+      if (reset) reset.disabled = false;
+    }
+    if (redraw) mountPrayerActionSettings(p, daily);
     else panel.querySelector('.prayer-action-capacity').innerHTML = prayerActionCapacity(p, next);
+  };
+  if (daily) panel.querySelector('[data-reset-plan]').onclick = () => {
+    if (state !== captured || date !== key) return;
+    delete day().prayerActionPlans[p];
+    save();
+    render();
+    mountPrayerActionSettings(p, true);
   };
   panel.querySelectorAll('[data-plan-id]').forEach((row, index) => {
     const input = row.querySelector('input');
     input.onchange = () => {
       if (!input.checkValidity() || !Number.isInteger(+input.value)) {
         input.reportValidity();
-        input.value = prayerActionPlans(p)[index].slots;
+        input.value = readPlans()[index].slots;
         return;
       }
-      commit(prayerActionPlans(p).map((plan, i) => i === index ? { ...plan, slots: +input.value } : plan), false);
+      commit(readPlans().map((plan, i) => i === index ? { ...plan, slots: +input.value } : plan), false);
     };
-    row.querySelector('[data-plan-delete]').onclick = () => commit(prayerActionPlans(p).filter((plan) => plan.id !== row.dataset.planId));
+    row.querySelector('[data-plan-delete]').onclick = () => commit(readPlans().filter((plan) => plan.id !== row.dataset.planId));
     row.querySelectorAll('[data-plan-move]').forEach((button) => {
       button.onclick = () => {
-        const next = [...prayerActionPlans(p)], target = index + +button.dataset.planMove;
+        const next = [...readPlans()], target = index + +button.dataset.planMove;
         if (target < 0 || target >= next.length) return;
         [next[index], next[target]] = [next[target], next[index]];
         const id = row.dataset.planId, direction = button.dataset.planMove;
@@ -896,12 +919,12 @@ function mountPrayerActionSettings(p = prayer) {
       };
     });
   });
-  $('#addPrayerAction').onsubmit = (e) => {
+  panel.querySelector(`#${formId}`).onsubmit = (e) => {
     e.preventDefault();
     const form = e.target, id = form.elements.action.value, slots = +form.elements.slots.value;
-    if (!form.checkValidity() || !state.actions.some((a) => a.id === id) || !Number.isInteger(slots) || slots < 1 || slots > 144 || prayerActionPlans(p).some((plan) => plan.id === id)) return;
-    commit([...prayerActionPlans(p), { id, slots }]);
-    $('#addPrayerAction select').focus();
+    if (!form.checkValidity() || !state.actions.some((a) => a.id === id) || !Number.isInteger(slots) || slots < 1 || slots > 144 || readPlans().some((plan) => plan.id === id)) return;
+    commit([...readPlans(), { id, slots }]);
+    panel.querySelector(`#${formId} select`).focus();
   };
 }
 function mountPrayerTaskSettings(p = prayer) {
@@ -1046,6 +1069,17 @@ function renderSettings() {
     }
   };
 }
+function validatePrayerActionPlans(plans) {
+  if (plans !== undefined) {
+    if (!plans || typeof plans !== 'object' || Array.isArray(plans)) throw Error();
+    for (const [p, list] of Object.entries(plans)) {
+      if (!/^[0-4]$/.test(p) || !Array.isArray(list) ||
+          new Set(list.map((plan) => plan?.id)).size !== list.length ||
+          list.some((plan) => !plan || typeof plan.id !== 'string' || !plan.id || plan.id.length > 200 ||
+            !Number.isInteger(plan.slots) || plan.slots < 1 || plan.slots > 144)) throw Error();
+    }
+  }
+}
 function validate(s) {
   if (s?.slotMinutes !== undefined && ![10, 15].includes(s.slotMinutes))
     throw Error();
@@ -1089,15 +1123,7 @@ function validate(s) {
     (!Number.isInteger(s.hijriOffset) || Math.abs(s.hijriOffset) > 2)
   )
     throw Error();
-  if (s.prayerActionPlans !== undefined) {
-    if (!s.prayerActionPlans || typeof s.prayerActionPlans !== 'object' || Array.isArray(s.prayerActionPlans)) throw Error();
-    for (const [p, list] of Object.entries(s.prayerActionPlans)) {
-      if (!/^[0-4]$/.test(p) || !Array.isArray(list) ||
-          new Set(list.map((plan) => plan?.id)).size !== list.length ||
-          list.some((plan) => !plan || typeof plan.id !== 'string' || !plan.id || plan.id.length > 200 ||
-            !Number.isInteger(plan.slots) || plan.slots < 1 || plan.slots > 144)) throw Error();
-    }
-  }
+  validatePrayerActionPlans(s.prayerActionPlans);
   if (s.prayerTasks !== undefined) {
     if (!s.prayerTasks || typeof s.prayerTasks !== 'object' || Array.isArray(s.prayerTasks)) throw Error();
     for (const [p, list] of Object.entries(s.prayerTasks)) {
@@ -1138,6 +1164,7 @@ function validate(s) {
   for (let d of Object.values({ ...s.days, ...(s.sunsetDays || {}) })) {
     if (!d || !d.slots || !d.checks || !d.done || !Array.isArray(d.tasks))
       throw Error();
+    validatePrayerActionPlans(d.prayerActionPlans);
     for (let t of d.tasks)
       if (
         typeof t.name !== 'string' ||

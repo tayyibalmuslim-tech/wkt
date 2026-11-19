@@ -5349,3 +5349,14 @@ nav #toggleTaskSelection {
   font-weight: 700;
   line-height: 1.4;
 }
+
+
+#prayerOccurrenceActions {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 8px;
+}
+#prayerOccurrenceActions h3 {
+  margin-block: 4px;
+  font-size: 14px;
+}
