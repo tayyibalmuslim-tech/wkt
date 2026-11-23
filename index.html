@@ -3,17 +3,34 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#765033" />
+    <meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1220" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
     <title>وقتي | يومك حول الصلاة</title>
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('waqti-theme') || 'auto';
+      } catch {
+        document.documentElement.dataset.theme = 'auto';
+      }
+    </script>
+    <link rel="preload" href="vendor/fonts/plex-arabic-arabic-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="vendor/fonts/plex-arabic-arabic-700.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="categories.css" />
     <link rel="stylesheet" href="follow-up.css" />
     <link rel="stylesheet" href="heart-reminder.css" />
+    <link rel="stylesheet" href="design.css" />
   </head>
   <body>
     <aside>
-      <a class="brand" href="#">
-        ◷
+      <a class="brand" href="#" aria-label="وقتي — الصفحة الرئيسية">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.4" />
+          <path d="M16 8v8l5 3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M23.5 6.5a5 5 0 1 0 2 6.4 4 4 0 1 1-2-6.4z" fill="var(--color-accent)" />
+        </svg>
         <b>وقتي</b>
       </a>
       <p>مساحة ليوم أكثر اتزانًا</p>
@@ -51,7 +68,23 @@
           </svg>
           لوحة المهام
         </button>
-        <button data-view="followUp">مرجع المتابعة</button>
+        <button data-view="followUp">
+          <svg
+            class="ui-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M6 4h9l3 3v13H6z" />
+            <path d="M9 11h6M9 15h4" />
+          </svg>
+          مرجع المتابعة
+        </button>
         <button data-view="projects">
           <svg
             class="ui-icon"
@@ -193,7 +226,23 @@
           المزيد
         </summary>
         <div class="mobile-more-items">
-          <button data-view="followUp">مرجع المتابعة</button>
+          <button data-view="followUp">
+            <svg
+              class="ui-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M6 4h9l3 3v13H6z" />
+              <path d="M9 11h6M9 15h4" />
+            </svg>
+            مرجع المتابعة
+          </button>
           <button data-view="actions">
             <svg
               class="ui-icon"
@@ -251,9 +300,16 @@
       </details>
     </nav>
     <main>
-      <header>
-        <span>يومك، بنية وترتيب</span>
+      <header class="app-header">
+        <section id="dayPulse" class="day-pulse" aria-label="نبض يومك" aria-live="off"></section>
         <div class="sync-header">
+          <button
+            id="themeToggle"
+            class="secondary icon-only theme-toggle"
+            type="button"
+            title="تبديل المظهر"
+            aria-label="تبديل المظهر"
+          ></button>
           <button
             id="downloadBackup"
             class="secondary backup-download"
@@ -261,9 +317,10 @@
             title="تنزيل نسخة احتياطية من بيانات التطبيق"
             aria-label="تنزيل نسخة احتياطية من بيانات التطبيق"
           >
-            ↓ تنزيل نسخة
+            <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14" /></svg>
+            <span class="button-text">تنزيل نسخة</span>
           </button>
-          <button id="accountButton" class="secondary">
+          <button id="accountButton" class="secondary" type="button">
             دخول / إنشاء حساب
           </button>
           <span class="save" id="syncStatus" role="status">
@@ -348,5 +405,6 @@
     <script src="vendor/firebase-database-compat.js"></script>
     <script src="sync-merge.js"></script>
     <script src="sync.js"></script>
+    <script src="shell.js"></script>
   </body>
 </html>

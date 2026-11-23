@@ -171,24 +171,20 @@ try {
     {id:'future-sibling',name:'مستقبلية',parentId:'missed-root',parentDate:''},
     {id:'future-deep',name:'مستقبلية عميقة',parentId:'missed-middle',parentDate:''}
   ];plannerTab='missed';plannerQuery='';plannerPriority=plannerStatus=plannerProject='all';expandedTaskRows.clear();save();render();`);
-  assert.ok(row('missed-root'));
+  // Missed tasks are grouped by action; ancestors are shown as family headings.
+  const results = () => $('#plannerResults').textContent;
   assert.ok(row('overdue-child'));
-  assert.ok(row('missed-middle'));
   assert.ok(row('overdue-deep'));
-  assert.ok(row('free-root'));
   assert.ok(row('free-overdue'));
+  assert.match(results(), /الأصل/);
   for (const id of ['undated-sibling','done-sibling','failed-sibling','future-sibling','future-deep'])
     assert.equal(row(id),null,'non-missed sibling hidden: '+id);
-  own(row('missed-root'),'[data-task-toggle]').click();
-  assert.equal(row('overdue-child'),null);
-  own(row('missed-root'),'[data-task-toggle]').click();
-  assert.ok(row('overdue-child'));
-  assert.equal(row('future-sibling'),null,'lazy reopen retains missed filter');
   own(row('overdue-child'),'[data-outcome="done"]').click();
   assert.equal(row('overdue-child'),null,'completed child disappears immediately');
   assert.ok(row('overdue-deep'));
   own(row('overdue-deep'),'[data-outcome="done"]').click();
-  assert.equal(row('missed-root'),null,'family disappears once no missed children remain');
+  assert.equal(row('overdue-deep'),null);
+  assert.doesNotMatch(results(), /الأصل/,'family disappears once no missed children remain');
   assert.ok(row('free-overdue'),'other missed families are preserved');
   assert.deepEqual(errors, []);
   console.log(
