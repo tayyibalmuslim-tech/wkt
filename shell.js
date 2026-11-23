@@ -91,6 +91,29 @@
     return `<svg class="pulse-ring" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><circle class="pulse-ring-track" cx="18" cy="18" r="${r}"/><circle class="pulse-ring-fill" cx="18" cy="18" r="${r}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c * (1 - percent / 100)).toFixed(2)}"/></svg>`;
   }
 
+  // The 10-minute slot that contains "now", in the same index space as range().
+  function currentSlot(now, key) {
+    return (
+      Math.floor(minute(clockAt(now)) / SlotTools.minutes) +
+      (zonedDate(now) === key ? 144 : 0)
+    );
+  }
+  function plannedNow(now, key) {
+    const record = state.sunsetDays?.[key];
+    if (!record) return '';
+    const i = currentSlot(now, key) % 144;
+    const action = state.actions.find((a) => a.id === record.planned?.[i]);
+    const owner = record.taskSlotOwners?.[i];
+    const task = owner && typeof findTask === 'function' ? findTask(owner, key) : null;
+    return [action?.name, task?.name].filter(Boolean).join(' — ');
+  }
+  function logNow() {
+    const now = new Date(),
+      key = activeDay(now);
+    if (date !== key) goDay(key, true);
+    openPicker(currentSlot(now, key), 'actual');
+  }
+
   let lastMarkup = '';
   function celebrate(key, percent) {
     const memo = 'waqti-celebrated';
@@ -123,12 +146,15 @@
         done = score.tasksDone + score.prayerDone,
         percent = total ? Math.round((100 * done) / total) : 0,
         dayPercent = Math.round(elapsed * 100),
+        planned = plannedNow(now, key),
         reminder = reminders[Math.abs(Math.floor(start / 864e5)) % reminders.length];
       const markup = `
         <div class="pulse-item pulse-now">
           <span class="pulse-kicker">الآن</span>
           <strong>وقت ${names[current]}</strong>
           ${next ? `<span class="pulse-next">باقي <b>${duration(next.at - now)}</b> على ${names[next.index]}</span>` : ''}
+          ${planned ? `<span class="pulse-planned" title="المخطط لهذه الدقائق">المطلوب الآن: <b>${esc(planned)}</b></span>` : ''}
+          <button type="button" class="pulse-log" data-log-now>سجّل ما تفعله الآن</button>
         </div>
         <div class="pulse-item pulse-day">
           <div class="pulse-day-head"><span>مضى من يومك</span><b>${dayPercent}%</b></div>
@@ -160,6 +186,9 @@
   }
 
   applyTheme(readTheme());
+  doc.getElementById('dayPulse')?.addEventListener('click', (e) => {
+    if (e.target.closest('[data-log-now]')) logNow();
+  });
   if (typeof view === 'string') doc.body.dataset.view = view;
   doc.getElementById('themeToggle')?.addEventListener('click', cycleTheme);
   if (typeof render === 'function') {
