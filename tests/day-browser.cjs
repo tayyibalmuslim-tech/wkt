@@ -43,17 +43,21 @@ module.exports = async function dayBrowser(browser, url) {
       const navSelector =
         viewport.width <= 900 ? '.mobile-navigation' : 'body > aside';
       const navBar = page.locator(navSelector);
-      assert.ok((await navBar.boundingBox()).y <= 1);
+      // Desktop navigation is a top bar; on phones it is a thumb-friendly bottom bar.
+      const pinned = async () => {
+        const box = await navBar.boundingBox();
+        return viewport.width <= 900
+          ? Math.abs(box.y + box.height - viewport.height) <= 1
+          : box.y <= 1;
+      };
+      assert.ok(await pinned(), 'navigation is pinned to its screen edge');
       const main = await page.locator('main').boundingBox();
       assert.ok(
         main.width >= viewport.width - 1,
         'no sidebar takes workspace width',
       );
       await page.evaluate(() => scrollTo(0, 450));
-      assert.ok(
-        (await navBar.boundingBox()).y <= 1,
-        'navigation stays at top while scrolling',
-      );
+      assert.ok(await pinned(), 'navigation stays pinned while scrolling');
       await page.evaluate(() => scrollTo(0, 0));
       const slot = page.locator('#dailySlots');
       for (const selector of ['.slot-actual', '.slot-planned']) {
@@ -94,7 +98,10 @@ module.exports = async function dayBrowser(browser, url) {
         const nav = page.locator('.mobile-navigation');
         assert.equal(await nav.isVisible(), true);
         const box = await nav.boundingBox();
-        assert.ok(box.y <= 1, 'mobile navigation is fixed at the top');
+        assert.ok(
+          Math.abs(box.y + box.height - viewport.height) <= 1,
+          'mobile navigation is fixed at the bottom',
+        );
         await nav.locator('summary').click();
         await nav.locator('[data-view="repeat"]').click();
         assert.equal(

@@ -33,7 +33,7 @@
   margin: 8px 0;
 }
 .fu-note {
-  border-inline-start: 3px solid #c7b59c;
+  border-inline-start: 3px solid var(--color-border-strong);
   padding-inline-start: 12px;
 }
 .fu-note h3 {
@@ -60,7 +60,7 @@
   margin-top: 5px;
 }
 .fu-calendar .fu-selected {
-  outline: 2px solid #765033;
+  outline: 2px solid var(--color-brand);
 }
 .fu details {
   padding: 10px 0;
@@ -76,7 +76,7 @@
 .fu pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: #f5f1ea;
+  background: var(--color-subtle);
   padding: 10px;
   max-height: 280px;
   overflow: auto;

@@ -197,8 +197,8 @@ click('#projectTaskList > [data-task-id="root-family"] [data-task-toggle]');asse
 assert.equal(run("projectName(findTask('child-family',date))"),'مشروع العائلة');
 run("selectedProject='other';render()");assert.equal($('#projectDetails [data-task-id]'),null);
 run("view='day';prayer=2;render()");
-assert.ok($('#dailyTaskCards > [data-task-id="child-family"]'));assert.match($('#dailyTaskCards').textContent,/المهمة الرئيسية/);
-assert.equal($('#allDayTaskCards').querySelectorAll(':scope > [data-task-id]').length,1);assert.ok($('#allDayTaskCards > [data-task-id="root-family"] .task-children [data-task-id="child-family"]'));
+assert.ok($('#dailyTaskCards .period-family-children > [data-task-id="child-family"]'));assert.match($('#dailyTaskCards').textContent,/المهمة الرئيسية/);
+assert.equal($('#allDayTaskCards').querySelectorAll(':scope > [data-task-id]').length,1);assert.ok($('#allDayTaskCards > [data-task-id="child-family"]'));assert.match($('#allDayTaskCards [data-task-id="child-family"] .row-parent').textContent,/المهمة الرئيسية/);
 click('#dailyTaskCards [data-task-edit]');assert.equal($('#plannerForm').elements.taskName.value,'الفرعية في العصر');
 f=$('#plannerForm').elements;assert.equal(f.taskName.value,'الفرعية في العصر');assert.equal($('#plannerForm input[name=projectIds]:checked').value,'family');f.taskName.value='فرعية معدلة';f.completedSlots.value='1';submit('#plannerForm');
 assert.equal($('#plannerEditor').open,false);assert.equal(run("taskCompletion(findTask('root-family',''))"),50);

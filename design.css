@@ -1,0 +1,1204 @@
+/* ==========================================================================
+   وقتي — طبقة التصميم (Design layer)
+   Loaded last. Defines the visual identity, light/dark themes and the app
+   shell. Structure, IDs and behaviour stay in the original files.
+   ========================================================================== */
+
+/* ---------- Typeface: IBM Plex Sans Arabic (OFL, bundled in vendor) ---------- */
+@font-face {
+  font-family: 'WKT Plex';
+  src: url('vendor/fonts/plex-arabic-arabic-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+200C-200E,
+    U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC;
+}
+@font-face {
+  font-family: 'WKT Plex';
+  src: url('vendor/fonts/plex-arabic-arabic-500.woff2') format('woff2');
+  font-weight: 500 600;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+200C-200E,
+    U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC;
+}
+@font-face {
+  font-family: 'WKT Plex';
+  src: url('vendor/fonts/plex-arabic-arabic-700.woff2') format('woff2');
+  font-weight: 700 900;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+200C-200E,
+    U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC;
+}
+@font-face {
+  font-family: 'WKT Plex';
+  src: url('vendor/fonts/plex-arabic-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-2193, U+2212, U+FFFD;
+}
+@font-face {
+  font-family: 'WKT Plex';
+  src: url('vendor/fonts/plex-arabic-latin-500.woff2') format('woff2');
+  font-weight: 500 600;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-2193, U+2212, U+FFFD;
+}
+@font-face {
+  font-family: 'WKT Plex';
+  src: url('vendor/fonts/plex-arabic-latin-700.woff2') format('woff2');
+  font-weight: 700 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-2193, U+2212, U+FFFD;
+}
+
+/* ---------- Tokens: light ("dawn") ---------- */
+:root {
+  color-scheme: light;
+  --font-ui: 'WKT Plex', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+
+  --color-bg: #f5f4f0;
+  --color-surface: #ffffff;
+  --color-surface-2: #fbfaf7;
+  --color-subtle: #f1efe9;
+  --color-border: #e7e4dc;
+  --color-border-strong: #d4d0c5;
+  --color-text: #1c2130;
+  --color-secondary: #5a6070;
+  --color-brand: #2f4b8f;
+  --color-brand-strong: #223a74;
+  --color-brand-soft: #eaeff9;
+  --color-on-brand: #ffffff;
+  --color-accent: #d98a12;
+  --color-accent-soft: #fdf2dd;
+  --color-accent-text: #8a5300;
+  --color-done: #1d7448;
+  --color-done-soft: #e6f4ec;
+  --color-done-border: #9ccfb2;
+  --color-failed: #b0302b;
+  --color-failed-soft: #fcebea;
+  --color-failed-border: #edb0ab;
+  --color-warn: #7d5200;
+  --color-warn-soft: #fff4dc;
+  --color-warn-border: #ecd196;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-sm: 0 1px 2px #1c21300a, 0 1px 3px #1c21300d;
+  --shadow-md: 0 8px 28px #1c21301a, 0 2px 6px #1c21300d;
+  --shadow-lg: 0 24px 64px #1c213029;
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --navigation-height: 48px;
+  --bottom-nav-height: 64px;
+
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 14.5px;
+  --font-lg: 18px;
+  --font-xl: 26px;
+
+  --muted: var(--color-secondary);
+  --bg: var(--color-bg);
+  --line: var(--color-border);
+}
+
+/* ---------- Tokens: dark ("night") ---------- */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #0d1120;
+  --color-surface: #151a2b;
+  --color-surface-2: #192036;
+  --color-subtle: #1e263c;
+  --color-border: #283049;
+  --color-border-strong: #39435f;
+  --color-text: #e9ebf3;
+  --color-secondary: #a8afc2;
+  --color-brand: #a9bcff;
+  --color-brand-strong: #cad6ff;
+  --color-brand-soft: #232e55;
+  --color-on-brand: #0d1120;
+  --color-accent: #f2b544;
+  --color-accent-soft: #3a2e14;
+  --color-accent-text: #f5c66c;
+  --color-done: #6fd39c;
+  --color-done-soft: #14322a;
+  --color-done-border: #2f6b51;
+  --color-failed: #ff9b94;
+  --color-failed-soft: #3a1c22;
+  --color-failed-border: #7a3a3f;
+  --color-warn: #f5c66c;
+  --color-warn-soft: #33290f;
+  --color-warn-border: #6b5520;
+  --shadow-sm: 0 1px 2px #0006;
+  --shadow-md: 0 10px 30px #0008;
+  --shadow-lg: 0 24px 70px #000a;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'] {
+    color-scheme: dark;
+    --color-bg: #0d1120;
+    --color-surface: #151a2b;
+    --color-surface-2: #192036;
+    --color-subtle: #1e263c;
+    --color-border: #283049;
+    --color-border-strong: #39435f;
+    --color-text: #e9ebf3;
+    --color-secondary: #a8afc2;
+    --color-brand: #a9bcff;
+    --color-brand-strong: #cad6ff;
+    --color-brand-soft: #232e55;
+    --color-on-brand: #0d1120;
+    --color-accent: #f2b544;
+    --color-accent-soft: #3a2e14;
+    --color-accent-text: #f5c66c;
+    --color-done: #6fd39c;
+    --color-done-soft: #14322a;
+    --color-done-border: #2f6b51;
+    --color-failed: #ff9b94;
+    --color-failed-soft: #3a1c22;
+    --color-failed-border: #7a3a3f;
+    --color-warn: #f5c66c;
+    --color-warn-soft: #33290f;
+    --color-warn-border: #6b5520;
+    --shadow-sm: 0 1px 2px #0006;
+    --shadow-md: 0 10px 30px #0008;
+    --shadow-lg: 0 24px 70px #000a;
+  }
+}
+
+/* ---------- Base ---------- */
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--navigation-height) + 12px);
+}
+body {
+  font-family: var(--font-ui);
+  font-size: var(--font-base);
+  line-height: 1.65;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1,
+h2,
+h3 {
+  color: var(--color-text);
+  letter-spacing: 0;
+}
+h1 {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  line-height: 1.4;
+}
+h2 {
+  font-size: var(--font-lg);
+  font-weight: 700;
+}
+h3 {
+  font-weight: 600;
+}
+p,
+.hint {
+  color: var(--color-secondary);
+}
+a {
+  color: var(--color-brand);
+}
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-text);
+}
+.ui-icon {
+  inline-size: 18px;
+  block-size: 18px;
+  flex: none;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* ---------- Controls ---------- */
+button {
+  color: inherit;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease),
+    transform var(--motion-fast) var(--ease);
+}
+.primary,
+button.primary {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  box-shadow: 0 1px 2px #1c213026, inset 0 1px 0 #ffffff1f;
+}
+.primary:hover:not(:disabled) {
+  background: var(--color-brand-strong);
+}
+.primary:active:not(:disabled),
+.secondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.secondary,
+.date button,
+button.secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+.secondary:hover:not(:disabled),
+.date button:hover:not(:disabled) {
+  background: var(--color-subtle);
+  border-color: var(--color-border-strong);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+input,
+select,
+textarea {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-secondary);
+  opacity: 0.8;
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-secondary);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
+}
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--color-brand);
+}
+input[type='date'],
+input[type='month'],
+input[type='time'] {
+  color-scheme: inherit;
+}
+select {
+  color: var(--color-text);
+}
+.badge {
+  background: var(--color-subtle);
+  color: var(--color-secondary);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 600;
+}
+.empty-note {
+  color: var(--color-secondary);
+  background: var(--color-surface-2);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  text-align: center;
+}
+details > summary {
+  cursor: pointer;
+}
+
+/* ---------- Surfaces ---------- */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.panel-title h2 {
+  font-size: 17px;
+}
+dialog {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+dialog::backdrop {
+  background: #0d112066;
+  backdrop-filter: blur(3px);
+}
+dialog[open] {
+  animation: wkt-dialog-in var(--motion-base) var(--ease);
+}
+@keyframes wkt-dialog-in {
+  from {
+    opacity: 0;
+  }
+}
+.dialog-head {
+  border-bottom: 1px solid var(--color-border);
+}
+.dialog-head button {
+  border-radius: var(--radius-sm);
+  color: var(--color-secondary);
+}
+.dialog-head button:hover {
+  background: var(--color-subtle);
+  color: var(--color-text);
+}
+
+/* ==========================================================================
+   App shell
+   ========================================================================== */
+
+/* Desktop / tablet: fixed top bar with brand and tabs. */
+body > aside {
+  height: var(--navigation-height);
+  padding: 0 20px;
+  gap: 24px;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 0 #ffffff08;
+}
+body > aside .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-brand);
+  text-decoration: none;
+  font-size: 22px;
+}
+body > aside .brand b {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.brand-mark {
+  inline-size: 26px;
+  block-size: 26px;
+  color: var(--color-brand);
+}
+body > aside nav {
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+body > aside nav button {
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 9px;
+  color: var(--color-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  background: transparent;
+}
+body > aside nav button:hover {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+body > aside nav button.active,
+body > aside nav button[aria-current='page'] {
+  background: var(--color-surface);
+  color: var(--color-brand);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+body > aside nav #toggleTaskSelection {
+  margin-inline-start: 6px;
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+body > aside nav #toggleTaskSelection[aria-pressed='true'],
+.mobile-navigation #toggleTaskSelection[aria-pressed='true'] {
+  border-style: solid;
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+body > main,
+body.monthly-view > main {
+  padding: calc(var(--navigation-height) + 16px) clamp(14px, 2.4vw, 32px) 96px;
+}
+
+/* Page header: day pulse + account/sync actions. */
+main > header.app-header {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 0 0 18px;
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.sync-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: flex-start;
+}
+.sync-header .secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.sync-header .icon-only {
+  inline-size: 38px;
+  padding: 0;
+  justify-content: center;
+}
+.sync-header .save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  min-height: 28px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  color: var(--color-secondary);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The day pulse: where am I in my day, and how much have I done? */
+.day-pulse {
+  flex: 1 1 620px;
+  display: grid;
+  grid-template-columns: minmax(170px, auto) minmax(200px, 1fr) auto;
+  align-items: center;
+  gap: 10px 20px;
+  min-width: 0;
+  padding: 12px 18px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, var(--color-brand-soft) 0%, transparent 55%),
+    var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.day-pulse:empty {
+  display: none;
+}
+.pulse-item {
+  min-width: 0;
+}
+.pulse-now {
+  display: grid;
+  gap: 0;
+  line-height: 1.5;
+}
+.pulse-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-secondary);
+  font-size: 12px;
+}
+.pulse-kicker::before {
+  content: '';
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 0 var(--color-accent);
+  animation: wkt-live 2.4s ease-out infinite;
+}
+@keyframes wkt-live {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+.pulse-now strong {
+  font-size: 17px;
+  color: var(--color-text);
+}
+.pulse-next {
+  color: var(--color-secondary);
+  font-size: 12.5px;
+}
+.pulse-next b {
+  color: var(--color-accent-text);
+  font-weight: 700;
+}
+.pulse-day {
+  display: grid;
+  gap: 5px;
+}
+.pulse-day-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+.pulse-day-head b {
+  color: var(--color-text);
+}
+.pulse-bar {
+  position: relative;
+  block-size: 8px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  overflow: hidden;
+}
+.pulse-bar > span {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 70%, var(--color-brand)));
+  transition: inline-size 600ms var(--ease);
+}
+.pulse-left {
+  font-size: 12px;
+  color: var(--color-secondary);
+}
+.pulse-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pulse-ring-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 52px;
+  block-size: 52px;
+}
+.pulse-ring-wrap > b {
+  position: absolute;
+  font-size: 12.5px;
+  color: var(--color-text);
+}
+.pulse-ring {
+  inline-size: 52px;
+  block-size: 52px;
+  transform: rotate(-90deg);
+}
+.pulse-ring circle {
+  fill: none;
+  stroke-width: 3.6;
+}
+.pulse-ring-track {
+  stroke: var(--color-subtle);
+}
+.pulse-ring-fill {
+  stroke: var(--color-done);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 700ms var(--ease);
+}
+.pulse-score-text {
+  display: grid;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.pulse-score-text b {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.pulse-reminder {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+  color: var(--color-secondary);
+  font-size: 12.5px;
+  line-height: 1.7;
+  text-align: center;
+}
+.day-pulse[data-complete='true'] .pulse-ring-fill {
+  stroke: var(--color-accent);
+}
+.day-pulse.celebrate .pulse-ring-wrap {
+  animation: wkt-pop 900ms var(--ease) 2;
+}
+@keyframes wkt-pop {
+  40% {
+    transform: scale(1.14);
+  }
+}
+
+/* Floating "quick task" button and toast. */
+.quick-task {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  inset-inline-end: auto;
+  left: 22px;
+  bottom: 22px;
+  padding: 13px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  font-weight: 700;
+  box-shadow: var(--shadow-md), 0 0 0 4px color-mix(in srgb, var(--color-bg) 70%, transparent);
+}
+.quick-task:hover {
+  background: var(--color-brand-strong);
+  transform: translateY(-1px);
+}
+#toast {
+  background: var(--color-text);
+  color: var(--color-bg);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  z-index: 60;
+}
+
+/* ==========================================================================
+   Pages
+   ========================================================================== */
+
+/* Shared page top: title + date controls. */
+.top h1 {
+  margin: 0;
+}
+.date {
+  gap: 6px;
+}
+.date button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 6px 12px;
+  font-weight: 600;
+}
+.date #today,
+.date [data-date-today],
+#today {
+  color: var(--color-brand);
+}
+.date input[type='date'] {
+  min-height: 40px;
+  padding: 6px 10px;
+}
+.day-summary,
+.dashboard-summary {
+  color: var(--color-secondary);
+}
+.day-summary > span,
+.dashboard-summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+/* Segmented tabs (dashboard views, projects, filters). */
+.planner-tabs {
+  gap: 6px;
+}
+.planner-tabs > button,
+.planner-tabs .secondary {
+  border-radius: 999px;
+  min-height: 38px;
+  padding: 6px 14px;
+  font-weight: 500;
+}
+.planner-tabs .chosen,
+.planner-tabs button[aria-pressed='true'] {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-on-brand);
+  font-weight: 700;
+}
+
+/* Day page: prayer period cards. */
+.day-workspace .tabs {
+  gap: 10px;
+}
+.day-workspace .prayer-tab,
+.tab {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+.day-workspace .prayer-tab:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+}
+.day-workspace .prayer-tab.selected,
+.tab.selected {
+  border-color: var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-brand), var(--shadow-md);
+}
+.prayer-period {
+  background: transparent;
+  color: var(--color-text);
+}
+.prayer-period:hover {
+  background: var(--color-surface-2);
+}
+.prayer-tab.selected .prayer-period,
+.prayer-tab.selected .prayer-tasks-button {
+  background: var(--color-brand-soft);
+}
+.prayer-period strong {
+  font-size: 15px;
+}
+.prayer-count {
+  background: var(--color-subtle);
+  color: var(--color-secondary);
+  border-radius: 999px;
+  font-weight: 700;
+}
+.prayer-count.complete {
+  background: var(--color-done);
+  color: var(--color-surface);
+}
+.prayer-tasks-button {
+  background: var(--color-surface-2);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-brand);
+}
+.prayer-tasks-button:hover,
+.prayer-tasks-button:focus-visible {
+  background: var(--color-brand-soft);
+}
+
+/* Day page: time slots. */
+.slot {
+  border-radius: var(--radius-sm);
+}
+.slot-actual,
+.slot-planned {
+  transition: filter var(--motion-fast), box-shadow var(--motion-fast);
+}
+.slot-actual:hover,
+.slot-planned:hover {
+  filter: brightness(0.97);
+}
+.slot-planned {
+  background: var(--color-subtle);
+  color: var(--color-secondary);
+}
+.slot-actual:not([style*='background']) {
+  background: var(--color-surface-2);
+  color: var(--color-secondary);
+  border: 1px dashed var(--color-border-strong);
+}
+.slot-now {
+  box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 5px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+.slot-now-badge {
+  background: var(--color-accent) !important;
+  color: #1c2130 !important;
+  font-weight: 700;
+}
+.period-action-heading {
+  background: var(--color-subtle);
+  border-radius: var(--radius-sm);
+}
+.period-action-count {
+  background: var(--color-surface);
+  border-radius: 999px;
+  padding-inline: 8px;
+}
+
+/* Task rows: calmer separators and clearer hover. */
+.task-row.planner-task,
+.task-row.daily-task {
+  border-bottom-color: var(--color-border);
+}
+.task-row.planner-task:hover,
+.task-row.daily-task:hover {
+  background: var(--color-surface-2);
+}
+.task-row.selected,
+.task-row[aria-selected='true'] {
+  background: var(--color-brand-soft);
+}
+.task-progress-bar {
+  accent-color: var(--color-done);
+}
+progress {
+  accent-color: var(--color-done);
+}
+
+/* Projects workspace */
+.project-workspace .project-nav-item {
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+.project-workspace .project-nav-item:hover {
+  background: var(--color-subtle);
+}
+.project-workspace .project-nav-item.chosen {
+  background: var(--color-brand-soft);
+  border-color: color-mix(in srgb, var(--color-brand) 30%, transparent);
+  box-shadow: none;
+}
+
+/* Month calendar */
+.task-month .month-day,
+.month-day {
+  border-radius: var(--radius-md);
+}
+
+/* Follow-up reference: use the same page width as other views. */
+.follow-up-root,
+.follow-up {
+  max-width: none;
+}
+
+/* Settings: keep checkbox labels from colliding with the buttons below. */
+#reminderForm > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block: 4px 12px;
+  color: var(--color-text);
+}
+#reminderForm .form {
+  margin-top: 4px;
+}
+
+/* Categories & actions page */
+.ac-root .ac-primary,
+.ac-welcome button {
+  color: var(--color-on-brand);
+}
+
+/* Heart reminder dialog follows the theme. */
+#reminderDialog {
+  --heart-surface: var(--color-surface);
+  --heart-paper: var(--color-surface-2);
+  --heart-ink: var(--color-text);
+  --heart-muted: var(--color-secondary);
+  --heart-border: var(--color-border);
+  --heart-accent: var(--color-brand);
+  font-family: var(--font-ui);
+}
+
+/* ==========================================================================
+   Phones and small tablets: bottom tab bar, compact header.
+   ========================================================================== */
+@media (max-width: 900px) {
+  :root {
+    /* The tab bar moves to the bottom: nothing is pinned above the content. */
+    --navigation-height: env(safe-area-inset-top, 0px);
+  }
+  body > main,
+  body.monthly-view > main {
+    padding: calc(12px + env(safe-area-inset-top)) 12px
+      calc(var(--bottom-nav-height) + 92px + env(safe-area-inset-bottom));
+  }
+  .mobile-navigation {
+    inset: auto 0 0;
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: minmax(0, 1fr);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    gap: 2px;
+    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 0;
+    box-shadow: 0 -6px 24px #1c21300f;
+  }
+  .mobile-navigation > button,
+  .mobile-navigation summary {
+    position: relative;
+    min-height: 52px;
+    gap: 3px;
+    padding: 6px 2px;
+    border-radius: 12px;
+    border: 0;
+    background: transparent;
+    color: var(--color-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .mobile-navigation .ui-icon {
+    inline-size: 22px;
+    block-size: 22px;
+  }
+  .mobile-navigation > button.active,
+  .mobile-navigation > button[aria-current='page'],
+  #navigationMore.has-current > summary {
+    background: transparent;
+    color: var(--color-brand);
+    font-weight: 700;
+  }
+  .mobile-navigation > button.active::before,
+  .mobile-navigation > button[aria-current='page']::before,
+  #navigationMore.has-current > summary::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline: 22%;
+    block-size: 30px;
+    border-radius: 999px;
+    background: var(--color-brand-soft);
+    z-index: -1;
+  }
+  .mobile-navigation > button,
+  .mobile-navigation summary {
+    isolation: isolate;
+  }
+  .mobile-navigation #toggleTaskSelection {
+    border: 1px dashed var(--color-border-strong);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 10.5px;
+    margin: 4px 2px;
+    min-height: 44px;
+  }
+  .mobile-more-items {
+    top: auto;
+    bottom: calc(100% + 8px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 6px;
+    background: var(--color-surface);
+  }
+  .mobile-more-items button {
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    color: var(--color-text);
+    background: transparent;
+  }
+  .mobile-more-items button:hover,
+  .mobile-more-items button.active {
+    background: var(--color-brand-soft);
+    color: var(--color-brand);
+  }
+  .quick-task {
+    left: 14px;
+    bottom: calc(var(--bottom-nav-height) + 14px + env(safe-area-inset-bottom));
+    padding: 12px 18px;
+  }
+  #toast {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    bottom: calc(var(--bottom-nav-height) + 72px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 32px);
+    text-align: center;
+  }
+
+  main > header.app-header {
+    gap: 10px;
+    padding-bottom: 14px;
+  }
+  .sync-header {
+    order: -1;
+    inline-size: 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .sync-header .save {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+  .sync-header #downloadBackup {
+    inline-size: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .sync-header #downloadBackup .button-text {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sync-header #accountButton {
+    white-space: nowrap;
+    font-size: 12px;
+    padding-inline: 10px;
+  }
+  .day-pulse {
+    flex-basis: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 14px;
+    padding: 12px 14px;
+  }
+  .pulse-day {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .pulse-score {
+    grid-row: 1;
+  }
+  .pulse-ring-wrap,
+  .pulse-ring {
+    inline-size: 46px;
+    block-size: 46px;
+  }
+  .pulse-score-text {
+    font-size: 12px;
+  }
+}
+@media (max-width: 380px) {
+  .pulse-score-text {
+    display: none;
+  }
+  .mobile-navigation > button,
+  .mobile-navigation summary {
+    font-size: 10px;
+  }
+}
+
+/* ---------- Motion preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+  }
+}
+
+/* The full pulse (with the daily reminder) lives on "today" pages; elsewhere
+   it stays compact so the page content starts higher. */
+body:not([data-view='day']):not([data-view='dashboard']) .pulse-reminder {
+  display: none;
+}
+@media (max-width: 900px) {
+  body:not([data-view='day']):not([data-view='dashboard']) .day-pulse {
+    padding-block: 8px;
+  }
+  body:not([data-view='day']):not([data-view='dashboard']) .pulse-left,
+  body:not([data-view='day']):not([data-view='dashboard']) .pulse-day-head {
+    display: none;
+  }
+}
+
+/* Touch targets: every control on a phone is at least 40×40 px. */
+@media (max-width: 900px) {
+  .sync-header .secondary,
+  .sync-header .icon-only,
+  .sync-header #downloadBackup {
+    min-height: 40px;
+    min-width: 40px;
+    flex: none;
+  }
+  .task-row .day-task-order {
+    flex-basis: 40px;
+  }
+  .task-row .day-task-order input {
+    width: 40px;
+    min-height: 40px;
+  }
+  #reminderForm > label {
+    min-height: 40px;
+  }
+  .ac-row button {
+    min-inline-size: 44px;
+    min-block-size: 40px;
+  }
+}
+@media (max-width: 650px) {
+  .task-row .task-row-heading:has(> .day-task-order) {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+}
+
+/* Phones: all five prayers visible at once (no hidden carousel). The chosen
+   prayer's details — capacity and planned actions — appear in its panel below. */
+@media (max-width: 650px) {
+  .day-workspace .tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+  .day-workspace .prayer-tab {
+    min-width: 0;
+    flex: none;
+    border-radius: 14px;
+  }
+  .day-workspace .prayer-period {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 2px 6px;
+    text-align: center;
+    line-height: 1.35;
+  }
+  .day-workspace .prayer-period strong {
+    font-size: 13px;
+  }
+  .day-workspace .prayer-period > small {
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+  .day-workspace .prayer-period > small:last-child,
+  .day-workspace .prayer-tab .prayer-action-summary {
+    display: none;
+  }
+  .day-workspace .prayer-count {
+    padding: 0 7px;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  .day-workspace .prayer-tasks-button {
+    display: grid;
+    place-items: center;
+    min-height: 40px;
+    padding: 0;
+    font-size: 0;
+  }
+  .day-workspace .prayer-tasks-button .ui-icon,
+  .day-workspace .prayer-tasks-button svg {
+    inline-size: 18px;
+    block-size: 18px;
+  }
+}

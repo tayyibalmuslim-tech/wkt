@@ -31,7 +31,12 @@ const server = http.createServer((req, res) => {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      ...(process.env.WKT_CHROMIUM_EXECUTABLE
+        ? { executablePath: process.env.WKT_CHROMIUM_EXECUTABLE }
+        : {}),
+    });
     const page = await browser.newPage(),
       errors = [];
     page.on('pageerror', (e) => errors.push(e.message));

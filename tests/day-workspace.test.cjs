@@ -51,7 +51,7 @@ try {
     grid = $('#dailySlots'),
     untouched = slot(first + 1);
   assert.equal(run('prayerOrder.flatMap(range).length'), 144);
-  assert.equal($('#navigationMore').querySelectorAll('button').length, 3);
+  assert.equal($('#navigationMore').querySelectorAll('button').length, 4);
   assert.equal(
     $('.mobile-navigation [data-view="day"]').getAttribute('aria-current'),
     'page',
