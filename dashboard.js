@@ -396,7 +396,7 @@ function taskIcon(name) {
 }
 function taskRowMetrics(t, children = childTasks(t)) {
   const completion = taskCompletion(t);
-  return `${t.priority ? `<span class="row-priority" title="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}</span>` : ''}${t.recurrent ? `<span title="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || taskExpectedSlots(t) || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
+  return `${t.priority ? `<span class="row-priority" data-priority="${taskPriority(t)}" title="الأولوية ${taskPriority(t)}">${taskIcon('flag')}${taskPriority(t)}</span>` : ''}${t.startSlot != null ? `<span title="بداية التنفيذ ${time(t.startSlot)}">${taskIcon('clock')}</span>` : ''}${t.recurrent ? `<span title="متكررة">${taskIcon('repeat')}</span>` : ''}${children.length || taskExpectedSlots(t) || completion ? `<span class="row-completion" title="الإنجاز ${percentLabel(completion)}">${taskProgressBar(t)}<small>${percentLabel(completion)}</small></span>` : ''}`;
 }
 function taskOrderField(key, context, task) {
   const parent = task?.parentId ? parentTask(task) : null;
@@ -1231,7 +1231,7 @@ function renderDashboard() {
           ? prayerOrder
               .map(
                 (p) =>
-                  `<section class="planner-period"><div class="panel-title"><h2>${names[p]}</h2><button data-add-period="${p}" class="secondary">＋ مهمة</button></div><p class="capacity-note">${capacityText(date, p)}</p>${
+                  `<section class="planner-period"><div class="panel-title"><h2>${names[p]}</h2><button data-add-period="${p}" class="secondary">＋ مهمة</button></div>${capacityNote(date, p)}${
                     taskGroups(list.filter((t) => taskInPeriod(t, p)))
                       .map((t) => dashboardTaskCard(t))
                       .join('') ||

@@ -1,0 +1,342 @@
+/* ==========================================================================
+   وقتي — بقية التبويبات (المرحلة 8)
+   Loaded after day.css. Presentation only: no IDs, data or behaviour.
+   1. Shared pieces (capacity chips, task rows, page headers)
+   2. لوحة المهام
+   3. مرجع المتابعة
+   4. المشاريع
+   5. الأقسام والأفعال / مهامي المتكررة / إعدادات الصلاة
+   ========================================================================== */
+
+/* ---------- 1. Shared: capacity chips ---------- */
+.capacity-note.capacity-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 10px;
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+.capacity-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  white-space: nowrap;
+}
+.capacity-chip b {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.capacity-chip.is-free {
+  background: var(--color-done-soft);
+  color: var(--color-done);
+}
+.capacity-chip.is-free b {
+  color: var(--color-done);
+}
+.capacity-chip.is-full {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+/* ---------- 1. Shared: task rows ---------- */
+.task-row > .task-row-heading {
+  border-radius: var(--radius-sm);
+  transition: background-color var(--motion-fast);
+}
+.task-row > .task-row-heading:hover {
+  background: color-mix(in srgb, var(--color-brand-soft) 60%, transparent);
+}
+.task-row .task-row-select:hover {
+  background: transparent;
+}
+/* Name first, description right after it (not floating mid-row). */
+.task-row .task-row-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.task-row .task-row-copy .daily-task-name {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+}
+.task-row .task-row-copy .task-inline-description {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 45%;
+  font-size: var(--font-xs);
+  opacity: 0.85;
+}
+.task-row .task-row-copy .task-inline-description::before {
+  content: '— ';
+  opacity: 0.6;
+}
+.task-row-status .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+.task-row.done > .task-row-heading .task-row-status {
+  color: var(--color-done);
+}
+.task-row.failed > .task-row-heading .task-row-status {
+  color: var(--color-failed);
+}
+.task-row.failed > .task-row-heading .daily-task-name {
+  color: var(--color-secondary);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--color-failed) 60%, transparent);
+}
+/* Priority as a small colored tag; the default (3) stays quiet. */
+.task-row .row-priority {
+  padding: 1px 7px 1px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.6;
+  background: var(--color-subtle);
+  color: var(--color-secondary);
+}
+.task-row .row-priority .ui-icon {
+  width: 12px;
+  height: 12px;
+  flex-basis: 12px;
+}
+.task-row .row-priority[data-priority='1'] {
+  background: var(--color-failed-soft);
+  color: var(--color-failed);
+}
+.task-row .row-priority[data-priority='2'] {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+.task-row .row-priority[data-priority='3'] {
+  background: transparent;
+  opacity: 0.7;
+}
+.task-row .row-priority[data-priority='4'],
+.task-row .row-priority[data-priority='5'] {
+  background: transparent;
+  opacity: 0.45;
+}
+.task-row .task-row-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-weight: 700;
+}
+/* Done / expected slots: an input only when you reach for it. */
+.task-row .row-slot-editor {
+  opacity: 0.6;
+  transition: opacity var(--motion-fast);
+}
+.task-row > .task-row-heading:hover .row-slot-editor,
+.task-row .row-slot-editor:focus-within {
+  opacity: 1;
+}
+.task-row .row-slot-editor input:not(:focus):not(:hover) {
+  border-color: transparent;
+  background: var(--color-subtle);
+}
+/* Outcome buttons read as a pair. */
+.task-row .task-row-primary {
+  gap: 2px;
+}
+.task-row .task-row-primary [data-outcome][aria-pressed='false'] {
+  opacity: 0.55;
+}
+.task-row > .task-row-heading:hover .task-row-primary [data-outcome] {
+  opacity: 1;
+}
+.task-row .task-children {
+  border-inline-start: 2px solid var(--color-border);
+  margin-inline-start: 14px;
+}
+
+/* ---------- 1. Shared: page headers ---------- */
+:is(.dashboard-workspace, .project-workspace) > .top {
+  align-items: center;
+  gap: 12px;
+}
+.dashboard-workspace > .top > .date {
+  margin-inline-start: auto;
+}
+.dashboard-workspace .dashboard-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 8px 14px;
+}
+.dashboard-workspace .dashboard-summary > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-secondary);
+  font-size: var(--font-xs);
+  box-shadow: none;
+}
+.dashboard-workspace .dashboard-summary > span:nth-child(-n + 2) {
+  background: transparent;
+  border-style: dashed;
+}
+.dashboard-workspace .dashboard-summary strong {
+  color: var(--color-text);
+}
+
+/* ---------- 2. لوحة المهام ---------- */
+.dashboard-workspace .planner-toolbar {
+  margin-bottom: 12px;
+}
+.dashboard-workspace > .planner-tabs {
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  width: fit-content;
+  max-width: 100%;
+  border: 0;
+  margin-bottom: 16px;
+}
+.dashboard-workspace > .planner-tabs > button {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  min-height: 36px;
+  padding-inline: 14px;
+}
+.dashboard-workspace > .planner-tabs > button.chosen {
+  background: var(--color-surface);
+  color: var(--color-brand);
+  box-shadow: var(--shadow-sm);
+}
+/* The list is not a card itself: filters and each period are. */
+.dashboard-workspace .panel.dashboard-list {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.dashboard-list .dashboard-filters {
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+/* Filters: one compact row. */
+.dashboard-list .dashboard-filters {
+  display: grid;
+  grid-template-columns: minmax(200px, 2fr) repeat(3, minmax(130px, 1fr));
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 4px;
+}
+.dashboard-list .dashboard-filters .field {
+  gap: 4px;
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+.dashboard-list .dashboard-filters :is(input, select) {
+  min-height: 40px;
+  font-size: var(--font-sm);
+}
+.dashboard-list .dashboard-help {
+  margin-block: 6px 14px;
+}
+.dashboard-list .dashboard-help > summary {
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+/* Each prayer period is its own card. */
+#plannerResults > .planner-period {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 12px 14px 8px;
+  margin-bottom: 12px;
+}
+#plannerResults > .planner-period > .panel-title {
+  margin-bottom: 2px;
+}
+#plannerResults > .planner-period > .panel-title h2,
+#plannerResults > .planner-period > h2 {
+  font-size: 17px;
+}
+#plannerResults > .planner-period > .panel-title [data-add-period] {
+  min-height: 36px;
+  padding-inline: 12px;
+  border-style: dashed;
+  font-size: var(--font-sm);
+}
+#plannerResults > .planner-period > .empty-note {
+  margin: 4px 0 8px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+#plannerResults > .planner-period > details {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border);
+}
+#plannerResults > .planner-period > details > summary {
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+#plannerResults .planner-task-section > h2 {
+  font-size: 16px;
+}
+
+@media (max-width: 760px) {
+  .dashboard-list .dashboard-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dashboard-list .dashboard-filters .field:first-child {
+    grid-column: 1 / -1;
+  }
+  .dashboard-workspace > .planner-tabs {
+    border-radius: var(--radius-md);
+    width: 100%;
+  }
+  #plannerResults > .planner-period {
+    padding: 10px 10px 6px;
+  }
+}
+
+/* Month: empty days stay quiet so days with tasks stand out. */
+.task-month .month-day:not(:has(.month-task)) {
+  background: var(--color-surface-2);
+}
+.task-month .month-day:not(:has(.month-task)) .month-day-heading > span,
+.task-month .month-day:not(:has(.month-task)) .month-prayer-checks {
+  opacity: 0.45;
+}
+.task-month .month-day:not(:has(.month-task)) .month-day-heading strong {
+  color: var(--color-secondary);
+}
+.task-month .month-day.is-today {
+  background: var(--color-surface);
+}
+.task-month .month-task.done {
+  background: var(--color-done-soft);
+}
+.task-month .month-task.failed {
+  background: var(--color-failed-soft);
+}
+
+@media (max-width: 900px) {
+  /* Phone touch targets stay at least 40px (audited in tests). */
+  .dashboard-workspace > .planner-tabs > button {
+    min-height: 40px;
+  }
+}
+
