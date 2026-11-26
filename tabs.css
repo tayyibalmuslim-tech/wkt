@@ -444,3 +444,54 @@
   }
 }
 
+/* ---------- 4. المشاريع ---------- */
+.project-workspace .project-sidebar > h2 {
+  font-size: var(--font-sm);
+  color: var(--color-secondary);
+  margin-bottom: 8px;
+}
+.project-workspace .project-list {
+  display: grid;
+  gap: 6px;
+}
+.project-workspace .project-nav-item {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: start;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+.project-workspace .project-nav-item > span {
+  font-weight: 700;
+  color: var(--color-text);
+}
+.project-workspace .project-nav-item > small {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-secondary);
+}
+.project-workspace .project-nav-item:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-2);
+}
+.project-workspace .project-nav-item.chosen {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  box-shadow: inset -3px 0 0 var(--color-brand);
+}
+.project-workspace .project-nav-item.chosen > span {
+  color: var(--color-brand);
+}
+.project-workspace .project-heading h2 {
+  font-size: 20px;
+}
+.project-workspace .project-heading-percent {
+  font-size: 22px;
+  color: var(--color-accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
