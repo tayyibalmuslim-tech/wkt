@@ -1,0 +1,482 @@
+/* ==========================================================================
+   وقتي — صفحة «يومي» (المرحلة 7)
+   Loaded after design.css. Presentation only: no IDs, data or behaviour.
+   ========================================================================== */
+
+/* ---------- Day header: one calm stat strip ---------- */
+.day-workspace .day-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 10px 14px;
+}
+.day-workspace .day-summary > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-secondary);
+  font-size: var(--font-xs);
+  box-shadow: none;
+}
+.day-workspace .day-summary > span:first-child {
+  background: transparent;
+  border-style: dashed;
+}
+.day-workspace .day-summary strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Prayer cards: name, time, prayer tasks, plan meter ---------- */
+.day-workspace .prayer-period {
+  gap: 6px;
+}
+.day-workspace .prayer-period > small {
+  color: var(--color-secondary);
+}
+.prayer-plan-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding-inline: 4px;
+}
+.prayer-plan-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  overflow: hidden;
+}
+.prayer-plan-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transition: width var(--motion-base) var(--ease);
+}
+.prayer-plan-meter small {
+  min-width: 3ch;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-accent-text);
+  font-variant-numeric: tabular-nums;
+}
+.prayer-plan-meter.is-complete .prayer-plan-track > span {
+  background: var(--color-done);
+}
+.prayer-plan-meter.is-complete small {
+  color: var(--color-done);
+}
+/* Planned-action chips: readable pills instead of a crowded text line. */
+.day-workspace .prayer-action-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 10px 10px;
+  justify-content: center;
+}
+.day-workspace .prayer-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  color: var(--color-secondary);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.day-workspace .prayer-action-chip .dot {
+  margin: 0;
+  width: 7px;
+  height: 7px;
+}
+.day-workspace .prayer-action-chip b {
+  color: var(--color-text);
+}
+.day-workspace .prayer-tab.selected .prayer-action-summary {
+  background: var(--color-brand-soft);
+}
+
+/* ---------- Period plan board ---------- */
+.day-workspace .period-action-totals {
+  margin-block: 4px 16px;
+}
+.plan-board {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  padding: 14px 16px 12px;
+}
+.plan-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.plan-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.plan-title {
+  font-size: 15px;
+  color: var(--color-text);
+}
+.plan-head-figures {
+  font-size: var(--font-sm);
+  color: var(--color-secondary);
+}
+.plan-head-figures strong {
+  color: var(--color-text);
+}
+.plan-percent {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--color-accent-text);
+  font-variant-numeric: tabular-nums;
+}
+.plan-board.is-complete .plan-percent {
+  color: var(--color-done);
+}
+.plan-meter {
+  height: 8px;
+  margin-block: 10px 6px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  overflow: hidden;
+}
+.plan-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 70%, #fff));
+  transition: width var(--motion-base) var(--ease);
+}
+.plan-board.is-complete .plan-meter > span {
+  background: var(--color-done);
+}
+.plan-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.plan-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.1fr) minmax(60px, 2fr) auto 92px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 2px;
+  font-size: var(--font-sm);
+}
+.plan-row + .plan-row {
+  border-top: 1px solid var(--color-border);
+}
+.plan-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--color-text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.plan-name .dot {
+  flex: none;
+  margin: 0;
+  width: 9px;
+  height: 9px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+.plan-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+  overflow: hidden;
+}
+.plan-bar > span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--action);
+  transition: width var(--motion-base) var(--ease);
+}
+.plan-figures {
+  display: inline-flex;
+  gap: 4px;
+  color: var(--color-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.plan-figures [data-done] {
+  color: var(--color-text);
+}
+.plan-figures [data-planned] {
+  font-weight: 500;
+  color: var(--color-secondary);
+}
+.plan-status {
+  justify-self: end;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  background: var(--color-subtle);
+  color: var(--color-secondary);
+}
+.plan-row.is-started .plan-status {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+.plan-row.is-complete .plan-status {
+  background: var(--color-done-soft);
+  color: var(--color-done);
+  font-weight: 700;
+}
+.plan-row.is-complete .plan-name {
+  color: var(--color-secondary);
+}
+
+/* Time logged outside the plan. Wasted time gets a gentle warning. */
+.plan-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border-strong);
+}
+.plan-extra-title {
+  font-size: var(--font-sm);
+  color: var(--color-text);
+}
+.plan-extra-title small {
+  margin-inline-start: 4px;
+  font-weight: 500;
+  color: var(--color-failed);
+}
+.plan-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-secondary);
+  font-size: var(--font-xs);
+}
+.plan-chip .dot {
+  margin: 0;
+}
+.plan-chip strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.plan-chip.is-wasted {
+  background: var(--color-failed-soft);
+  border-color: var(--color-failed-border);
+  color: var(--color-failed);
+}
+.plan-chip.is-wasted strong {
+  color: var(--color-failed);
+}
+.plan-chip small {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.plan-chips-empty {
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+
+@media (max-width: 560px) {
+  .plan-board {
+    padding: 12px;
+  }
+  .plan-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'name status'
+      'bar figures';
+    gap: 6px 10px;
+  }
+  .plan-name { grid-area: name; }
+  .plan-status { grid-area: status; }
+  .plan-bar { grid-area: bar; }
+  .plan-figures { grid-area: figures; font-size: var(--font-xs); }
+}
+
+/* ---------- Slot toolbar legend ---------- */
+.day-workspace .slot-toolbar {
+  align-items: center;
+  margin-bottom: 10px;
+}
+.slot-legend {
+  display: inline-flex;
+  gap: 12px;
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+}
+.slot-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.slot-legend > span::before {
+  content: '';
+  width: 16px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+.slot-legend .slot-legend-planned::before {
+  height: 6px;
+  background: var(--color-subtle);
+  border-style: dashed;
+}
+
+/* ---------- Time slots: tinted colors, quiet empties, compact rows ---------- */
+.day-workspace #dailySlots .slot-piece button {
+  border-color: var(--color-border);
+  color: var(--color-secondary);
+  transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+.day-workspace #dailySlots .slot-actual {
+  min-height: 62px;
+  padding: 6px 8px;
+  background: var(--color-surface);
+  border-style: solid;
+}
+.day-workspace #dailySlots .slot-planned {
+  min-height: 40px; /* 40px touch/click target, as audited in tests */
+  padding: 4px 8px;
+  background: var(--color-surface-2);
+  border-style: dashed;
+  font-size: 11.5px;
+}
+.day-workspace #dailySlots .slot-piece[data-kind='planned'] {
+  margin-bottom: 6px;
+}
+.day-workspace #dailySlots .slot-actual .time {
+  margin: 0;
+  font-size: 11px;
+  opacity: 1;
+  color: var(--color-secondary);
+}
+.day-workspace #dailySlots .slot-piece button .label {
+  font-size: var(--font-sm);
+}
+/* Empty slots: the time is enough; the "+" hint appears on hover/focus. */
+.day-workspace #dailySlots .slot-actual:not(.has-action):not(.has-missing-action) .label,
+.day-workspace #dailySlots .slot-planned:not(.has-action):not(.has-missing-action) .label {
+  font-size: 11px;
+  color: var(--color-secondary);
+  opacity: 0.55;
+}
+@media (hover: hover) {
+  .day-workspace #dailySlots .slot-actual:not(.has-action):not(.has-missing-action) .label,
+  .day-workspace #dailySlots .slot-planned:not(.has-action):not(.has-missing-action) .label {
+    opacity: 0;
+  }
+  .day-workspace #dailySlots .slot-piece button:hover .label,
+  .day-workspace #dailySlots .slot-piece button:focus-visible .label {
+    opacity: 1 !important;
+  }
+}
+.day-workspace #dailySlots .slot-piece button:not(.has-action):hover {
+  background: var(--color-brand-soft);
+  border-color: color-mix(in srgb, var(--color-brand) 45%, transparent);
+  filter: none;
+}
+/* Filled slots: a soft tint of the action color with a solid edge. */
+.day-workspace #dailySlots .slot-actual.has-action {
+  background: color-mix(in srgb, var(--slot) 26%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--slot) 55%, var(--color-border));
+  box-shadow: inset -4px 0 0 var(--slot);
+  color: var(--color-text);
+}
+.day-workspace #dailySlots .slot-actual.has-action .label {
+  font-weight: 700;
+  color: var(--color-text);
+}
+.day-workspace #dailySlots .slot-planned.has-action {
+  background: color-mix(in srgb, var(--slot) 12%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--slot) 45%, var(--color-border));
+  color: var(--color-text);
+}
+.day-workspace #dailySlots .slot-planned.has-action .label::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-inline-end: 5px;
+  border-radius: 50%;
+  background: var(--slot);
+  vertical-align: middle;
+}
+.day-workspace #dailySlots .slot-piece button.has-action:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--slot) 36%, var(--color-surface));
+}
+.day-workspace #dailySlots .has-missing-action {
+  background: var(--color-warn-soft);
+  border-color: var(--color-warn-border);
+  color: var(--color-warn);
+}
+.day-workspace #dailySlots .slot-continuation {
+  color: var(--color-secondary);
+}
+.day-workspace #dailySlots .slot-task-name,
+.day-workspace #dailySlots .slot-task-parent,
+.day-workspace #dailySlots .slot-note {
+  color: var(--color-secondary);
+}
+
+@media (max-width: 900px) {
+  /* Thumb-sized targets on touch screens. */
+  .day-workspace #dailySlots .slot-actual {
+    min-height: 56px;
+  }
+}
+
+/* The plan meter takes its own full row inside the prayer card. */
+.day-workspace .prayer-period > .prayer-plan-meter {
+  grid-column: 1 / -1;
+}
+@media (max-width: 900px) {
+  .day-workspace .prayer-plan-meter {
+    gap: 4px;
+    padding-inline: 6px;
+  }
+  .day-workspace .prayer-plan-track {
+    height: 4px;
+  }
+  .day-workspace .prayer-plan-meter small {
+    font-size: 10px;
+  }
+}
+/* Cards share a row height; keep their content at the top instead of spread out. */
+.day-workspace .prayer-tab {
+  display: flex;
+  flex-direction: column;
+}
+.day-workspace .prayer-period {
+  align-content: start;
+}
+.day-workspace .prayer-tab .prayer-tasks-button {
+  margin-top: auto;
+}

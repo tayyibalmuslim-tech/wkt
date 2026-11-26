@@ -821,7 +821,7 @@ main > header.app-header {
   background: var(--color-subtle);
   color: var(--color-secondary);
 }
-.slot-actual:not([style*='background']) {
+.slot-actual:not(.has-action) {
   background: var(--color-surface-2);
   color: var(--color-secondary);
   border: 1px dashed var(--color-border-strong);
