@@ -168,7 +168,7 @@
 }
 .plan-row {
   display: grid;
-  grid-template-columns: minmax(96px, 1.1fr) minmax(60px, 2fr) auto 92px;
+  grid-template-columns: minmax(96px, 1.1fr) minmax(60px, 2fr) 118px 96px;
   align-items: center;
   gap: 12px;
   padding: 8px 2px;
@@ -209,6 +209,7 @@
 }
 .plan-figures {
   display: inline-flex;
+  justify-content: flex-end;
   gap: 4px;
   color: var(--color-secondary);
   white-space: nowrap;
