@@ -419,15 +419,15 @@ const FollowUp = (() => {
               )
               .join(
                 '',
-              )}</div><div class="fu-choices">${Array.from({ length: 4 }, (_, i) => `<button data-quarter="${i + 1}" class="secondary">الربع ${i + 1}</button>`).join('')}</div><div class="fu-choices">${Array.from(
+              )}</div><div class="fu-choices">${Array.from({ length: 4 }, (_, i) => `<button data-quarter="${i + 1}" class="secondary${q === i + 1 ? ' fu-current' : ''}" aria-pressed="${q === i + 1}">الربع ${i + 1}</button>`).join('')}</div><div class="fu-choices">${Array.from(
               { length: 3 },
               (_, i) => {
                 const n = (q - 1) * 3 + i + 1;
-                return `<button data-month="${n}" class="secondary">${new Intl.DateTimeFormat('ar', { month: 'long' }).format(new Date(Number(y), n - 1, 1))}</button>`;
+                return `<button data-month="${n}" class="secondary${Number(m.slice(5)) === n ? ' fu-current' : ''}" aria-pressed="${Number(m.slice(5)) === n}">${new Intl.DateTimeFormat('ar', { month: 'long' }).format(new Date(Number(y), n - 1, 1))}</button>`;
               },
             ).join(
               '',
-            )}</div><div class="fu-choices">${Array.from({ length: 6 }, (_, i) => `<button data-segment="${i + 1}" class="secondary">${i * 5 + 1}–${i === 5 ? 'نهاية الشهر' : i * 5 + 5}</button>`).join('')}</div><section class="panel"><h2>${esc(cursor.section ? sectionLabels[cursor.section] || cursor.section : cursor.level === 'day' ? d : period)}</h2>${details(cursor.section ? r.sections[cursor.section] : cursor.level === 'day' ? r.days[d] : r.periods[period])}<button id="fuEdit" class="secondary">تعديل التقييم</button></section>${cursor.search ? searchResults(r) : calendar(r, m, segment)}<div class="fu-toolbar"><button id="fuPrev" class="secondary">اليوم السابق</button><button id="fuNext" class="secondary">اليوم التالي</button></div><details><summary>أقسام المرجع</summary><div class="fu-toolbar">${[...new Set([...Object.keys(sectionLabels), ...Object.keys(r.sections)])].map((id) => `<button data-section="${esc(id)}" class="secondary">${esc(sectionLabels[id] || id)}</button>`).join('')}</div></details><details><summary>النسخ السابقة والحذف</summary><div class="fu-toolbar">${read()
+            )}</div><div class="fu-choices">${Array.from({ length: 6 }, (_, i) => `<button data-segment="${i + 1}" class="secondary${segment === i + 1 ? ' fu-current' : ''}" aria-pressed="${segment === i + 1}">${i * 5 + 1}–${i === 5 ? 'نهاية الشهر' : i * 5 + 5}</button>`).join('')}</div><section class="panel"><h2>${esc(cursor.section ? sectionLabels[cursor.section] || cursor.section : cursor.level === 'day' ? d : period)}</h2>${details(cursor.section ? r.sections[cursor.section] : cursor.level === 'day' ? r.days[d] : r.periods[period])}<button id="fuEdit" class="secondary">تعديل التقييم</button></section>${cursor.search ? searchResults(r) : calendar(r, m, segment)}<div class="fu-toolbar"><button id="fuPrev" class="secondary">اليوم السابق</button><button id="fuNext" class="secondary">اليوم التالي</button></div><details><summary>أقسام المرجع</summary><div class="fu-toolbar">${[...new Set([...Object.keys(sectionLabels), ...Object.keys(r.sections)])].map((id) => `<button data-section="${esc(id)}" class="secondary">${esc(sectionLabels[id] || id)}</button>`).join('')}</div></details><details><summary>النسخ السابقة والحذف</summary><div class="fu-toolbar">${read()
               .history.map(
                 (v, i) =>
                   `<button data-restore="${i}" class="secondary">استرجاع ${esc(v.savedAt)}</button>`,
@@ -608,7 +608,7 @@ const FollowUp = (() => {
                 : !v || v.status !== 'complete')) &&
             (cursor.level !== 'segment' ||
               Math.min(6, Math.ceil((i + 1) / 5)) === segment);
-        return `<button data-date="${d}" ${show ? '' : 'disabled'} class="secondary ${d === cursor.date ? 'fu-selected' : ''}" aria-label="${d}: ${v ? 'يوجد تقييم' : 'لا يوجد تقييم'}">${i + 1}<small>${v ? (v.status === 'complete' ? '● مكتمل' : '◐ جزئي / مؤقت') : 'غير مقيّم'}</small></button>`;
+        return `<button data-date="${d}" ${show ? '' : 'disabled'} class="secondary ${d === cursor.date ? 'fu-selected' : ''} ${v ? (v.status === 'complete' ? 'fu-day-complete' : 'fu-day-partial') : 'fu-day-empty'}" aria-label="${d}: ${v ? 'يوجد تقييم' : 'لا يوجد تقييم'}">${i + 1}<small>${v ? (v.status === 'complete' ? '● مكتمل' : '◐ جزئي / مؤقت') : 'غير مقيّم'}</small></button>`;
       },
     ).join('')}</div>`;
   }

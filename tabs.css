@@ -340,3 +340,107 @@
   }
 }
 
+/* ---------- 3. مرجع المتابعة ---------- */
+.fu > .fu-toolbar:first-child {
+  margin-top: 4px;
+}
+.fu > .fu-toolbar:first-child > h1 {
+  flex: 1 1 auto;
+  font-size: 24px;
+}
+.fu > .fu-toolbar:first-child > :is(button, label) {
+  min-height: 36px;
+  font-size: var(--font-sm);
+}
+.fu > p:not(.hint) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-xs);
+  color: var(--color-secondary);
+  white-space: normal;
+}
+/* Period pickers: compact pills; the current one is marked. */
+.fu .fu-choices {
+  gap: 6px;
+  margin: 6px 0;
+}
+.fu .fu-choices > button {
+  flex: 0 1 auto;
+  min-height: 34px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--font-sm);
+}
+.fu .fu-choices > button.fu-current {
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  font-weight: 700;
+}
+.fu .fu-choices:has(> [data-level]) {
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--color-subtle);
+}
+.fu .fu-choices:has(> [data-level]) > button {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.fu .fu-choices:has(> [data-level]) > button.primary {
+  background: var(--color-surface);
+  color: var(--color-brand);
+  box-shadow: var(--shadow-sm);
+}
+/* Calendar days by status. */
+.fu .fu-calendar button {
+  border-radius: var(--radius-sm);
+}
+.fu .fu-calendar .fu-day-empty {
+  background: var(--color-surface-2);
+  color: var(--color-secondary);
+}
+.fu .fu-calendar .fu-day-empty small {
+  opacity: 0.55;
+}
+.fu .fu-calendar .fu-day-complete {
+  background: var(--color-done-soft);
+  border-color: color-mix(in srgb, var(--color-done) 40%, var(--color-border));
+  color: var(--color-done);
+}
+.fu .fu-calendar .fu-day-partial {
+  background: var(--color-warn-soft);
+  border-color: var(--color-warn-border);
+  color: var(--color-warn);
+}
+.fu .fu-calendar button:disabled {
+  opacity: 0.35;
+}
+.fu > details {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+@media (max-width: 760px) {
+  .fu > .fu-toolbar:first-child > h1 {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 900px) {
+  .fu .fu-choices > button,
+  .fu > .fu-toolbar:first-child > :is(button, label) {
+    min-height: 40px;
+  }
+}
+
