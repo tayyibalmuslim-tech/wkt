@@ -240,7 +240,7 @@ const ActionCategories = (() => {
               (a) => !a.archived && a.categoryId === c.id,
             );
             return actions.length
-              ? `<h4><i style="background:${c.color}"></i>${escape(c.name)}</h4>${actions.map((a) => `<div class="ac-row"><i style="background:${c.color}"></i><span>${escape(a.name)}<small class="ac-description">${escape(a.description || '')}</small></span><button data-action-edit="${escape(a.id)}">تعديل / نقل</button><button data-action-delete="${escape(a.id)}">حذف</button></div>`).join('')}`
+              ? `<section class="ac-group" style="--ac-color:${c.color}"><h4><i style="background:${c.color}"></i>${escape(c.name)}<small>${actions.length}</small></h4>${actions.map((a) => `<div class="ac-row"><i style="background:${c.color}"></i><span>${escape(a.name)}<small class="ac-description">${escape(a.description || '')}</small></span><button data-action-edit="${escape(a.id)}">تعديل / نقل</button><button data-action-delete="${escape(a.id)}">حذف</button></div>`).join('')}</section>`
               : '';
           })
           .join('') || '<p>أضف أول فعل واختر قسمه.</p>'
