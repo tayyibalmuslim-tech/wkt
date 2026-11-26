@@ -112,7 +112,7 @@ try {
   assert.equal(run('prayerActionPlans(0)[0].slots'),9);
   assert.equal(run('prayerActionPlans(2)[0].slots'),4);
   assert.equal(run('JSON.stringify(state.prayerActionPlans)'),generalBefore);
-  assert.match($('#periodPlannedActionSummary').textContent,/ساعة و30 دقيقة/);
+  assert.equal($('#periodPlannedActionSummary [data-planned]').textContent,'1 س 30 د');
   assert.equal(run('JSON.stringify({slots:day().slots,checks:day().checks,tasks:day().tasks})'),recordedBefore);
   assert.equal(run('prayerActionPlans(0,addDate(date,1))[0].slots'),6);
   occurrence('[data-plan-delete]').click();

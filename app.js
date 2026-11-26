@@ -375,7 +375,7 @@ function dailySlotMarkup(piece) {
     .filter(Boolean)
     .join(' — ');
   const title = `${caption} من ${time(start)} إلى ${time(end)} · ${end - start} خانات${detail ? ' — ' + detail : ''}`;
-  return `<div class="slot slot-piece" data-piece-key="${kind}:${pieceStart}:${pieceEnd}" data-kind="${kind}" style="grid-column:${piece.column}/span ${pieceEnd - pieceStart};grid-row:${piece.row}"><button class="slot-${kind}" data-slot="${pieceStart}" data-piece-end="${pieceEnd}" data-kind="${kind}" data-range-start="${start}" data-range-end="${end}" title="${esc(title)}" aria-label="${esc(title)}" style="${a ? `background:${ActionCategories.color(state, a)};color:${colorText(ActionCategories.color(state, a))}` : ''}">${showTime ? `<span class="time"><bdi>${time(pieceStart)}</bdi> – <bdi>${time(pieceEnd)}</bdi>${continuation ? '<small class="slot-continuation">تابع الفترة</small>' : ''}</span>` : ''}<span class="label">${esc(label)}</span>${!continuation && parentName ? `<small class="slot-task-parent">${esc(parentName)}</small>` : ''}${!continuation && task ? `<small class="slot-task-name">${esc(task.name)}</small>` : ''}${!continuation && note ? `<small class="slot-note">${esc(note)}</small>` : ''}</button></div>`;
+  return `<div class="slot slot-piece" data-piece-key="${kind}:${pieceStart}:${pieceEnd}" data-kind="${kind}" style="grid-column:${piece.column}/span ${pieceEnd - pieceStart};grid-row:${piece.row}"><button class="slot-${kind}${a ? ' has-action' : action ? ' has-missing-action' : ''}" data-slot="${pieceStart}" data-piece-end="${pieceEnd}" data-kind="${kind}" data-range-start="${start}" data-range-end="${end}" title="${esc(title)}" aria-label="${esc(title)}" style="${a ? `--slot:${ActionCategories.color(state, a)}` : ''}">${showTime ? `<span class="time"><bdi>${time(pieceStart)}</bdi> – <bdi>${time(pieceEnd)}</bdi>${continuation ? '<small class="slot-continuation">تابع الفترة</small>' : ''}</span>` : ''}<span class="label">${esc(label)}</span>${!continuation && parentName ? `<small class="slot-task-parent">${esc(parentName)}</small>` : ''}${!continuation && task ? `<small class="slot-task-name">${esc(task.name)}</small>` : ''}${!continuation && note ? `<small class="slot-note">${esc(note)}</small>` : ''}</button></div>`;
 }
 function slotButtonAt(n, kind) {
   return [
@@ -504,46 +504,93 @@ function slotDuration(slots) {
     minutes ? `${minutes} دقيقة` : '',
   ].filter(Boolean).join(' و');
 }
-function periodActionDuration(action, slots) {
-  return `<span><i class="dot" style="background:${ActionCategories.color(state, action)}" aria-hidden="true"></i>${esc(action.name)} — <strong>${slotDuration(slots)}</strong></span>`;
+// Wasted and prohibited categories are highlighted when they eat into a period.
+const WASTED_CATEGORY_IDS = new Set(['cat-wasted', 'cat-prohibited']);
+function isWastedAction(action) {
+  return WASTED_CATEGORY_IDS.has(action?.categoryId);
 }
-function periodActionRow(id, label, entries, emptyMessage) {
-  const total = entries.reduce((sum, { slots }) => sum + slots, 0);
-  const items = entries.map(({ action, slots }) => periodActionDuration(action, slots));
-  return `<div class="period-action-row">
-    <strong class="period-action-label" id="${id}Label">${label}${total ? ` · ${slotDuration(total)}` : ''}</strong>
-    <div class="legend" id="${id}" role="group" aria-labelledby="${id}Label">${items.join('') || `<span>${emptyMessage}</span>`}</div>
-  </div>`;
+// Compact duration for dense tables: "4 س 30 د".
+function shortDuration(slots) {
+  const total = slots * SlotTools.minutes;
+  const hours = Math.floor(total / 60), minutes = total % 60;
+  return [hours ? `${hours} س` : '', minutes || !hours ? `${minutes} د` : '']
+    .filter(Boolean).join(' ');
 }
-function periodActionSummary() {
+function percent(part, whole) {
+  return whole ? Math.min(100, Math.round((100 * part) / whole)) : 0;
+}
+// Planned vs. actual time for one prayer period. Presentation only.
+function periodPlanStats(p = prayer, d = day()) {
   const actual = new Map();
-  const d = day();
-  for (const n of range(prayer)) {
-    const id = d.slots[n % SlotTools.perDay];
+  for (const n of range(p)) {
+    const id = d?.slots?.[n % SlotTools.perDay];
     if (id) actual.set(id, (actual.get(id) || 0) + 1);
   }
   const actions = new Map(state.actions.map((action) => [action.id, action]));
-  const planned = [], done = [], remaining = [], extra = [];
-  const plans = prayerActionPlans(prayer);
-  const plannedCounts = new Map(plans.map(({ id, slots }) => [id, slots]));
-  for (const { id, slots } of plans) {
+  const rows = [], extra = [], plannedCounts = new Map();
+  for (const { id, slots } of prayerActionPlans(p)) {
     const action = actions.get(id);
     if (!action) continue;
-    const completed = Math.min(actual.get(id) || 0, slots);
-    planned.push({ action, slots });
-    if (completed) done.push({ action, slots: completed });
-    if (completed < slots) remaining.push({ action, slots: slots - completed });
+    plannedCounts.set(id, slots);
+    rows.push({ action, planned: slots, done: Math.min(actual.get(id) || 0, slots) });
   }
   for (const action of state.actions) {
     const slots = (actual.get(action.id) || 0) - (plannedCounts.get(action.id) || 0);
     if (slots > 0) extra.push({ action, slots });
   }
-  return [
-    periodActionRow('periodPlannedActionSummary', 'المخطط', planned, 'لا توجد أفعال مخططة لهذه الصلاة.'),
-    periodActionRow('periodDoneActionSummary', 'تم من الخطة', done, 'لم يُسجّل شيء من الخطة بعد.'),
-    periodActionRow('periodRemainingActionSummary', 'المتبقي', remaining, planned.length ? 'تم تنفيذ الخطة بالكامل.' : 'لا توجد خطة لهذه الفترة.'),
-    periodActionRow('periodExtraActionSummary', 'الزائد عن الخطة', extra, 'لا يوجد وقت مسجل زائد عن الخطة.'),
-  ].join('');
+  const sum = (list, key) => list.reduce((n, item) => n + item[key], 0);
+  return {
+    rows,
+    extra,
+    planned: sum(rows, 'planned'),
+    done: sum(rows, 'done'),
+    extraTotal: sum(extra, 'slots'),
+  };
+}
+function planRowMarkup({ action, planned, done }) {
+  const color = ActionCategories.color(state, action);
+  const left = planned - done, complete = left <= 0;
+  return `<li class="plan-row${complete ? ' is-complete' : done ? ' is-started' : ''}" style="--action:${color}" title="${esc(`${action.name}: تم ${slotDuration(done) || '0 دقيقة'} من ${slotDuration(planned)}`)}">
+    <span class="plan-name"><i class="dot" style="background:${color}" aria-hidden="true"></i>${esc(action.name)}</span>
+    <span class="plan-bar" aria-hidden="true"><span style="width:${percent(done, planned)}%"></span></span>
+    <span class="plan-figures"><strong data-done>${shortDuration(done)}</strong><span aria-hidden="true">/</span><strong data-planned>${shortDuration(planned)}</strong></span>
+    <span class="plan-status">${complete ? '✓ اكتمل' : `باقي ${shortDuration(left)}`}</span>
+  </li>`;
+}
+function planExtraMarkup({ action, slots }) {
+  const color = ActionCategories.color(state, action), wasted = isWastedAction(action);
+  return `<span class="plan-chip${wasted ? ' is-wasted' : ''}" style="--action:${color}" title="${esc(`${action.name}: ${slotDuration(slots)} خارج الخطة`)}"><i class="dot" style="background:${color}" aria-hidden="true"></i>${esc(action.name)} <strong>${shortDuration(slots)}</strong>${wasted ? '<small>ضائع</small>' : ''}</span>`;
+}
+function periodActionSummary() {
+  const stats = periodPlanStats();
+  const pct = percent(stats.done, stats.planned);
+  const wasted = stats.extra.filter(({ action }) => isWastedAction(action))
+    .reduce((n, { slots }) => n + slots, 0);
+  const head = stats.planned
+    ? `<div class="plan-head">
+        <div class="plan-head-text">
+          <strong class="plan-title" id="periodPlanTitle">خطة ${names[prayer]}</strong>
+          <span class="plan-head-figures">تم <strong>${shortDuration(stats.done)}</strong> من <strong>${shortDuration(stats.planned)}</strong></span>
+        </div>
+        <strong class="plan-percent" dir="ltr">${pct}%</strong>
+      </div>
+      <div class="plan-meter" role="progressbar" aria-labelledby="periodPlanTitle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>`
+    : `<div class="plan-head"><div class="plan-head-text"><strong class="plan-title" id="periodPlanTitle">خطة ${names[prayer]}</strong><span class="plan-head-figures">لا توجد أفعال مخططة لهذه الصلاة. تضبطها من «مهام الصلاة» أو «إعدادات الصلاة».</span></div></div>`;
+  return `<div class="plan-board${stats.planned && pct === 100 ? ' is-complete' : ''}">
+    ${head}
+    <ul class="plan-rows" id="periodPlannedActionSummary" aria-labelledby="periodPlanTitle">${stats.rows.map(planRowMarkup).join('')}</ul>
+    <div class="plan-extra${wasted ? ' has-wasted' : ''}">
+      <strong class="plan-extra-title" id="periodExtraActionSummaryLabel">خارج الخطة${stats.extraTotal ? ` · ${shortDuration(stats.extraTotal)}` : ''}${wasted ? ` <small>منها ${shortDuration(wasted)} وقت ضائع</small>` : ''}</strong>
+      <div class="plan-chips" id="periodExtraActionSummary" role="group" aria-labelledby="periodExtraActionSummaryLabel">${stats.extra.map(planExtraMarkup).join('') || '<span class="plan-chips-empty">لا يوجد وقت مسجل خارج الخطة.</span>'}</div>
+    </div>
+  </div>`;
+}
+// Mini plan meter for each prayer card.
+function prayerPlanMeter(p) {
+  const stats = periodPlanStats(p);
+  if (!stats.planned) return '';
+  const pct = percent(stats.done, stats.planned);
+  return `<span class="prayer-plan-meter${pct === 100 ? ' is-complete' : ''}" title="تم ${slotDuration(stats.done) || '0 دقيقة'} من خطة ${slotDuration(stats.planned)}"><span class="prayer-plan-track" aria-hidden="true"><span style="width:${pct}%"></span></span><small dir="ltr">${pct}%</small></span>`;
 }
 function renderDay() {
   let d = day(),
@@ -553,7 +600,7 @@ function renderDay() {
         !!d.actualNotes?.[n % 144],
     ).length,
     done = prayerDayCount(d);
-  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / ${prayerCheckTotal()} من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCheckTasks(i).length > 0 && prayerCount(i) === prayerCheckTasks(i).length ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/${prayerCheckTasks(i).length}</span><small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button>${prayerActionSummary(i)}<button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${renderPeriodTaskGroups(tasks())}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="slot-toolbar"><span><b>ما فعلته</b> في الأعلى · <b>المطلوب</b> في الأسفل</span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div><div class="period-action-totals" id="periodActionTotals" aria-live="polite">${periodActionSummary()}</div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
+  app.innerHTML = `<div class="day-workspace"><div class="top"><div><h1>يومك حول الصلاة</h1><p style="margin:0"><strong>${hijriLabel(date)}</strong><br><span class="hint">الميلادي الآن: <span id="civilToday">${gregorianLabel()}</span></span></p></div><div class="date"><button data-shift="-1" aria-label="اليوم السابق">→</button><input type="date" id="date" value="${date}" aria-label="اختيار اليوم الهجري بتاريخ نهاره الميلادي"><button data-shift="1" aria-label="اليوم التالي">←</button><button id="today">اليوم</button></div></div><div class="day-summary" aria-label="ملخص تسجيل اليوم"><span>${dayRangeLabel()}</span><span><strong id="dayRecorded">${filled}</strong> / 144 مسجلة فعليًا</span><span><strong id="dayUnrecorded">${144 - filled}</strong> لم تُسجل</span><span><strong id="dayPrayerChecks">${done}</strong> / ${prayerCheckTotal()} من مهام الصلاة</span></div><div class="tabs">${prayerOrder.map((i) => `<div class="tab prayer-tab ${i === prayer ? 'selected' : ''}" data-prayer="${i}"><button type="button" class="prayer-period" ${i === prayer ? 'aria-current="true"' : ''} aria-label="عرض فترة ${names[i]}"><strong>${names[i]}</strong><small>${displayTime(prayerTimes()[i])}</small><span class="prayer-count ${prayerCheckTasks(i).length > 0 && prayerCount(i) === prayerCheckTasks(i).length ? 'complete' : ''}" dir="ltr">${prayerCount(i)}/${prayerCheckTasks(i).length}</span>${prayerPlanMeter(i)}<small>${capacity(date, i).free} خانة متاحة للتخطيط</small></button>${prayerActionSummary(i)}<button type="button" class="prayer-tasks-button" data-prayer-tasks="${i}" aria-label="عرض مهام صلاة ${names[i]}">${taskIcon('check')} مهام الصلاة</button></div>`).join('')}</div><section class="panel period-tasks"><div class="panel-title"><h2>مهام فترة ${names[prayer]}</h2><span class="badge">${tasks().length}</span></div><p class="capacity-note">${capacityText(date, prayer)}</p><div id="dailyTaskCards">${renderPeriodTaskGroups(tasks())}</div><button id="addDetailedTask" class="primary">${taskIcon('plus')} إضافة مهمة</button></section><div class="time-panel"><section class="panel"><div class="panel-title"><h2>وقت ${names[prayer]}</h2><span class="badge">${range(prayer).length} خانة · ١٠ دقائق</span></div><details class="day-slot-help"><summary>كيف أسجل وقتي؟</summary><p class="hint">اضغط الجزء الكبير لتسجيل ما فعلته، والشريط الصغير بالأسفل لاختيار المطلوب. الأوقات بنظام ١٢ ساعة: ص = صباحًا، م = مساءً. يبدأ اليوم عند أذان المغرب بالضبط؛ حدود الخانات مقربة لعشر دقائق للحفاظ على ١٤٤ خانة.</p></details><div class="period-action-totals" id="periodActionTotals" aria-live="polite">${periodActionSummary()}</div><div class="slot-toolbar"><span class="slot-legend"><span class="slot-legend-actual">ما فعلته</span><span class="slot-legend-planned">المطلوب</span></span><button id="bulkSlots" class="secondary bulk-slots">تسجيل فترة كاملة</button></div><div class="grid" id="dailySlots"></div></section></div><section class="panel period-tasks" aria-labelledby="allDayTasksTitle"><div class="panel-title"><h2 id="allDayTasksTitle">كل مهام اليوم</h2><span class="badge">${allTasksOn(date).length}</span></div><div id="allDayTaskCards">${
     renderOrderedDayTasks(allTasksOn(date))
   }</div></section></div>`;
   observeDailySlotGrid();
@@ -763,9 +810,15 @@ function refreshDailySlots(from, to) {
   const note = $('.day-workspace .capacity-note');
   if (note) note.textContent = capacityText(date, prayer);
   document.querySelectorAll('.prayer-tab').forEach((tab) => {
+    const p = +tab.dataset.prayer;
     const label = tab.querySelector('.prayer-period > small:last-child');
     if (label)
-      label.textContent = `${capacity(date, +tab.dataset.prayer).free} خانة متاحة للتخطيط`;
+      label.textContent = `${capacity(date, p).free} خانة متاحة للتخطيط`;
+    const meter = tab.querySelector('.prayer-plan-meter');
+    const markup = prayerPlanMeter(p);
+    if (meter && markup) meter.outerHTML = markup;
+    else if (meter) meter.remove();
+    else if (markup) label?.insertAdjacentHTML('beforebegin', markup);
   });
   app.scrollTop = scroll;
   if (document.scrollingElement)

@@ -113,7 +113,7 @@ click('[data-task-choice="actual-task"]');assert.equal($('#picker').open,false);
 assert.equal(run('day().slots['+actualIndex+']'),run('state.actions[0].id'));
 assert.equal(run('day().actualTasks['+actualIndex+'].id'),'actual-task');
 assert.equal($('.slot-actual[data-slot="'+actualSlot+'"] .slot-task-name').textContent,'مهمة <اختبار>');
-assert.equal($('.slot-actual[data-slot="'+actualSlot+'"]').style.background,$('[data-task-choice="actual-task"]').style.background);
+{const probe=w.document.createElement('i');probe.style.background=$('.slot-actual[data-slot="'+actualSlot+'"]').style.getPropertyValue('--slot');assert.equal(probe.style.background,$('[data-task-choice="actual-task"]').style.background);}
 assert.equal(run('JSON.stringify(day().planned)'),plannedBefore);assert.equal(run('JSON.stringify(day().taskProgress)'),progressBefore);assert.equal(run('JSON.stringify(day().done)'),doneBefore);
 // Notes keep the task snapshot; manual action replacement and clearing remove it.
 click('.slot-actual[data-slot="'+actualSlot+'"]');$('#slotNote').value='ملاحظة المهمة';submit('#slotForm');
