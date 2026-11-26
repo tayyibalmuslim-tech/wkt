@@ -1082,6 +1082,13 @@ function capacityText(key, p, ignoreId = '') {
   const c = capacity(key, p, ignoreId);
   return `${c.total} خانة إجمالًا · ${c.occupied} مشغولة بالتخطيط · ${c.free} متاحة · ${c.actual} مسجلة فعليًا · ${c.unrecorded} لم تُسجل · تقديرات المهام: ${c.estimates} خانة`;
 }
+// Compact capacity chips; the full sentence stays available as a tooltip.
+function capacityNote(key, p, ignoreId = '') {
+  const c = capacity(key, p, ignoreId);
+  const chip = (n, label, cls = '') =>
+    `<span class="capacity-chip${cls}"><b>${n}</b> ${label}</span>`;
+  return `<p class="capacity-note capacity-chips" title="${capacityText(key, p, ignoreId)}">${chip(c.total, 'خانة')}${chip(c.free, 'متاحة', c.free ? ' is-free' : ' is-full')}${chip(c.occupied, 'مشغولة بالتخطيط')}${chip(c.actual, 'مسجلة فعليًا')}${c.estimates ? chip(c.estimates, 'خانة تقديرات المهام') : ''}</p>`;
+}
 function removeTaskSchedule(key, id) {
   const d = state.sunsetDays[key];
   if (!d) return;
